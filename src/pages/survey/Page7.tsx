@@ -200,7 +200,7 @@ export const Page7 = ({
         <div className="flex justify-between items-start">
           <div className="text-center flex-1">
             <h1 className="text-2xl font-bold text-professional-navy">
-              RESUME HASIL SURVEI KONSUMSI DAN PENGELUARAN RUMAH TANGGA
+              RESUME HASIL PENDATAAN
             </h1>
             <h2 className="text-lg text-teal-600 font-bold">
               LK VSEN.KP-3210
