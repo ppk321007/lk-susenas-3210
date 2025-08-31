@@ -16,7 +16,9 @@ export const Page6 = ({
   data,
   updateData
 }: Page6Props) => {
-  const { recalculateImputasi } = useSurveyImputasi(data, updateData);
+  const {
+    recalculateImputasi
+  } = useSurveyImputasi(data, updateData);
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('id-ID').format(Math.round(num));
   };
@@ -236,12 +238,7 @@ export const Page6 = ({
         <h2 className="text-xl font-semibold text-professional-navy">
           HALAMAN 6 - REKAPITULASI PENERIMAAN DAN PENGELUARAN
         </h2>
-        <Button
-          onClick={recalculateImputasi}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2"
-        >
+        <Button onClick={recalculateImputasi} variant="outline" size="sm" className="flex items-center gap-2">
           <RefreshCw className="h-4 w-4" />
           Refresh Data
         </Button>
@@ -455,17 +452,17 @@ export const Page6 = ({
         <CardContent>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-muted p-4 rounded-lg">
+              <div className="p-4 rounded-lg bg-indigo-200">
                 <h4 className="font-medium mb-2">Selisih Penerimaan dan Pengeluaran</h4>
                 <p className="text-lg font-semibold">Rp {formatNumber(selisihPenerimaanPengeluaran)}</p>
               </div>
-              <div className="bg-muted p-4 rounded-lg">
+              <div className="p-4 rounded-lg bg-sky-200">
                 <h4 className="font-medium mb-2">Selisih Transaksi Keuangan</h4>
                 <p className="text-lg font-semibold">Rp {formatNumber(selisihTransaksiKeuangan)}</p>
               </div>
             </div>
             
-            <div className="bg-primary/5 p-4 rounded-lg border-l-4 border-primary">
+            <div className="p-4 rounded-lg border-l-4 border-primary bg-lime-100">
               <h4 className="font-medium mb-2">Nilai Diskrepansi:</h4>
               <p className="text-xl font-bold text-primary">Rp {formatNumber(diskrepansi)}</p>
             </div>
