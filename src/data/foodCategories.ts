@@ -221,7 +221,7 @@ export const FOOD_CATEGORIES = {
       "Sambal jadi",
       "Saus tomat",
       "Bumbu masak jadi/kemasan, bumbu racik",
-      "Bumbu Lainnya (Pala, jahe, Kunyit, dll)"
+      "Bumbu Lainnya (kencur, pala, kapulaga, dsb.)"
     ]
   },
   L: {
