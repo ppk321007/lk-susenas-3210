@@ -200,6 +200,32 @@ const Index = () => {
   };
 
   const handlePageJump = (page: number) => {
+    // If trying to go to page 3 or higher, validate page 2 first
+    if (page >= 3) {
+      const page2IncompleteItems = checkIncompleteDetails(surveyData, true);
+      if (page2IncompleteItems.length > 0) {
+        toast({
+          title: "Data Belum Lengkap",
+          description: "Mohon lengkapi detail jenis pembelian atau asal produksi di halaman 2 terlebih dahulu.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    // If trying to go to page 4 or higher, validate page 3 first
+    if (page >= 4) {
+      const page3IncompleteItems = checkIncompleteDetails(surveyData, false);
+      if (page3IncompleteItems.length > 0) {
+        toast({
+          title: "Data Belum Lengkap", 
+          description: "Mohon lengkapi detail jenis pembelian atau jenis pemberian di halaman 3 terlebih dahulu.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     setCurrentPage(page);
   };
 
