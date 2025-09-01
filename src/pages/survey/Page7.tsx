@@ -325,15 +325,6 @@ export const Page7 = ({
                 <div className="text-sm">Barang Bukan Makanan</div>
               </div>
             </div>
-            
-            <div className="bg-muted p-4 rounded-lg">
-              <div className="text-sm font-medium mb-2">Interpretasi Struktur Pengeluaran:</div>
-              <div className="text-sm">
-                Proporsi pengeluaran makanan sebesar {formatPercentage(expenseStructure.foodPercentage)}% 
-                menunjukkan tingkat kesejahteraan rumah tangga dalam kategori{" "}
-                {expenseStructure.foodPercentage > 60 ? "perlu perhatian khusus" : expenseStructure.foodPercentage >= 40 ? "menengah" : "baik"}.
-              </div>
-            </div>
           </div>
         </CardContent>
       </Card>
