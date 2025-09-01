@@ -16,7 +16,7 @@ export const Page3NonFood = ({
   const {
     updateWithImputasi
   } = useSurveyImputasi(data, updateData);
-  
+
   // Get incomplete entries for validation
   const incompleteEntries = validatePage3Entries(data);
   const updateCategoryExpense = (categoryKey: string, isMonthly: boolean, itemKey: string, expense: any) => {
@@ -108,19 +108,9 @@ export const Page3NonFood = ({
                 <div className="grid gap-6">
                   {/* Sebulan Terakhir */}
                   {category.monthlyItems.length > 0 && <div>
-                      <h4 className="font-medium mb-3 text-primary">Sebulan Terakhir</h4>
+                      <h4 className="font-medium mb-3 text-violet-700">Sebulan Terakhir</h4>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                        {category.monthlyItems.map(item => 
-                          <EnhancedExpenseInput 
-                            key={item} 
-                            label={item} 
-                            value={getCurrentExpense(categoryKey, true, item)} 
-                            onChange={expense => updateCategoryExpense(categoryKey, true, item, expense)} 
-                            useNewCategories={true}
-                            itemKey={item}
-                            incompleteEntries={incompleteEntries}
-                          />
-                        )}
+                        {category.monthlyItems.map(item => <EnhancedExpenseInput key={item} label={item} value={getCurrentExpense(categoryKey, true, item)} onChange={expense => updateCategoryExpense(categoryKey, true, item, expense)} useNewCategories={true} itemKey={item} incompleteEntries={incompleteEntries} />)}
                       </div>
                     </div>}
 
@@ -128,17 +118,7 @@ export const Page3NonFood = ({
                   {category.yearlyItems.length > 0 && <div>
                       <h4 className="font-medium mb-3 text-primary">Setahun Terakhir</h4>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                        {category.yearlyItems.map(item => 
-                          <EnhancedExpenseInput 
-                            key={item} 
-                            label={item} 
-                            value={getCurrentExpense(categoryKey, false, item)} 
-                            onChange={expense => updateCategoryExpense(categoryKey, false, item, expense)} 
-                            useNewCategories={true}
-                            itemKey={`${categoryKey}_yearly_${item}`}
-                            incompleteEntries={incompleteEntries}
-                          />
-                        )}
+                        {category.yearlyItems.map(item => <EnhancedExpenseInput key={item} label={item} value={getCurrentExpense(categoryKey, false, item)} onChange={expense => updateCategoryExpense(categoryKey, false, item, expense)} useNewCategories={true} itemKey={`${categoryKey}_yearly_${item}`} incompleteEntries={incompleteEntries} />)}
                       </div>
                     </div>}
                 </div>
