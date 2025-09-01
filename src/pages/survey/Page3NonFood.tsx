@@ -108,7 +108,7 @@ export const Page3NonFood = ({
                 <div className="grid gap-6">
                   {/* Sebulan Terakhir */}
                   {category.monthlyItems.length > 0 && <div>
-                      <h4 className="font-medium mb-3 text-violet-700">Sebulan Terakhir</h4>
+                      <h4 className="mb-3 text-violet-700 font-bold">Sebulan Terakhir</h4>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                         {category.monthlyItems.map(item => <EnhancedExpenseInput key={item} label={item} value={getCurrentExpense(categoryKey, true, item)} onChange={expense => updateCategoryExpense(categoryKey, true, item, expense)} useNewCategories={true} itemKey={item} incompleteEntries={incompleteEntries} />)}
                       </div>
