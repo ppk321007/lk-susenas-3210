@@ -199,6 +199,10 @@ const Index = () => {
     }
   };
 
+  const handlePageJump = (page: number) => {
+    setCurrentPage(page);
+  };
+
   const getPageTitle = () => {
     const titles = {
       1: "Keterangan Identitas",
@@ -244,6 +248,7 @@ const Index = () => {
       totalPages={7}
       onNext={handleNext}
       onPrevious={handlePrevious}
+      onPageJump={handlePageJump}
       title={getPageTitle()}
     >
       {renderCurrentPage()}

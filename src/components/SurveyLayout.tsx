@@ -1,12 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink 
+} from "@/components/ui/pagination";
 interface SurveyLayoutProps {
   children: React.ReactNode;
   currentPage: number;
   totalPages: number;
   onNext: () => void;
   onPrevious: () => void;
+  onPageJump?: (page: number) => void;
   title: string;
 }
 export const SurveyLayout = ({
@@ -15,6 +22,7 @@ export const SurveyLayout = ({
   totalPages,
   onNext,
   onPrevious,
+  onPageJump,
   title
 }: SurveyLayoutProps) => {
   return <div className="min-h-screen p-2 lg:p-4 bg-amber-200">
@@ -45,6 +53,26 @@ export const SurveyLayout = ({
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
+
+            {currentPage >= 2 && onPageJump && (
+              <div className="mt-4">
+                <Pagination>
+                  <PaginationContent>
+                    {Array.from({ length: totalPages }, (_, i) => (
+                      <PaginationItem key={i + 1}>
+                        <PaginationLink
+                          onClick={() => onPageJump(i + 1)}
+                          isActive={currentPage === i + 1}
+                          className="cursor-pointer"
+                        >
+                          {i + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
