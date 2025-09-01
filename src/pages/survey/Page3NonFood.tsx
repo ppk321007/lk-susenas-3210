@@ -116,7 +116,7 @@ export const Page3NonFood = ({
 
                   {/* Setahun Terakhir */}
                   {category.yearlyItems.length > 0 && <div>
-                      <h4 className="font-medium mb-3 text-primary">Setahun Terakhir</h4>
+                      <h4 className="mb-3 text-violet-700 font-bold">Setahun Terakhir</h4>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                         {category.yearlyItems.map(item => <EnhancedExpenseInput key={item} label={item} value={getCurrentExpense(categoryKey, false, item)} onChange={expense => updateCategoryExpense(categoryKey, false, item, expense)} useNewCategories={true} itemKey={`${categoryKey}_yearly_${item}`} incompleteEntries={incompleteEntries} />)}
                       </div>
