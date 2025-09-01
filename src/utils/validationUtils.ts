@@ -19,26 +19,39 @@ export const validatePage2Entries = (data: SurveyData): IncompleteEntry[] => {
     if (value?.entries?.length > 0) {
       value.entries.forEach((entry: ExpenseEntry, index: number) => {
         if (entry.nilai > 0) {
+          // Determine item name based on key pattern
+          let itemName = '';
+          const categoryKey = itemKey.split('_')[0];
+          
+          // For categories M and N, use member name
+          if (categoryKey === 'M' || categoryKey === 'N') {
+            const memberIndex = parseInt(itemKey.split('_')[1]);
+            itemName = data.namaAnggotaRumahTangga?.[memberIndex] || `Anggota ${memberIndex + 1}`;
+          } else {
+            // For other categories, use item name
+            itemName = itemKey.split('_').slice(1).join(' ');
+          }
+          
           if (entry.kategori === 'Pembelian' && (!entry.jenisDetail || entry.jenisDetail === "")) {
             incompleteEntries.push({
-              categoryKey: itemKey.split('_')[0],
+              categoryKey,
               itemKey,
               entryIndex: index,
               entryValue: entry.nilai,
               missingField: 'jenisDetail',
               categoryType: 'Pembelian',
-              itemName: itemKey.split('_').slice(1).join(' '),
+              itemName,
               message: 'Pilih jenis pembelian'
             });
           } else if (entry.kategori === 'Produksi Sendiri/Pemberian' && (!entry.jenisDetail || entry.jenisDetail === "")) {
             incompleteEntries.push({
-              categoryKey: itemKey.split('_')[0],
+              categoryKey,
               itemKey,
               entryIndex: index,
               entryValue: entry.nilai,
               missingField: 'jenisDetail',
               categoryType: 'Produksi Sendiri/Pemberian',
-              itemName: itemKey.split('_').slice(1).join(' '),
+              itemName,
               message: 'Pilih asal produksi'
             });
           }

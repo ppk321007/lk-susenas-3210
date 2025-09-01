@@ -91,7 +91,13 @@ export const Page2Food = ({
                   incompleteEntries={incompleteEntries}
                 />;
               })}
-                  </div> : <MakananMinumanJadiInput data={data} updateData={updateData} categoryKey={categoryKey} categoryTitle={category.title} />}
+                  </div> : <MakananMinumanJadiInput 
+                    data={data} 
+                    updateData={updateData} 
+                    categoryKey={categoryKey} 
+                    categoryTitle={category.title}
+                    incompleteEntries={incompleteEntries}
+                  />}
               </CardContent>
             </Card>;
       })}

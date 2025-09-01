@@ -2,19 +2,22 @@ import { EnhancedExpenseInput } from "@/components/EnhancedExpenseInput";
 import { SurveyData, FoodExpense } from "@/types/survey";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSurveyImputasi } from "@/hooks/useSurveyImputasi";
+import { validatePage2Entries, IncompleteEntry } from "@/utils/validationUtils";
 
 interface MakananMinumanJadiInputProps {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
   categoryKey: string;
   categoryTitle: string;
+  incompleteEntries?: IncompleteEntry[];
 }
 
 export const MakananMinumanJadiInput = ({ 
   data, 
   updateData, 
   categoryKey, 
-  categoryTitle 
+  categoryTitle,
+  incompleteEntries = []
 }: MakananMinumanJadiInputProps) => {
   const { updateWithImputasi } = useSurveyImputasi(data, updateData);
 
@@ -82,6 +85,8 @@ export const MakananMinumanJadiInput = ({
                 label={`${index + 1}. ${nama}`}
                 value={currentExpense}
                 onChange={(expense) => updateExpense(index, expense)}
+                itemKey={itemKey}
+                incompleteEntries={incompleteEntries}
               />
             );
           })}
