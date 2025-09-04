@@ -138,7 +138,7 @@ export const AsetPerubahanEntry = ({
                 <Input type="text" value={getAsetTetapUsahaValue(item.key, 'pemberian') ? formatNumber(getAsetTetapUsahaValue(item.key, 'pemberian')) : ''} onChange={e => updateAsetTetapUsaha(item.key, 'pemberian', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
               </td>
               <td className="border border-gray-300 p-1">
-                <Input type="text" value={['bangunanBukan', 'kendaraan', 'mesinPeralatan', 'tanamanHewan'].includes(item.key) && getAsetTetapUsahaValue(item.key, 'imputasiPenamabahanPemberian') ? formatNumber(getAsetTetapUsahaValue(item.key, 'imputasiPenamabahanPemberian')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-gray-600" />
+                <Input type="text" value={['bangunanBukan', 'kendaraan', 'mesinPeralatan', 'tanamanHewan'].includes(item.key) && getAsetTetapUsahaValue(item.key, 'imputasiPenamabahanPemberian') ? formatNumber(getAsetTetapUsahaValue(item.key, 'imputasiPenamabahanPemberian')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-foreground" />
               </td>
               <td className="border border-gray-300 p-1">
                 <Input type="text" value={getAsetTetapUsahaValue(item.key, 'pembuatanSendiri') ? formatNumber(getAsetTetapUsahaValue(item.key, 'pembuatanSendiri')) : ''} onChange={e => updateAsetTetapUsaha(item.key, 'pembuatanSendiri', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
@@ -153,7 +153,7 @@ export const AsetPerubahanEntry = ({
                 <Input type="text" value={getAsetTetapUsahaValue(item.key, 'pemberianKepada') ? formatNumber(getAsetTetapUsahaValue(item.key, 'pemberianKepada')) : ''} onChange={e => updateAsetTetapUsaha(item.key, 'pemberianKepada', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
               </td>
               <td className="border border-gray-300 p-1">
-                <Input type="text" value={['bangunanBukan', 'kendaraan', 'mesinPeralatan', 'tanamanHewan'].includes(item.key) && getAsetTetapUsahaValue(item.key, 'imputasiPenguranganPemberianKepada') ? formatNumber(getAsetTetapUsahaValue(item.key, 'imputasiPenguranganPemberianKepada')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-gray-600" />
+                <Input type="text" value={['bangunanBukan', 'kendaraan', 'mesinPeralatan', 'tanamanHewan'].includes(item.key) && getAsetTetapUsahaValue(item.key, 'imputasiPenguranganPemberianKepada') ? formatNumber(getAsetTetapUsahaValue(item.key, 'imputasiPenguranganPemberianKepada')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-foreground" />
               </td>
               <td className="border border-gray-300 p-1 text-right text-xs">
                 {formatNumber(getAsetTetapUsahaValue(item.key, 'penjualan') + getAsetTetapUsahaValue(item.key, 'pemberianKepada'))}
@@ -173,7 +173,7 @@ export const AsetPerubahanEntry = ({
                 <Input type="text" value={getOtherAsetValue(item.key, 'pemberian') ? formatNumber(getOtherAsetValue(item.key, 'pemberian')) : ''} onChange={e => updateOtherAset(item.key, 'pemberian', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
               </td>
               <td className="border border-gray-300 p-1">
-                <Input type="text" value={['bangunanTinggal', 'lahanBarang'].includes(item.key) && getOtherAsetValue(item.key, 'imputasiPenamabahanPemberian') ? formatNumber(getOtherAsetValue(item.key, 'imputasiPenamabahanPemberian')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-gray-600" />
+                <Input type="text" value={['bangunanTinggal', 'lahanBarang'].includes(item.key) && getOtherAsetValue(item.key, 'imputasiPenamabahanPemberian') ? formatNumber(getOtherAsetValue(item.key, 'imputasiPenamabahanPemberian')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-foreground" />
               </td>
               <td className="border border-gray-300 p-1">
                 <Input type="text" value={getOtherAsetValue(item.key, 'pembuatanSendiri') ? formatNumber(getOtherAsetValue(item.key, 'pembuatanSendiri')) : ''} onChange={e => updateOtherAset(item.key, 'pembuatanSendiri', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
@@ -188,7 +188,7 @@ export const AsetPerubahanEntry = ({
                 <Input type="text" value={getOtherAsetValue(item.key, 'pemberianKepada') ? formatNumber(getOtherAsetValue(item.key, 'pemberianKepada')) : ''} onChange={e => updateOtherAset(item.key, 'pemberianKepada', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
               </td>
               <td className="border border-gray-300 p-1">
-                <Input type="text" value={['bangunanTinggal', 'lahanBarang'].includes(item.key) && getOtherAsetValue(item.key, 'imputasiPenguranganPemberianKepada') ? formatNumber(getOtherAsetValue(item.key, 'imputasiPenguranganPemberianKepada')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-gray-600" />
+                <Input type="text" value={['bangunanTinggal', 'lahanBarang'].includes(item.key) && getOtherAsetValue(item.key, 'imputasiPenguranganPemberianKepada') ? formatNumber(getOtherAsetValue(item.key, 'imputasiPenguranganPemberianKepada')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-foreground" />
               </td>
               <td className="border border-gray-300 p-1 text-right text-xs">
                 {formatNumber(getOtherAsetValue(item.key, 'penjualan') + getOtherAsetValue(item.key, 'pemberianKepada'))}

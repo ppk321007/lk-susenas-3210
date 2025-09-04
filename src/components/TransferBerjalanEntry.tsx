@@ -98,10 +98,10 @@ export const TransferBerjalanEntry = ({
                 )}
               </td>
               <td className="border border-gray-300 p-2">
-                <Input type="text" value={(['pemerintah', 'pemerintahBantuan'].includes(transfer.key)) && (data.transferBerjalan?.[transfer.key as keyof typeof data.transferBerjalan] as any)?.imputasiTransferDiterimaUang ? formatNumber((data.transferBerjalan[transfer.key as keyof typeof data.transferBerjalan] as any).imputasiTransferDiterimaUang) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-gray-600" />
+                <Input type="text" value={(['pemerintah', 'pemerintahBantuan'].includes(transfer.key)) && (data.transferBerjalan?.[transfer.key as keyof typeof data.transferBerjalan] as any)?.imputasiTransferDiterimaUang ? formatNumber((data.transferBerjalan[transfer.key as keyof typeof data.transferBerjalan] as any).imputasiTransferDiterimaUang) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-foreground" />
               </td>
               <td className="border border-gray-300 p-2">
-                <Input type="text" value={(['pemerintah', 'pemerintahBantuan', 'badanUsaha', 'rumahTanggaLain', 'lembagaNirlaba', 'luarNegeri'].includes(transfer.key)) && (data.transferBerjalan?.[transfer.key as keyof typeof data.transferBerjalan] as any)?.imputasiTransferDiterimaBarang ? formatNumber((data.transferBerjalan[transfer.key as keyof typeof data.transferBerjalan] as any).imputasiTransferDiterimaBarang) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-gray-600" />
+                <Input type="text" value={(['pemerintah', 'pemerintahBantuan', 'badanUsaha', 'rumahTanggaLain', 'lembagaNirlaba', 'luarNegeri'].includes(transfer.key)) && (data.transferBerjalan?.[transfer.key as keyof typeof data.transferBerjalan] as any)?.imputasiTransferDiterimaBarang ? formatNumber((data.transferBerjalan[transfer.key as keyof typeof data.transferBerjalan] as any).imputasiTransferDiterimaBarang) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-foreground" />
               </td>
               <td className="border border-gray-300 p-2">
                 {transfer.isParent ? (
