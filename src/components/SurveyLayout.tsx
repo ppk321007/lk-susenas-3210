@@ -1,12 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationItem, 
-  PaginationLink 
-} from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
 interface SurveyLayoutProps {
   children: React.ReactNode;
   currentPage: number;
@@ -25,7 +20,7 @@ export const SurveyLayout = ({
   onPageJump,
   title
 }: SurveyLayoutProps) => {
-  return <div className="min-h-screen p-2 lg:p-4 bg-amber-200">
+  return <div className="min-h-screen p-2 lg:p-4 bg-orange-200">
       <div className="max-w-none w-full mx-auto">
         <Card className="w-full">
           <CardHeader className="text-center pb-4">
@@ -54,25 +49,19 @@ export const SurveyLayout = ({
               </Button>
             </div>
 
-            {currentPage >= 2 && onPageJump && (
-              <div className="mt-4">
+            {currentPage >= 2 && onPageJump && <div className="mt-4">
                 <Pagination>
                   <PaginationContent>
-                    {Array.from({ length: totalPages }, (_, i) => (
-                      <PaginationItem key={i + 1}>
-                        <PaginationLink
-                          onClick={() => onPageJump(i + 1)}
-                          isActive={currentPage === i + 1}
-                          className="cursor-pointer"
-                        >
+                    {Array.from({
+                  length: totalPages
+                }, (_, i) => <PaginationItem key={i + 1}>
+                        <PaginationLink onClick={() => onPageJump(i + 1)} isActive={currentPage === i + 1} className="cursor-pointer">
                           {i + 1}
                         </PaginationLink>
-                      </PaginationItem>
-                    ))}
+                      </PaginationItem>)}
                   </PaginationContent>
                 </Pagination>
-              </div>
-            )}
+              </div>}
           </CardContent>
         </Card>
       </div>
