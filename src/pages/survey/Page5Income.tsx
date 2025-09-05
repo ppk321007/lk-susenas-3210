@@ -167,7 +167,7 @@ export const Page5Income = ({
                     })} placeholder="Rp 0" className="text-sm" />
                       </td>
                       <td className="border border-gray-300 p-2">
-                        <Input type="text" value={entry.imputasiUpahGajiBarang ? formatNumber(entry.imputasiUpahGajiBarang) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-gray-600" />
+                        <Input type="text" value={entry.imputasiUpahGajiBarang ? formatNumber(entry.imputasiUpahGajiBarang) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-foreground" />
                       </td>
                       <td className="border border-gray-300 p-2">
                         <Input type="text" value={entry.lembur ? formatNumber(entry.lembur) : ''} onChange={e => updateUpahEntry(index, {
@@ -265,7 +265,7 @@ export const Page5Income = ({
                         Rp {formatNumber(entry.nilaiProduksi - entry.biayaProduksi)}
                       </td>
                       <td className="border border-gray-300 p-2">
-                        <Input type="text" value={entry.imputasiNilaiProduksi ? formatNumber(entry.imputasiNilaiProduksi) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-gray-600" />
+                        <Input type="text" value={entry.imputasiNilaiProduksi ? formatNumber(entry.imputasiNilaiProduksi) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-foreground" />
                       </td>
                       <td className="border border-gray-300 p-2 text-center">
                         <Button size="sm" variant="destructive" onClick={() => removeUsahaEntry(index)}>
