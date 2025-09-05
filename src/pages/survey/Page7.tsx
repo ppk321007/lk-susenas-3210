@@ -14,7 +14,9 @@ export const Page7 = ({
   data,
   updateData
 }: Page7Props) => {
-  const { recalculateImputasi } = useSurveyImputasi(data, updateData);
+  const {
+    recalculateImputasi
+  } = useSurveyImputasi(data, updateData);
   const {
     toast
   } = useToast();
@@ -209,12 +211,7 @@ export const Page7 = ({
               Sosial-3210 | Tanggal: {currentDate}
             </p>
           </div>
-          <Button
-            onClick={recalculateImputasi}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
+          <Button onClick={recalculateImputasi} variant="outline" size="sm" className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4" />
             Refresh Data
           </Button>
@@ -420,7 +417,7 @@ export const Page7 = ({
             </div>
           </div>
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            <p>Simpan data untuk backup atau unggah data yang telah tersimpan sebelumnya</p>
+            <p>Simpan dat survei untuk backup, atau unggah file dari backup sebelumnya.</p>
             <p className="text-xs">Format file: JSON</p>
           </div>
         </CardContent>
