@@ -240,10 +240,10 @@ export const Page7 = ({
   // Create warnings for insufficient item counts
   const warnings: string[] = [];
   if (foodItemCount < 13) {
-    warnings.push(`Kategori Makanan dan Minuman hanya terisi ${foodItemCount} item (minimal 13 item)`);
+    warnings.push(`Kategori Makanan dan Minuman hanya terisi ${foodItemCount} item (kondisi ideal 13 item)`);
   }
   if (nonFoodItemCount < 19) {
-    warnings.push(`Kategori Barang Bukan Makanan hanya terisi ${nonFoodItemCount} item (minimal 19 item)`);
+    warnings.push(`Kategori Barang Bukan Makanan hanya terisi ${nonFoodItemCount} item (kondisi ideal 19 item)`);
   }
   return <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
