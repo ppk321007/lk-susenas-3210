@@ -6,6 +6,8 @@ import { Download, Upload, RefreshCw } from "lucide-react";
 import { useSurveyImputasi } from "@/hooks/useSurveyImputasi";
 import { useToast } from "@/hooks/use-toast";
 import { useRef } from "react";
+import { ValidationWarning } from "@/components/ValidationWarning";
+import { FOOD_CATEGORIES } from "@/data/foodCategories";
 interface Page7Props {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
@@ -181,6 +183,42 @@ export const Page7 = ({
       biayaPemindahan: Math.round(data.asetPerubahan.biayaPemindahan.netto)
     };
   };
+
+  const getFoodItemCount = () => {
+    let count = 0;
+    Object.values(data.makananMinuman).forEach(expense => {
+      const total = (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+      if (total > 0) count++;
+    });
+    return count;
+  };
+
+  const getNonFoodItemCount = () => {
+    let count = 0;
+    
+    // Count monthly items
+    ['A', 'B', 'C', 'D', 'E', 'F'].forEach(categoryKey => {
+      const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
+      if (monthlyData) {
+        Object.values(monthlyData).forEach((expense: any) => {
+          if (expense) {
+            const total = (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+            if (total > 0) count++;
+          }
+        });
+      }
+    });
+
+    // Count yearly items
+    Object.values(data.komoditiSetahun).forEach((expense: any) => {
+      if (expense) {
+        const total = (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+        if (total > 0) count++;
+      }
+    });
+
+    return count;
+  };
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('id-ID').format(num);
   };
@@ -196,6 +234,17 @@ export const Page7 = ({
   const expenseStructure = getExpenseStructure();
   const incomeBreakdown = getIncomeBreakdown();
   const assetSummary = getAssetSummary();
+  const foodItemCount = getFoodItemCount();
+  const nonFoodItemCount = getNonFoodItemCount();
+
+  // Create warnings for insufficient item counts
+  const warnings: string[] = [];
+  if (foodItemCount < 13) {
+    warnings.push(`Kategori Makanan dan Minuman hanya terisi ${foodItemCount} item (minimal 13 item)`);
+  }
+  if (nonFoodItemCount < 19) {
+    warnings.push(`Kategori Barang Bukan Makanan hanya terisi ${nonFoodItemCount} item (minimal 19 item)`);
+  }
   return <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="space-y-2 border-b pb-6">
@@ -287,14 +336,31 @@ export const Page7 = ({
           <CardTitle className="text-lg font-semibold text-cyan-600">III. REKAPITULASI PENGELUARAN RUMAH TANGGA (SETAHUN)</CardTitle>
         </CardHeader>
         <CardContent>
+          <ValidationWarning warnings={warnings} />
           <div className="space-y-3">
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">A. Makanan dan Minuman</span>
-              <span>Rp {formatNumber(expenseStructure.totalFood)}</span>
+            <div className="space-y-1">
+              <div className="flex justify-between border-b pb-2">
+                <span className="font-medium">A. Makanan dan Minuman</span>
+                <span>Rp {formatNumber(expenseStructure.totalFood)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span className="ml-4">Jumlah item terisi: {foodItemCount} item</span>
+                <span className={foodItemCount < 13 ? 'text-orange-600' : 'text-green-600'}>
+                  {foodItemCount < 13 ? '⚠️ Kurang dari 13 item' : '✓ Memadai'}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">B. Barang Bukan Makanan</span>
-              <span>Rp {formatNumber(expenseStructure.totalNonFood)}</span>
+            <div className="space-y-1">
+              <div className="flex justify-between border-b pb-2">
+                <span className="font-medium">B. Barang Bukan Makanan</span>
+                <span>Rp {formatNumber(expenseStructure.totalNonFood)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span className="ml-4">Jumlah item terisi: {nonFoodItemCount} item</span>
+                <span className={nonFoodItemCount < 19 ? 'text-orange-600' : 'text-green-600'}>
+                  {nonFoodItemCount < 19 ? '⚠️ Kurang dari 19 item' : '✓ Memadai'}
+                </span>
+              </div>
             </div>
             <Separator />
             <div className="flex justify-between font-bold text-lg">
