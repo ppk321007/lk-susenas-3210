@@ -9,6 +9,7 @@ export const NON_FOOD_DETAIL_CATEGORIES = {
       "Listrik",
       "Air (PAM/pikulan/beli)",
       "Generator (BBM, Minyak Tanah)",
+      "Minyak pelumas (Generator)",
       "Bensin (pertalite, pertamax, shell, total, dsb.) Kendaraan Bermotor",
       "Solar Kendaraan Bermotor",
       "Minyak tanah",
@@ -22,10 +23,10 @@ export const NON_FOOD_DETAIL_CATEGORIES = {
       "Biaya internet, warnet"
     ],
     yearlyItems: [
-      "Minyak pelumas",
+      "Pemeliharaan rumah dan perbaikan ringan (cat kayu, kapur, cat tembok, genteng, kaca jendela, engsel, dsb.)",
+      "Minyak pelumas (kendaraan bermotor)",
       "Benda pos (wesel, materai, perangko, dsb.)",
       "Lainnya (nomor perdana, kirim paket, dsb.)",
-      "Pemeliharaan rumah dan perbaikan ringan (cat kayu, kapur, cat tembok, genteng, kaca jendela, engsel, dsb.)",
       "Pemeliharaan dan perbaikan generator",
       "Perbaikan dan pemeliharaan kendaraan bermotor",
       "Pengeluaran kebutuhan lainnya untuk rumah (cairan pembersih lantai, pewangi ruangan, bola lampu, keran, shower, sekring listrik, obat nyamuk, korek api, batu baterai, aki, dsb.)"
