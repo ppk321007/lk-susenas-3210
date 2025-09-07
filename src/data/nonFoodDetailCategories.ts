@@ -9,7 +9,6 @@ export const NON_FOOD_DETAIL_CATEGORIES = {
       "Listrik",
       "Air (PAM/pikulan/beli)",
       "Generator (BBM, Minyak Tanah)",
-      "Minyak pelumas (Generator)",
       "Bensin (pertalite, pertamax, shell, total, dsb.) Kendaraan Bermotor",
       "Solar Kendaraan Bermotor",
       "Minyak tanah",
@@ -24,6 +23,7 @@ export const NON_FOOD_DETAIL_CATEGORIES = {
     ],
     yearlyItems: [
       "Pemeliharaan rumah dan perbaikan ringan (cat kayu, kapur, cat tembok, genteng, kaca jendela, engsel, dsb.)",
+      "Minyak pelumas (Generator)",
       "Minyak pelumas (kendaraan bermotor)",
       "Benda pos (wesel, materai, perangko, dsb.)",
       "Lainnya (nomor perdana, kirim paket, dsb.)",
