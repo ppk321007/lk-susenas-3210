@@ -24,12 +24,12 @@ export const NON_FOOD_DETAIL_CATEGORIES = {
     yearlyItems: [
       "Pemeliharaan rumah dan perbaikan ringan (cat kayu, kapur, cat tembok, genteng, kaca jendela, engsel, dsb.)",
       "Minyak pelumas (Generator)",
-      "Minyak pelumas (kendaraan bermotor)",
-      "Benda pos (wesel, materai, perangko, dsb.)",
-      "Lainnya (nomor perdana, kirim paket, dsb.)",
       "Pemeliharaan dan perbaikan generator",
+      "Minyak pelumas (kendaraan bermotor)",
       "Perbaikan dan pemeliharaan kendaraan bermotor",
-      "Pengeluaran kebutuhan lainnya untuk rumah (cairan pembersih lantai, pewangi ruangan, bola lampu, keran, shower, sekring listrik, obat nyamuk, korek api, batu baterai, aki, dsb.)"
+      "Pengeluaran kebutuhan lainnya untuk rumah (cairan pembersih lantai, pewangi ruangan, bola lampu, keran, shower, sekring listrik, obat nyamuk, korek api, batu baterai, aki, dsb.)",
+      "Benda pos (wesel, materai, perangko, dsb.)",
+      "Lainnya (nomor perdana, kirim paket, dsb.)"
     ]
   },
   B: {
