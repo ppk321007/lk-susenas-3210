@@ -98,7 +98,7 @@ export const TransferBerjalanEntry = ({
                 )}
               </td>
               <td className="border border-gray-300 p-2">
-                <Input type="text" value={(['pemerintah', 'pemerintahBantuan'].includes(transfer.key)) && (data.transferBerjalan?.[transfer.key as keyof typeof data.transferBerjalan] as any)?.imputasiTransferDiterimaUang ? formatNumber((data.transferBerjalan[transfer.key as keyof typeof data.transferBerjalan] as any).imputasiTransferDiterimaUang) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-foreground" />
+                <Input type="text" value={(['pemerintah', 'pemerintahBantuan', 'rumahTanggaLain'].includes(transfer.key)) && (data.transferBerjalan?.[transfer.key as keyof typeof data.transferBerjalan] as any)?.imputasiTransferDiterimaUang ? formatNumber((data.transferBerjalan[transfer.key as keyof typeof data.transferBerjalan] as any).imputasiTransferDiterimaUang) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-foreground" />
               </td>
               <td className="border border-gray-300 p-2">
                 <Input type="text" value={(['pemerintah', 'pemerintahBantuan', 'badanUsaha', 'rumahTanggaLain', 'lembagaNirlaba', 'luarNegeri'].includes(transfer.key)) && (data.transferBerjalan?.[transfer.key as keyof typeof data.transferBerjalan] as any)?.imputasiTransferDiterimaBarang ? formatNumber((data.transferBerjalan[transfer.key as keyof typeof data.transferBerjalan] as any).imputasiTransferDiterimaBarang) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-foreground" />
@@ -143,7 +143,7 @@ export const TransferBerjalanEntry = ({
               Rp {formatNumber(transferTypes.filter(t => !t.isParent).reduce((sum, transfer) => sum + (data.transferBerjalan?.[transfer.key as keyof typeof data.transferBerjalan]?.diterimaBarang || 0), 0))}
             </td>
             <td className="border border-gray-300 p-2 text-right">
-              Rp {formatNumber(((data.transferBerjalan?.pemerintah as any)?.imputasiTransferDiterimaUang || 0) + ((data.transferBerjalan?.pemerintahBantuan as any)?.imputasiTransferDiterimaUang || 0))}
+              Rp {formatNumber(((data.transferBerjalan?.pemerintah as any)?.imputasiTransferDiterimaUang || 0) + ((data.transferBerjalan?.pemerintahBantuan as any)?.imputasiTransferDiterimaUang || 0) + ((data.transferBerjalan?.rumahTanggaLain as any)?.imputasiTransferDiterimaUang || 0))}
             </td>
             <td className="border border-gray-300 p-2 text-right">
               Rp {formatNumber(transferTypes.reduce((sum, transfer) => sum + (['pemerintah', 'pemerintahBantuan', 'badanUsaha', 'rumahTanggaLain', 'lembagaNirlaba', 'luarNegeri'].includes(transfer.key) ? (data.transferBerjalan?.[transfer.key as keyof typeof data.transferBerjalan] as any)?.imputasiTransferDiterimaBarang || 0 : 0), 0))}

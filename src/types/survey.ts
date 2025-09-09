@@ -60,7 +60,8 @@ export const JENIS_PEMBELIAN = [
   "Konsumsi Beras/palawija hasil panenan sendiri",
   "Konsumsi beras/palawija hasil upah buruh derep/ panen",
   "Pemberian dari Pemerintah Pemberi Kerja sebagai PNS/ TNI/ Polri/ Karyawan/ Buruh",
-  "Pembelian Bon/Hutang"
+  "Pembelian Bon/Hutang",
+  "Uang berasal dari rumah tangga lain"
 ];
 
 export const JENIS_PEMBERIAN = [
