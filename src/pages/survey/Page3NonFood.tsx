@@ -37,6 +37,22 @@ export const Page3NonFood = ({
   const [activeTab, setActiveTab] = useState<string>("1");
   const incompleteEntries = validatePage3Entries(data);
 
+  // Pindahkan getCurrentExpense ke sini sebelum useMemo
+  const getCurrentExpense = (categoryKey: string, isMonthly: boolean, itemKey: string) => {
+    if (isMonthly) {
+      const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
+      return monthlyData?.[itemKey] || {
+        pembelian: 0,
+        produksiSendiri: 0
+      };
+    } else {
+      return data.komoditiSetahun[`${categoryKey}_yearly_${itemKey}`] || {
+        pembelian: 0,
+        produksiSendiri: 0
+      };
+    }
+  };
+
   // Hitung progress per kategori
   const categoryProgress = useMemo(() => {
     const progress: Record<string, { completed: number; total: number; percentage: number }> = {};
@@ -69,7 +85,7 @@ export const Page3NonFood = ({
     });
     
     return progress;
-  }, [data]);
+  }, [data, getCurrentExpense]); // Tambahkan getCurrentExpense ke dependency array
 
   // Hitung total keseluruhan
   const overallTotal = useMemo(() => {
@@ -99,7 +115,7 @@ export const Page3NonFood = ({
     });
 
     return { monthlyTotal, yearlyTotal };
-  }, [data]);
+  }, [data, getCurrentExpense]); // Tambahkan getCurrentExpense ke dependency array
 
   const updateCategoryExpense = (categoryKey: string, isMonthly: boolean, itemKey: string, expense: any) => {
     if (isMonthly) {
@@ -117,21 +133,6 @@ export const Page3NonFood = ({
           [`${categoryKey}_yearly_${itemKey}`]: expense
         }
       });
-    }
-  };
-
-  const getCurrentExpense = (categoryKey: string, isMonthly: boolean, itemKey: string) => {
-    if (isMonthly) {
-      const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-      return monthlyData?.[itemKey] || {
-        pembelian: 0,
-        produksiSendiri: 0
-      };
-    } else {
-      return data.komoditiSetahun[`${categoryKey}_yearly_${itemKey}`] || {
-        pembelian: 0,
-        produksiSendiri: 0
-      };
     }
   };
 
