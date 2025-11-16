@@ -348,7 +348,7 @@ export const Page2Food = ({
                 <CardContent>
                   {category.items.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {category.items.map((item, index) => {
+                      {category.items.map((item) => {
                         const itemKey = `${categoryKey}_${item}`;
                         const currentExpense = data.makananMinuman[itemKey] || {
                           pembelian: 0,
@@ -363,7 +363,6 @@ export const Page2Food = ({
                             onChange={expense => updateFoodExpense(itemKey, expense)}
                             itemKey={itemKey}
                             incompleteEntries={incompleteEntries}
-                            isEven={index % 2 === 0}
                           />
                         );
                       })}
@@ -393,7 +392,7 @@ export const Page2Food = ({
                 </Button>
                 
                 <div className="text-sm text-muted-foreground text-center">
-                  <div>Kategori {activeKey} • {progress.completed} dari {progress.total} item terisi</div>
+                  <div>Kategori {activeTab} • {progress.completed} dari {progress.total} item terisi</div>
                   <div className="text-xs">
                     Total: Rp {formatNumber(totals.totalPembelian + totals.totalProduksiSendiri)}
                   </div>
