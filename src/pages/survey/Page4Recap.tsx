@@ -3,25 +3,50 @@ import { FOOD_CATEGORIES } from "@/data/foodCategories";
 import { NON_FOOD_CATEGORIES } from "@/data/nonFoodCategories";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Users, Utensils, ShoppingCart, TrendingUp, Download } from "lucide-react";
 import { useSurveyImputasi } from "@/hooks/useSurveyImputasi";
-interface Page3RecapProps {
+import { useState, useMemo } from "react";
+
+interface Page4RecapProps {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
 }
+
+interface MemberExpense {
+  nama: string;
+  makananPembelian: number;
+  makananProduksi: number;
+  rokokPembelian: number;
+  rokokProduksi: number;
+}
+
+interface CategoryTotal {
+  jenis: string;
+  pembelian: number;
+  produksi: number;
+  total: number;
+}
+
 export const Page4Recap = ({
   data,
   updateData
-}: Page3RecapProps) => {
+}: Page4RecapProps) => {
   const { recalculateImputasi } = useSurveyImputasi(data, updateData);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await recalculateImputasi();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('id-ID').format(num);
   };
 
   // Table 1: Individual member food and tobacco expenses
-  const getMemberExpenses = () => {
+  const getMemberExpenses = (): MemberExpense[] => {
     return data.namaAnggotaRumahTangga.map((nama, index) => {
-      // Get expenses for makanan minuman jadi and rokok for this member
       const makananKey = `M_${index}`;
       const rokokKey = `N_${index}`;
       const makananExpense = data.makananMinuman[makananKey] || {
@@ -43,13 +68,15 @@ export const Page4Recap = ({
   };
 
   // Table 2: Weekly food expenses summary
-  const getCategoryTotals = () => {
+  const getCategoryTotals = (): CategoryTotal[] => {
     const categories = ["Padi-Padian", "Umbi-umbian", "Ikan/Udang/cumi/kerang", "Daging", "Telur dan Susu", "Sayur-sayuran", "Kacang-kacangan", "Buah-buahan", "Minyak dan kelapa", "Bahan Minuman", "Bumbu-bumbuan", "Bahan Makanan Lainnya", "Makanan dan Minuman Jadi", "Rokok dan Tembakau"];
+    
     return categories.map((categoryName, index) => {
-      const categoryKey = String.fromCharCode(65 + index); // A, B, C, etc.
+      const categoryKey = String.fromCharCode(65 + index);
       const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
       let totalPembelian = 0;
       let totalProduksi = 0;
+
       if (category && category.items.length > 0) {
         category.items.forEach(item => {
           const key = `${categoryKey}_${item}`;
@@ -60,7 +87,6 @@ export const Page4Recap = ({
           }
         });
       } else {
-        // For M and N categories (per member)
         data.namaAnggotaRumahTangga.forEach((_, memberIndex) => {
           const key = `${categoryKey}_${memberIndex}`;
           const expense = data.makananMinuman[key];
@@ -70,6 +96,7 @@ export const Page4Recap = ({
           }
         });
       }
+
       return {
         jenis: categoryName,
         pembelian: totalPembelian,
@@ -78,303 +105,343 @@ export const Page4Recap = ({
       };
     });
   };
-  const memberExpenses = getMemberExpenses();
-  const categoryTotals = getCategoryTotals();
+
+  const memberExpenses = useMemo(() => getMemberExpenses(), [data]);
+  const categoryTotals = useMemo(() => getCategoryTotals(), [data]);
+  
   const subtotal = categoryTotals.reduce((sum, cat) => sum + cat.total, 0);
-  const rataRataSebulan = subtotal * 30 / 7; // Convert weekly to monthly
+  const rataRataSebulan = subtotal * 30 / 7;
 
-  return <div className="max-w-none w-full space-y-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">
-          HALAMAN 4 - REKAPITULASI PENGELUARAN
-        </h2>
-        <Button
-          onClick={recalculateImputasi}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh Data
-        </Button>
+  // Calculate non-food totals
+  const getNonFoodTotals = () => {
+    let totalMonthly = 0;
+    let totalYearly = 0;
+
+    Object.keys(NON_FOOD_CATEGORIES).forEach((categoryKey) => {
+      const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
+      if (monthlyData && typeof monthlyData === 'object') {
+        totalMonthly += Object.values(monthlyData).reduce((sum, val) => {
+          if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
+            return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
+          }
+          return sum + (typeof val === 'number' ? val : 0);
+        }, 0);
+      }
+
+      if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
+        totalYearly += Object.entries(data.komoditiSetahun)
+          .filter(([key]) => key.startsWith(`${categoryKey}_yearly_`))
+          .reduce((sum, [, value]) => {
+            if (value && typeof value === 'object') {
+              const objValue = value as any;
+              if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
+                return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
+              }
+            }
+            return sum + (typeof value === 'number' ? value : 0);
+          }, 0);
+      }
+    });
+
+    return { totalMonthly, totalYearly };
+  };
+
+  const nonFoodTotals = getNonFoodTotals();
+  const totalMonthlyExpense = rataRataSebulan + nonFoodTotals.totalMonthly + (nonFoodTotals.totalYearly / 12);
+
+  // Summary statistics
+  const summaryStats = [
+    {
+      title: "Total Anggota",
+      value: memberExpenses.length,
+      icon: Users,
+      color: "bg-blue-500",
+      textColor: "text-blue-700"
+    },
+    {
+      title: "Pengeluaran Makanan/Bulan",
+      value: `Rp ${formatNumber(Math.round(rataRataSebulan))}`,
+      icon: Utensils,
+      color: "bg-green-500",
+      textColor: "text-green-700"
+    },
+    {
+      title: "Pengeluaran Non-Makanan/Bulan",
+      value: `Rp ${formatNumber(Math.round(nonFoodTotals.totalMonthly + (nonFoodTotals.totalYearly / 12)))}`,
+      icon: ShoppingCart,
+      color: "bg-orange-500",
+      textColor: "text-orange-700"
+    },
+    {
+      title: "Total Pengeluaran/Bulan",
+      value: `Rp ${formatNumber(Math.round(totalMonthlyExpense))}`,
+      icon: TrendingUp,
+      color: "bg-purple-500",
+      textColor: "text-purple-700"
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8 px-4">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <TrendingUp className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-slate-800">HALAMAN 4 - REKAPITULASI PENGELUARAN</h1>
+                  <p className="text-lg text-blue-600 font-semibold">Ringkasan Lengkap Pengeluaran Rumah Tangga</p>
+                </div>
+              </div>
+              <p className="text-slate-600">Analisis detail pengeluaran makanan dan barang bukan makanan</p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                onClick={handleRefresh}
+                variant="outline" 
+                size="sm"
+                disabled={isRefreshing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Memproses...' : 'Refresh Data'}
+              </Button>
+              <Button className="flex items-center gap-2" size="sm">
+                <Download className="h-4 w-4" />
+                Export PDF
+              </Button>
+            </div>
+          </div>
+
+          {/* Summary Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {summaryStats.map((stat, index) => (
+              <div key={index} className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-xl p-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600 mb-1">{stat.title}</p>
+                    <p className={`text-2xl font-bold ${stat.textColor}`}>{stat.value}</p>
+                  </div>
+                  <div className={`p-3 rounded-lg ${stat.color} bg-opacity-10`}>
+                    <stat.icon className={`h-6 w-6 ${stat.textColor}`} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Table 1: Individual Member Expenses */}
+        <Card className="shadow-lg border-slate-200">
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700">
+            <CardTitle className="text-lg text-white flex items-center gap-3">
+              <Users className="h-5 w-5" />
+              BLOK IV.3.1 - PENGELUARAN MAKANAN & ROKOK PER ANGGOTA
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="text-left p-4 font-semibold text-slate-700">No</th>
+                    <th className="text-left p-4 font-semibold text-slate-700">Nama ART</th>
+                    <th className="text-center p-4 font-semibold text-slate-700" colSpan={2}>
+                      Makanan & Minuman Jadi
+                    </th>
+                    <th className="text-center p-4 font-semibold text-slate-700" colSpan={2}>
+                      Rokok & Tembakau
+                    </th>
+                  </tr>
+                  <tr className="bg-slate-100 border-b border-slate-200">
+                    <th className="p-3"></th>
+                    <th className="p-3"></th>
+                    <th className="p-3 text-xs font-medium text-slate-600 text-center">Pembelian</th>
+                    <th className="p-3 text-xs font-medium text-slate-600 text-center">Produksi Sendiri</th>
+                    <th className="p-3 text-xs font-medium text-slate-600 text-center">Pembelian</th>
+                    <th className="p-3 text-xs font-medium text-slate-600 text-center">Produksi Sendiri</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {memberExpenses.map((member, index) => (
+                    <tr key={index} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-4 text-center text-slate-600 font-medium">{index + 1}</td>
+                      <td className="p-4 font-medium text-slate-800">{member.nama}</td>
+                      <td className="p-4 text-right font-mono text-slate-700">Rp {formatNumber(member.makananPembelian)}</td>
+                      <td className="p-4 text-right font-mono text-slate-700">Rp {formatNumber(member.makananProduksi)}</td>
+                      <td className="p-4 text-right font-mono text-slate-700">Rp {formatNumber(member.rokokPembelian)}</td>
+                      <td className="p-4 text-right font-mono text-slate-700">Rp {formatNumber(member.rokokProduksi)}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-blue-50 font-semibold border-t-2 border-blue-200">
+                    <td className="p-4 text-center text-blue-800" colSpan={2}>JUMLAH</td>
+                    <td className="p-4 text-right font-mono text-blue-800">
+                      Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.makananPembelian, 0))}
+                    </td>
+                    <td className="p-4 text-right font-mono text-blue-800">
+                      Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.makananProduksi, 0))}
+                    </td>
+                    <td className="p-4 text-right font-mono text-blue-800">
+                      Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.rokokPembelian, 0))}
+                    </td>
+                    <td className="p-4 text-right font-mono text-blue-800">
+                      Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.rokokProduksi, 0))}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Table 2: Weekly Food Expenses Summary */}
+        <Card className="shadow-lg border-slate-200">
+          <CardHeader className="bg-gradient-to-r from-green-600 to-green-700">
+            <CardTitle className="text-lg text-white flex items-center gap-3">
+              <Utensils className="h-5 w-5" />
+              BLOK IV.3.2 - REKAP PENGELUARAN MAKANAN & MINUMAN
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="text-left p-4 font-semibold text-slate-700">No</th>
+                    <th className="text-left p-4 font-semibold text-slate-700">Jenis Pengeluaran</th>
+                    <th className="text-right p-4 font-semibold text-slate-700">Pembelian (Minggu)</th>
+                    <th className="text-right p-4 font-semibold text-slate-700">Produksi Sendiri (Minggu)</th>
+                    <th className="text-right p-4 font-semibold text-slate-700">Total (Minggu)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {categoryTotals.map((category, index) => (
+                    <tr key={index} className="hover:bg-slate-50 transition-colors even:bg-slate-50">
+                      <td className="p-4 text-center text-slate-600 font-medium">{index + 1}</td>
+                      <td className="p-4 font-medium text-slate-800">{category.jenis}</td>
+                      <td className="p-4 text-right font-mono text-slate-700">Rp {formatNumber(category.pembelian)}</td>
+                      <td className="p-4 text-right font-mono text-slate-700">Rp {formatNumber(category.produksi)}</td>
+                      <td className="p-4 text-right font-mono text-slate-700 font-semibold">Rp {formatNumber(category.total)}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-green-50 font-semibold border-t-2 border-green-200">
+                    <td className="p-4 text-center text-green-800" colSpan={2}>SUBJUMLAH</td>
+                    <td className="p-4 text-right font-mono text-green-800">
+                      Rp {formatNumber(categoryTotals.reduce((sum, cat) => sum + cat.pembelian, 0))}
+                    </td>
+                    <td className="p-4 text-right font-mono text-green-800">
+                      Rp {formatNumber(categoryTotals.reduce((sum, cat) => sum + cat.produksi, 0))}
+                    </td>
+                    <td className="p-4 text-right font-mono text-green-800">Rp {formatNumber(subtotal)}</td>
+                  </tr>
+                  <tr className="bg-blue-50 font-semibold border-t border-blue-200">
+                    <td className="p-4 text-center text-blue-800" colSpan={2}>
+                      RATA-RATA PENGELUARAN MAKANAN SEBULAN
+                    </td>
+                    <td className="p-4 text-right font-mono text-blue-800">
+                      Rp {formatNumber(Math.round(categoryTotals.reduce((sum, cat) => sum + cat.pembelian, 0) * 30 / 7))}
+                    </td>
+                    <td className="p-4 text-right font-mono text-blue-800">
+                      Rp {formatNumber(Math.round(categoryTotals.reduce((sum, cat) => sum + cat.produksi, 0) * 30 / 7))}
+                    </td>
+                    <td className="p-4 text-right font-mono text-blue-800">Rp {formatNumber(Math.round(rataRataSebulan))}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Table 3: Non-Food Expenses */}
+        <Card className="shadow-lg border-slate-200">
+          <CardHeader className="bg-gradient-to-r from-orange-600 to-orange-700">
+            <CardTitle className="text-lg text-white flex items-center gap-3">
+              <ShoppingCart className="h-5 w-5" />
+              BLOK IV.3.3 - PENGELUARAN BARANG BUKAN MAKANAN
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="text-left p-4 font-semibold text-slate-700">No</th>
+                    <th className="text-left p-4 font-semibold text-slate-700">Jenis Pengeluaran</th>
+                    <th className="text-right p-4 font-semibold text-slate-700">Sebulan Terakhir</th>
+                    <th className="text-right p-4 font-semibold text-slate-700">Setahun Terakhir</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {Object.entries(NON_FOOD_CATEGORIES).map(([categoryKey, category], index) => {
+                    const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
+                    let monthlyTotal = 0;
+                    if (monthlyData && typeof monthlyData === 'object') {
+                      monthlyTotal = Object.values(monthlyData).reduce((sum, val) => {
+                        if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
+                          return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
+                        }
+                        return sum + (typeof val === 'number' ? val : 0);
+                      }, 0);
+                    }
+
+                    let yearlyTotal = 0;
+                    if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
+                      yearlyTotal = Object.entries(data.komoditiSetahun)
+                        .filter(([key]) => key.startsWith(`${categoryKey}_yearly_`))
+                        .reduce((sum, [, value]) => {
+                          if (value && typeof value === 'object') {
+                            const objValue = value as any;
+                            if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
+                              return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
+                            }
+                          }
+                          return sum + (typeof value === 'number' ? value : 0);
+                        }, 0);
+                    }
+
+                    return (
+                      <tr key={categoryKey} className="hover:bg-slate-50 transition-colors even:bg-slate-50">
+                        <td className="p-4 text-center text-slate-600 font-medium">{index + 1}</td>
+                        <td className="p-4 font-medium text-slate-800">{category.title}</td>
+                        <td className="p-4 text-right font-mono text-slate-700">Rp {formatNumber(monthlyTotal)}</td>
+                        <td className="p-4 text-right font-mono text-slate-700">Rp {formatNumber(yearlyTotal)}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr className="bg-orange-50 font-semibold border-t-2 border-orange-200">
+                    <td className="p-4 text-center text-orange-800" colSpan={2}>SUBJUMLAH</td>
+                    <td className="p-4 text-right font-mono text-orange-800">Rp {formatNumber(nonFoodTotals.totalMonthly)}</td>
+                    <td className="p-4 text-right font-mono text-orange-800">Rp {formatNumber(nonFoodTotals.totalYearly)}</td>
+                  </tr>
+                  <tr className="bg-blue-50 font-semibold border-t border-blue-200">
+                    <td className="p-4 text-center text-blue-800" colSpan={2}>
+                      RATA-RATA PENGELUARAN BUKAN MAKANAN SEBULAN
+                    </td>
+                    <td className="p-4 text-right font-mono text-blue-800">
+                      Rp {formatNumber(Math.round(nonFoodTotals.totalMonthly + (nonFoodTotals.totalYearly / 12)))}
+                    </td>
+                    <td className="p-4 text-right font-mono text-blue-800"></td>
+                  </tr>
+                  <tr className="bg-purple-50 font-semibold border-t-2 border-purple-200">
+                    <td className="p-4 text-center text-purple-800" colSpan={2}>
+                      TOTAL PENGELUARAN RUMAH TANGGA SEBULAN
+                    </td>
+                    <td className="p-4 text-right font-mono text-purple-800 text-lg">
+                      Rp {formatNumber(Math.round(totalMonthlyExpense))}
+                    </td>
+                    <td className="p-4 text-right font-mono text-purple-800"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      
-      {/* Table 1: Individual Member Expenses */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg text-red-600">
-            BLOK IV.3.1 REKAPITULASI PENGELUARAN MAKANAN DAN MINUMAN JADI SERTA ROKOK SELURUH ANGGOTA RUMAH TANGGA
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-          <tr className="bg-professional-table-header text-professional-table-header-foreground">
-            <th className="border border-gray-300 p-2">No</th>
-            <th className="border border-gray-300 p-2">Nama ART</th>
-                  <th className="border border-gray-300 p-2 text-center" colSpan={2}>
-                    Makanan dan Minuman Jadi
-                  </th>
-                  <th className="border border-gray-300 p-2 text-center" colSpan={2}>
-                    Rokok dan Tembakau
-                  </th>
-                </tr>
-                <tr className="bg-muted/50">
-                  <th className="border border-gray-300 p-1"></th>
-                  <th className="border border-gray-300 p-1"></th>
-                  <th className="border border-gray-300 p-1 text-xs">Berasal dari Pembelian</th>
-                  <th className="border border-gray-300 p-1 text-xs">Berasal dari Produksi Sendiri</th>
-                  <th className="border border-gray-300 p-1 text-xs">Berasal dari Pembelian</th>
-                  <th className="border border-gray-300 p-1 text-xs">Berasal dari Produksi Sendiri</th>
-                </tr>
-              </thead>
-              <tbody>
-                {memberExpenses.map((member, index) => <tr key={index}>
-                    <td className="border border-gray-300 p-2 text-center">{index + 1}</td>
-                    <td className="border border-gray-300 p-2">{member.nama}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(member.makananPembelian)}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(member.makananProduksi)}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(member.rokokPembelian)}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(member.rokokProduksi)}</td>
-                  </tr>)}
-                <tr className="bg-muted font-semibold">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>JUMLAH</td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.makananPembelian, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.makananProduksi, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.rokokPembelian, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.rokokProduksi, 0))}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Table 2: Weekly Food Expenses Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg text-red-600">
-            BLOK IV.3.2 REKAPITULASI PENGELUARAN MAKANAN DAN MINUMAN JADI SERTA ROKOK
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-          <tr className="bg-professional-table-header text-professional-table-header-foreground">
-            <th className="border border-gray-300 p-2">No</th>
-            <th className="border border-gray-300 p-2">Jenis Pengeluaran</th>
-                  <th className="border border-gray-300 p-2">Pembelian Seminggu Terakhir</th>
-                  <th className="border border-gray-300 p-2">Produksi Sendiri, Pemberian, dsb Seminggu Terakhir</th>
-                  <th className="border border-gray-300 p-2">Total Seminggu Terakhir</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categoryTotals.map((category, index) => <tr key={index}>
-                    <td className="border border-gray-300 p-2 text-center">{index + 1}</td>
-                    <td className="border border-gray-300 p-2">{category.jenis}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(category.pembelian)}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(category.produksi)}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(category.total)}</td>
-                  </tr>)}
-                <tr className="bg-muted font-semibold">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>SUBJUMLAH</td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(categoryTotals.reduce((sum, cat) => sum + cat.pembelian, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(categoryTotals.reduce((sum, cat) => sum + cat.produksi, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(subtotal)}</td>
-                </tr>
-                <tr className="bg-primary/10 font-semibold">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>
-                    RATA-RATA PENGELUARAN MAKANAN SEBULAN
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Math.round(categoryTotals.reduce((sum, cat) => sum + cat.pembelian, 0) * 30 / 7))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Math.round(categoryTotals.reduce((sum, cat) => sum + cat.produksi, 0) * 30 / 7))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(Math.round(rataRataSebulan))}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Table 3: Non-Food Expenses with real data connection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg text-red-600">
-            BLOK IV.3.3 REKAPITULASI PENGELUARAN BARANG BUKAN MAKANAN
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-          <tr className="bg-professional-table-header text-professional-table-header-foreground">
-            <th className="border border-gray-300 p-2">No</th>
-            <th className="border border-gray-300 p-2">Jenis Pengeluaran</th>
-                  <th className="border border-gray-300 p-2">Sebulan Terakhir</th>
-                  <th className="border border-gray-300 p-2">Setahun Terakhir</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(NON_FOOD_CATEGORIES).map(([categoryKey, category], index) => {
-                // Calculate monthly total for this category
-                const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                let monthlyTotal = 0;
-                if (monthlyData && typeof monthlyData === 'object') {
-                  monthlyTotal = Object.values(monthlyData).reduce((sum, val) => {
-                    if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                      return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                    }
-                    return sum + (typeof val === 'number' ? val : 0);
-                  }, 0);
-                }
-
-                // Calculate yearly total for this category
-                let yearlyTotal = 0;
-                if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                  yearlyTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                    if (value && typeof value === 'object') {
-                      const objValue = value as any;
-                      if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                        return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                      }
-                    }
-                    return sum + (typeof value === 'number' ? value : 0);
-                  }, 0);
-                }
-                return <tr key={categoryKey}>
-                      <td className="border border-gray-300 p-2 text-center">{index + 1}</td>
-                      <td className="border border-gray-300 p-2">{category.title}</td>
-                      <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(monthlyTotal)}</td>
-                      <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(yearlyTotal)}</td>
-                    </tr>;
-              })}
-                <tr className="bg-muted font-semibold">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>SUBJUMLAH</td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Object.keys(NON_FOOD_CATEGORIES).reduce((total, categoryKey) => {
-                    const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                    let monthlyDataTotal = 0;
-                    if (monthlyData && typeof monthlyData === 'object') {
-                      monthlyDataTotal = Object.values(monthlyData).reduce((sum, val) => {
-                        if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                          return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                        }
-                        return sum + (typeof val === 'number' ? val : 0);
-                      }, 0);
-                    }
-                    return total + monthlyDataTotal;
-                  }, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Object.keys(NON_FOOD_CATEGORIES).reduce((total, categoryKey) => {
-                    let yearlyDataTotal = 0;
-                    if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                      yearlyDataTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                        if (value && typeof value === 'object') {
-                          const objValue = value as any;
-                          if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                            return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                          }
-                        }
-                        return sum + (typeof value === 'number' ? value : 0);
-                      }, 0);
-                    }
-                    return total + yearlyDataTotal;
-                  }, 0))}
-                  </td>
-                </tr>
-                <tr className="bg-primary/10 font-semibold">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>
-                    RATA-RATA PENGELUARAN BUKAN MAKANAN SEBULAN
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Math.round(Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
-                    const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                    let monthlyDataTotal = 0;
-                    if (monthlyData && typeof monthlyData === 'object') {
-                      monthlyDataTotal = Object.values(monthlyData).reduce((sum, val) => {
-                        if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                          return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                        }
-                        return sum + (typeof val === 'number' ? val : 0);
-                      }, 0);
-                    }
-                    return totalMonthly + monthlyDataTotal;
-                  }, 0) + Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
-                    let yearlyDataTotal = 0;
-                    if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                      yearlyDataTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                        if (value && typeof value === 'object') {
-                          const objValue = value as any;
-                          if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                            return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                          }
-                        }
-                        return sum + (typeof value === 'number' ? value : 0);
-                      }, 0);
-                    }
-                    return totalYearly + yearlyDataTotal;
-                  }, 0) / 12))}
-                  </td>
-                  <td className="border border-gray-300 p-2"></td>
-                </tr>
-                <tr className="bg-secondary/20 font-semibold text-primary">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>
-                    RATA-RATA PENGELUARAN RUMAH TANGGA SEBULAN
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Math.round(rataRataSebulan + Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
-                    const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                    let monthlyDataTotal = 0;
-                    if (monthlyData && typeof monthlyData === 'object') {
-                      monthlyDataTotal = Object.values(monthlyData).reduce((sum, val) => {
-                        if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                          return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                        }
-                        return sum + (typeof val === 'number' ? val : 0);
-                      }, 0);
-                    }
-                    return totalMonthly + monthlyDataTotal;
-                  }, 0) + Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
-                    let yearlyDataTotal = 0;
-                    if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                      yearlyDataTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                        if (value && typeof value === 'object') {
-                          const objValue = value as any;
-                          if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                            return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                          }
-                        }
-                        return sum + (typeof value === 'number' ? value : 0);
-                      }, 0);
-                    }
-                    return totalYearly + yearlyDataTotal;
-                  }, 0) / 12))}
-                  </td>
-                  <td className="border border-gray-300 p-2"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>;
+    </div>
+  );
 };
