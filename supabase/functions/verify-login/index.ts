@@ -63,6 +63,8 @@ async function getAccessToken(credentials: ServiceAccountCredentials): Promise<s
 
   const jwt = `${signatureInput}.${signatureB64}`;
 
+  console.log('Requesting token from:', credentials.token_uri);
+  
   const tokenResponse = await fetch(credentials.token_uri, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -70,12 +72,22 @@ async function getAccessToken(credentials: ServiceAccountCredentials): Promise<s
   });
 
   const tokenData = await tokenResponse.json();
+  
+  if (!tokenData.access_token) {
+    console.error('Token response error:', JSON.stringify(tokenData));
+    throw new Error('Failed to get access token');
+  }
+  
+  console.log('Access token obtained successfully');
   return tokenData.access_token;
 }
 
 async function getUsersFromSheet(accessToken: string, spreadsheetId: string): Promise<UserData[]> {
-  const range = 'USER!A:C';
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`;
+  // Use A2:C to skip header row and get all data
+  const range = encodeURIComponent('USER!A2:C');
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`;
+  
+  console.log('Fetching from URL:', url);
   
   const response = await fetch(url, {
     headers: {
@@ -83,18 +95,28 @@ async function getUsersFromSheet(accessToken: string, spreadsheetId: string): Pr
     },
   });
 
+  const responseText = await response.text();
+  
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Error fetching sheet data:', errorText);
+    console.error('Error fetching sheet data, status:', response.status);
+    console.error('Response:', responseText.substring(0, 500));
     throw new Error(`Failed to fetch sheet data: ${response.status}`);
   }
 
-  const data = await response.json();
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (e) {
+    console.error('Failed to parse response as JSON:', responseText.substring(0, 500));
+    throw new Error('Invalid JSON response from Google Sheets');
+  }
+
   const rows = data.values || [];
+  console.log(`Found ${rows.length} data rows in sheet`);
   
-  // Skip header row and map data
+  // Map data (no header to skip since we started from A2)
   const users: UserData[] = [];
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     if (row.length >= 3) {
       users.push({
@@ -102,6 +124,7 @@ async function getUsersFromSheet(accessToken: string, spreadsheetId: string): Pr
         nama: row[1] || '',
         password: row[2] || '',
       });
+      console.log(`User found: ${row[1]} (role: ${row[0]})`);
     }
   }
   
@@ -130,15 +153,30 @@ Deno.serve(async (req) => {
     const serviceAccountJson = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
     const spreadsheetId = Deno.env.get('GOOGLE_USER_SPREADSHEET_ID');
 
+    console.log('Spreadsheet ID:', spreadsheetId);
+    console.log('Service account configured:', !!serviceAccountJson);
+
     if (!serviceAccountJson || !spreadsheetId) {
       console.error('Missing environment variables');
+      console.error('GOOGLE_SERVICE_ACCOUNT_JSON:', serviceAccountJson ? 'SET' : 'NOT SET');
+      console.error('GOOGLE_USER_SPREADSHEET_ID:', spreadsheetId ? 'SET' : 'NOT SET');
       return new Response(
         JSON.stringify({ success: false, message: 'Konfigurasi server tidak lengkap' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    const credentials: ServiceAccountCredentials = JSON.parse(serviceAccountJson);
+    let credentials: ServiceAccountCredentials;
+    try {
+      credentials = JSON.parse(serviceAccountJson);
+      console.log('Service account email:', credentials.client_email);
+    } catch (e) {
+      console.error('Failed to parse service account JSON:', e);
+      return new Response(
+        JSON.stringify({ success: false, message: 'Konfigurasi service account tidak valid' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
     
     console.log('Getting access token...');
     const accessToken = await getAccessToken(credentials);
@@ -148,9 +186,9 @@ Deno.serve(async (req) => {
     
     console.log(`Found ${users.length} users in sheet`);
 
-    // Find matching user
+    // Find matching user (case insensitive for nama)
     const user = users.find(u => 
-      u.nama.toLowerCase() === nama.toLowerCase() && 
+      u.nama.toLowerCase().trim() === nama.toLowerCase().trim() && 
       u.password === password
     );
 
@@ -178,7 +216,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in verify-login:', error);
     return new Response(
-      JSON.stringify({ success: false, message: 'Terjadi kesalahan pada server' }),
+      JSON.stringify({ success: false, message: `Terjadi kesalahan: ${error.message}` }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
