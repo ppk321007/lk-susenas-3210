@@ -96,15 +96,19 @@ export const Page7 = ({
   const handleSaveToSheets = async () => {
     setIsSavingToSheets(true);
     try {
+      // Get logged-in username from session
+      const userSession = sessionStorage.getItem('user');
+      const username = userSession ? JSON.parse(userSession).nama : '';
+      
       const { data: result, error } = await supabase.functions.invoke('save-to-sheets', {
-        body: { surveyData: data }
+        body: { surveyData: data, username }
       });
       
       if (error) throw error;
       
       if (result?.success) {
         toast({
-          title: "Berhasil Disimpan ke Spreadsheet",
+          title: result.updated ? "Data Berhasil Diperbarui" : "Berhasil Disimpan ke Spreadsheet",
           description: result.message || "Data survei telah disimpan ke Google Sheets."
         });
       } else {
