@@ -1,1 +1,4 @@
-project_id = "fbbdgqiiacsazfgylelx"
+project_id = "xerhknlimexezgtdzpbl"
+
+[functions.save-to-sheets]
+verify_jwt = false
