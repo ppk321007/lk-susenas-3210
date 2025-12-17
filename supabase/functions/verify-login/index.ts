@@ -82,7 +82,27 @@ async function getAccessToken(credentials: ServiceAccountCredentials): Promise<s
   return tokenData.access_token;
 }
 
-async function getUsersFromSheet(accessToken: string, spreadsheetId: string): Promise<UserData[]> {
+function extractSpreadsheetId(input: string): string {
+  // If it's already just an ID (no slashes), return as is
+  if (!input.includes('/')) {
+    return input;
+  }
+  
+  // Extract ID from full URL like https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit...
+  const match = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (match && match[1]) {
+    return match[1];
+  }
+  
+  // Return original if no match found
+  return input;
+}
+
+async function getUsersFromSheet(accessToken: string, rawSpreadsheetId: string): Promise<UserData[]> {
+  // Extract actual ID from URL if full URL was provided
+  const spreadsheetId = extractSpreadsheetId(rawSpreadsheetId);
+  console.log('Extracted spreadsheet ID:', spreadsheetId);
+  
   // Use A2:C to skip header row and get all data
   const range = encodeURIComponent('USER!A2:C');
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`;
