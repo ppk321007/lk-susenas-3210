@@ -2,12 +2,13 @@ import { SurveyData } from "@/types/survey";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, RefreshCw, User, Home, TrendingUp, PieChart, BarChart3, Wallet, Shield, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Download, Upload, RefreshCw, User, Home, TrendingUp, PieChart, BarChart3, Wallet, Shield, CheckCircle2, AlertTriangle, CloudUpload, Loader2 } from "lucide-react";
 import { useSurveyImputasi } from "@/hooks/useSurveyImputasi";
 import { useToast } from "@/hooks/use-toast";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { ValidationWarning } from "@/components/ValidationWarning";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { FOOD_CATEGORIES } from "@/data/foodCategories";
 
@@ -27,7 +28,7 @@ export const Page7 = ({
     toast
   } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [isSavingToSheets, setIsSavingToSheets] = useState(false);
   const handleSaveData = () => {
     try {
       const exportData = {
@@ -89,6 +90,35 @@ export const Page7 = ({
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSaveToSheets = async () => {
+    setIsSavingToSheets(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('save-to-sheets', {
+        body: { surveyData: data }
+      });
+      
+      if (error) throw error;
+      
+      if (result?.success) {
+        toast({
+          title: "Berhasil Disimpan ke Spreadsheet",
+          description: result.message || "Data survei telah disimpan ke Google Sheets."
+        });
+      } else {
+        throw new Error(result?.error || 'Gagal menyimpan data');
+      }
+    } catch (error: any) {
+      console.error('Error saving to sheets:', error);
+      toast({
+        title: "Gagal Menyimpan ke Spreadsheet",
+        description: error.message || "Terjadi kesalahan saat menyimpan ke Google Sheets.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingToSheets(false);
     }
   };
 
@@ -279,10 +309,14 @@ export const Page7 = ({
                 <RefreshCw className="h-4 w-4" />
                 Refresh Data
               </Button>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={handleSaveToSheets} disabled={isSavingToSheets} className="flex items-center gap-2 bg-green-600 hover:bg-green-700" size="sm">
+                  {isSavingToSheets ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
+                  {isSavingToSheets ? 'Menyimpan...' : 'Simpan ke Sheets'}
+                </Button>
                 <Button onClick={handleSaveData} className="flex items-center gap-2" size="sm">
                   <Download className="h-4 w-4" />
-                  Simpan
+                  Simpan JSON
                 </Button>
                 <div className="relative">
                   <input ref={fileInputRef} type="file" accept=".json" onChange={handleLoadData} className="hidden" />
