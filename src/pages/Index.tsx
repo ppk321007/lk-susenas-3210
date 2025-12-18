@@ -16,8 +16,13 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [surveyData, setSurveyData] = useState<SurveyData>({
     namaPendata: "",
+    pencacah: "",
+    pemeriksa: "",
+    nks: "",
     kecamatan: "",
     desa: "",
+    sls: "",
+    noSampel: "",
     alamat: "",
     namaKepalaRumahTangga: "",
     jumlahAnggotaRumahTangga: 1,
@@ -142,10 +147,10 @@ const Index = () => {
   const handleNext = () => {
     if (currentPage === 1) {
       // Validasi halaman 1
-      if (!surveyData.namaPendata || !surveyData.kecamatan || !surveyData.desa || !surveyData.alamat || !surveyData.namaKepalaRumahTangga) {
+      if (!surveyData.nks || !surveyData.noSampel || !surveyData.namaKepalaRumahTangga) {
         toast({
           title: "Data Belum Lengkap",
-          description: "Mohon lengkapi semua field identitas sebelum melanjutkan.",
+          description: "Mohon pilih NKS dan No Sampel sebelum melanjutkan.",
           variant: "destructive"
         });
         return;

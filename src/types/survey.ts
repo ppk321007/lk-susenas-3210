@@ -1,8 +1,13 @@
 export interface SurveyData {
   // Halaman 1 - Identitas
   namaPendata: string;
+  pencacah: string;
+  pemeriksa: string;
+  nks: string;
   kecamatan: string;
   desa: string;
+  sls: string;
+  noSampel: string;
   alamat: string;
   namaKepalaRumahTangga: string;
   jumlahAnggotaRumahTangga: number;

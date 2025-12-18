@@ -353,8 +353,13 @@ function flattenSurveyData(data: any, username: string): string[] {
   
   // Identity data
   values.push(data.namaPendata || '');
+  values.push(data.pencacah || '');
+  values.push(data.pemeriksa || '');
+  values.push(data.nks || '');
   values.push(data.kecamatan || '');
   values.push(data.desa || '');
+  values.push(data.sls || '');
+  values.push(data.noSampel || '');
   values.push(data.alamat || '');
   values.push(data.namaKepalaRumahTangga || '');
   values.push(String(data.jumlahAnggotaRumahTangga || 0));
@@ -414,8 +419,9 @@ function flattenSurveyData(data: any, username: string): string[] {
 }
 
 async function findExistingRow(accessToken: string, spreadsheetId: string, sheetName: string, username: string, namaKepalaRumahTangga: string): Promise<number | null> {
-  // Get all data from column B (username) and G (namaKepalaRumahTangga)
-  const range = `${sheetName}!B:G`;
+  // Get all data from column B (username) to column L (namaKepalaRumahTangga)
+  // Column layout: B=username, C=namaPendata, D=pencacah, E=pemeriksa, F=nks, G=kecamatan, H=desa, I=sls, J=noSampel, K=alamat, L=namaKepalaRumahTangga
+  const range = `${sheetName}!B:L`;
   const response = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
     {
@@ -433,10 +439,10 @@ async function findExistingRow(accessToken: string, spreadsheetId: string, sheet
   const result = await response.json();
   const rows = result.values || [];
   
-  // Search for matching row (username in column B index 0, namaKepalaRumahTangga in column G index 5)
+  // Search for matching row (username in column B = index 0, namaKepalaRumahTangga in column L = index 10)
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    if (row[0] === username && row[5] === namaKepalaRumahTangga) {
+    if (row[0] === username && row[10] === namaKepalaRumahTangga) {
       return i + 1; // Sheets uses 1-based indexing
     }
   }
