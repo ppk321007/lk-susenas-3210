@@ -1,22 +1,126 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Trash2, Upload, Loader2 } from "lucide-react";
 import { SurveyData } from "@/types/survey";
 import { useToast } from "@/hooks/use-toast";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface Assignment {
+  nks: string;
+  kecamatan: string;
+  desa: string;
+  sls: string;
+  alamat: string;
+  noSampelList: string[];
+  namaKrtList: string[];
+}
+
+interface UserAssignments {
+  user: string;
+  pencacah: string;
+  pemeriksa: string;
+  assignments: Assignment[];
+}
+
 interface Page1IdentityProps {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
 }
+
 export const Page1Identity = ({
   data,
   updateData
 }: Page1IdentityProps) => {
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [userAssignments, setUserAssignments] = useState<UserAssignments | null>(null);
+  const [selectedNksIndex, setSelectedNksIndex] = useState<number | null>(null);
+  const [selectedNoSampelIndex, setSelectedNoSampelIndex] = useState<number | null>(null);
+
+  // Fetch user assignments on mount
+  useEffect(() => {
+    const fetchUserAssignments = async () => {
+      const userInfo = localStorage.getItem('userInfo');
+      if (!userInfo) return;
+
+      const { nama } = JSON.parse(userInfo);
+      setIsLoading(true);
+
+      try {
+        const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
+          body: { username: nama }
+        });
+
+        if (error) throw error;
+
+        if (response?.success && response.data) {
+          setUserAssignments(response.data);
+          // Auto-fill pencacah and pemeriksa
+          updateData({
+            namaPendata: nama,
+            pencacah: response.data.pencacah || '',
+            pemeriksa: response.data.pemeriksa || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user assignments:', error);
+        toast({
+          title: "Gagal Memuat Data",
+          description: "Tidak dapat memuat data penugasan. Silakan coba lagi.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserAssignments();
+  }, []);
+
+  const handleNksChange = (value: string) => {
+    const index = parseInt(value);
+    setSelectedNksIndex(index);
+    setSelectedNoSampelIndex(null); // Reset no sampel selection
+    
+    if (userAssignments && index >= 0 && index < userAssignments.assignments.length) {
+      const assignment = userAssignments.assignments[index];
+      updateData({
+        nks: assignment.nks,
+        kecamatan: assignment.kecamatan,
+        desa: assignment.desa,
+        sls: assignment.sls,
+        alamat: assignment.alamat,
+        noSampel: '',
+        namaKepalaRumahTangga: ''
+      });
+    }
+  };
+
+  const handleNoSampelChange = (value: string) => {
+    const index = parseInt(value);
+    setSelectedNoSampelIndex(index);
+    
+    if (userAssignments && selectedNksIndex !== null) {
+      const assignment = userAssignments.assignments[selectedNksIndex];
+      if (index >= 0 && index < assignment.noSampelList.length) {
+        updateData({
+          noSampel: assignment.noSampelList[index],
+          namaKepalaRumahTangga: assignment.namaKrtList[index] || ''
+        });
+      }
+    }
+  };
+
   const handleLoadData = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -49,6 +153,7 @@ export const Page1Identity = ({
       fileInputRef.current.value = '';
     }
   };
+
   const addAnggotaRumahTangga = () => {
     const newAnggota = [...data.namaAnggotaRumahTangga, ""];
     updateData({
@@ -56,6 +161,7 @@ export const Page1Identity = ({
       jumlahAnggotaRumahTangga: newAnggota.length
     });
   };
+
   const removeAnggotaRumahTangga = (index: number) => {
     const newAnggota = data.namaAnggotaRumahTangga.filter((_, i) => i !== index);
     updateData({
@@ -63,6 +169,7 @@ export const Page1Identity = ({
       jumlahAnggotaRumahTangga: newAnggota.length
     });
   };
+
   const updateAnggotaRumahTangga = (index: number, value: string) => {
     const newAnggota = [...data.namaAnggotaRumahTangga];
     newAnggota[index] = value;
@@ -70,7 +177,9 @@ export const Page1Identity = ({
       namaAnggotaRumahTangga: newAnggota
     });
   };
-  return <div className="space-y-6">
+
+  return (
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-red-600">Keterangan Identitas</h2>
         
@@ -83,66 +192,174 @@ export const Page1Identity = ({
           </Button>
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="namaPendata">Nama Petugas Pendataan Lapangan</Label>
-          <Input id="namaPendata" value={data.namaPendata} onChange={e => updateData({
-          namaPendata: e.target.value
-        })} placeholder="Masukkan nama petugas pendataan lapangan" />
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="kecamatan">Kecamatan</Label>
-          <Input id="kecamatan" value={data.kecamatan} onChange={e => updateData({
-          kecamatan: e.target.value
-        })} placeholder="Masukkan kecamatan" />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <span>Memuat data penugasan...</span>
         </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="namaPendata">Nama Petugas Pendataan Lapangan</Label>
+              <Input 
+                id="namaPendata" 
+                value={data.namaPendata} 
+                readOnly
+                className="bg-muted"
+                placeholder="Otomatis dari login" 
+              />
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="desa">Desa/Kelurahan</Label>
-          <Input id="desa" value={data.desa} onChange={e => updateData({
-          desa: e.target.value
-        })} placeholder="Masukkan desa" />
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="pencacah">Pencacah</Label>
+              <Input 
+                id="pencacah" 
+                value={data.pencacah} 
+                readOnly
+                className="bg-muted"
+                placeholder="Otomatis dari data" 
+              />
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="alamat">Alamat SLS</Label>
-          <Input id="alamat" value={data.alamat} onChange={e => updateData({
-          alamat: e.target.value
-        })} placeholder="Masukkan alamat" />
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="pemeriksa">Pemeriksa</Label>
+              <Input 
+                id="pemeriksa" 
+                value={data.pemeriksa} 
+                readOnly
+                className="bg-muted"
+                placeholder="Otomatis dari data" 
+              />
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="namaKepalaRumahTangga">Nama Kepala Rumah Tangga</Label>
-          <Input id="namaKepalaRumahTangga" value={data.namaKepalaRumahTangga} onChange={e => updateData({
-          namaKepalaRumahTangga: e.target.value
-        })} placeholder="Masukkan nama kepala rumah tangga" />
-        </div>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="nks">NKS</Label>
+              <Select onValueChange={handleNksChange} value={selectedNksIndex !== null ? selectedNksIndex.toString() : undefined}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih NKS" />
+                </SelectTrigger>
+                <SelectContent>
+                  {userAssignments?.assignments.map((assignment, index) => (
+                    <SelectItem key={index} value={index.toString()}>
+                      {assignment.nks}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label>Nama Anggota Rumah Tangga</Label>
-          <Button type="button" variant="outline" size="sm" onClick={addAnggotaRumahTangga} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Tambah Anggota
-          </Button>
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="kecamatan">Kecamatan</Label>
+              <Input 
+                id="kecamatan" 
+                value={data.kecamatan} 
+                readOnly
+                className="bg-muted"
+                placeholder="Otomatis dari NKS" 
+              />
+            </div>
 
-        <div className="space-y-3">
-          {data.namaAnggotaRumahTangga.map((nama, index) => <div key={index} className="flex items-center gap-2">
-              <Label className="min-w-fit">#{index + 1}</Label>
-              <Input value={nama} onChange={e => updateAnggotaRumahTangga(index, e.target.value)} placeholder={`Nama anggota rumah tangga ${index + 1}`} className="flex-1" />
-              {data.namaAnggotaRumahTangga.length > 1 && <Button type="button" variant="outline" size="sm" onClick={() => removeAnggotaRumahTangga(index)} className="flex items-center gap-2">
-                  <Trash2 className="h-4 w-4" />
-                </Button>}
-            </div>)}
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="desa">Desa/Kelurahan</Label>
+              <Input 
+                id="desa" 
+                value={data.desa} 
+                readOnly
+                className="bg-muted"
+                placeholder="Otomatis dari NKS" 
+              />
+            </div>
 
-        <div className="text-sm text-muted-foreground">
-          Jumlah Anggota Rumah Tangga: {data.jumlahAnggotaRumahTangga}
-        </div>
-      </div>
-    </div>;
+            <div className="space-y-2">
+              <Label htmlFor="sls">SLS</Label>
+              <Input 
+                id="sls" 
+                value={data.sls} 
+                readOnly
+                className="bg-muted"
+                placeholder="Otomatis dari NKS" 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="noSampel">No Sampel</Label>
+              <Select 
+                onValueChange={handleNoSampelChange} 
+                value={selectedNoSampelIndex !== null ? selectedNoSampelIndex.toString() : undefined}
+                disabled={selectedNksIndex === null}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={selectedNksIndex === null ? "Pilih NKS dahulu" : "Pilih No Sampel"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedNksIndex !== null && userAssignments?.assignments[selectedNksIndex]?.noSampelList.map((noSampel, index) => (
+                    <SelectItem key={index} value={index.toString()}>
+                      {noSampel}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="alamat">Alamat</Label>
+              <Input 
+                id="alamat" 
+                value={data.alamat} 
+                readOnly
+                className="bg-muted"
+                placeholder="Otomatis dari NKS" 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="namaKepalaRumahTangga">Nama Kepala Rumah Tangga</Label>
+              <Input 
+                id="namaKepalaRumahTangga" 
+                value={data.namaKepalaRumahTangga} 
+                readOnly
+                className="bg-muted"
+                placeholder="Otomatis dari No Sampel" 
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label>Nama Anggota Rumah Tangga</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addAnggotaRumahTangga} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Tambah Anggota
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              {data.namaAnggotaRumahTangga.map((nama, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Label className="min-w-fit">#{index + 1}</Label>
+                  <Input 
+                    value={nama} 
+                    onChange={e => updateAnggotaRumahTangga(index, e.target.value)} 
+                    placeholder={`Nama anggota rumah tangga ${index + 1}`} 
+                    className="flex-1" 
+                  />
+                  {data.namaAnggotaRumahTangga.length > 1 && (
+                    <Button type="button" variant="outline" size="sm" onClick={() => removeAnggotaRumahTangga(index)} className="flex items-center gap-2">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              Jumlah Anggota Rumah Tangga: {data.jumlahAnggotaRumahTangga}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
 };

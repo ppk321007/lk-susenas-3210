@@ -40,3 +40,6 @@ verify_jwt = false
 
 [functions.verify-login]
 verify_jwt = false
+
+[functions.get-user-assignments]
+verify_jwt = false
