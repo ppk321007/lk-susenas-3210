@@ -46,36 +46,56 @@ export const Page1Identity = ({
   const [userAssignments, setUserAssignments] = useState<UserAssignments | null>(null);
   const [selectedNksIndex, setSelectedNksIndex] = useState<number | null>(null);
   const [selectedNoSampelIndex, setSelectedNoSampelIndex] = useState<number | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Fetch user assignments on mount
   useEffect(() => {
     const fetchUserAssignments = async () => {
       const userInfo = localStorage.getItem('userInfo');
-      if (!userInfo) return;
-
-      const { nama } = JSON.parse(userInfo);
-      setIsLoading(true);
+      if (!userInfo) {
+        setFetchError("Informasi pengguna tidak ditemukan. Silakan login ulang.");
+        return;
+      }
 
       try {
+        const { nama } = JSON.parse(userInfo);
+        setIsLoading(true);
+        setFetchError(null);
+
         const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
           body: { username: nama }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Edge Function error:', error);
+          throw new Error(`Error dari server: ${error.message}`);
+        }
 
-        if (response?.success && response.data) {
+        if (!response) {
+          throw new Error("Tidak ada respon dari server");
+        }
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        if (response.success && response.data) {
           setUserAssignments(response.data);
           // Auto-fill nama petugas dan pemeriksa
           updateData({
             namaPendata: nama,
             pemeriksa: response.data.pemeriksa || ''
           });
+        } else {
+          throw new Error("Format data tidak valid");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching user assignments:', error);
+        setFetchError(error.message || "Gagal memuat data penugasan");
+        
         toast({
-          title: "Gagal Memuat Data",
-          description: "Tidak dapat memuat data penugasan. Silakan coba lagi.",
+          title: "Gagal Memuat Data Penugasan",
+          description: error.message || "Tidak dapat memuat data penugasan. Silakan coba lagi nanti.",
           variant: "destructive"
         });
       } finally {
@@ -84,12 +104,12 @@ export const Page1Identity = ({
     };
 
     fetchUserAssignments();
-  }, []);
+  }, [toast]);
 
   const handleNksChange = (value: string) => {
     const index = parseInt(value);
     setSelectedNksIndex(index);
-    setSelectedNoSampelIndex(null); // Reset no sampel selection
+    setSelectedNoSampelIndex(null);
     
     if (userAssignments && index >= 0 && index < userAssignments.assignments.length) {
       const assignment = userAssignments.assignments[index];
@@ -147,7 +167,6 @@ export const Page1Identity = ({
     };
     reader.readAsText(file);
 
-    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -177,12 +196,48 @@ export const Page1Identity = ({
     });
   };
 
+  const retryFetchAssignments = () => {
+    setFetchError(null);
+    const fetchUserAssignments = async () => {
+      const userInfo = localStorage.getItem('userInfo');
+      if (!userInfo) return;
+
+      const { nama } = JSON.parse(userInfo);
+      setIsLoading(true);
+
+      try {
+        const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
+          body: { username: nama }
+        });
+
+        if (error) throw error;
+
+        if (response?.success && response.data) {
+          setUserAssignments(response.data);
+          updateData({
+            namaPendata: nama,
+            pemeriksa: response.data.pemeriksa || ''
+          });
+          toast({
+            title: "Data Berhasil Dimuat",
+            description: "Data penugasan berhasil dimuat ulang."
+          });
+        }
+      } catch (error) {
+        setFetchError("Gagal memuat data. Silakan coba lagi.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserAssignments();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-red-600">Keterangan Identitas</h2>
         
-        {/* Load Data Button */}
         <div className="relative">
           <input ref={fileInputRef} type="file" accept=".json" onChange={handleLoadData} className="hidden" />
           <Button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2" variant="outline" size="sm">
@@ -193,9 +248,22 @@ export const Page1Identity = ({
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin mr-2" />
-          <span>Memuat data penugasan...</span>
+        <div className="flex flex-col items-center justify-center py-8 space-y-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="text-sm text-muted-foreground">Memuat data penugasan...</span>
+        </div>
+      ) : fetchError ? (
+        <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
+          <div className="flex flex-col space-y-3">
+            <div className="text-destructive font-medium">Gagal Memuat Data Penugasan</div>
+            <div className="text-sm text-muted-foreground">{fetchError}</div>
+            <Button onClick={retryFetchAssignments} variant="outline" size="sm" className="self-start">
+              Coba Lagi
+            </Button>
+            <div className="text-xs text-muted-foreground mt-2">
+              Tip: Pastikan Edge Function sudah dikonfigurasi dengan benar di Supabase.
+            </div>
+          </div>
         </div>
       ) : (
         <>
@@ -218,18 +286,27 @@ export const Page1Identity = ({
               <Input 
                 id="pemeriksa" 
                 value={data.pemeriksa} 
-                readOnly
-                className="bg-muted"
-                placeholder="Otomatis dari data" 
+                readOnly={!!userAssignments}
+                onChange={(e) => !userAssignments && updateData({ pemeriksa: e.target.value })}
+                className={userAssignments ? "bg-muted" : ""}
+                placeholder={userAssignments ? "Otomatis dari data" : "Masukkan nama pemeriksa"} 
               />
             </div>
 
             {/* Kolom 3 */}
             <div className="space-y-2">
               <Label htmlFor="nks">NKS</Label>
-              <Select onValueChange={handleNksChange} value={selectedNksIndex !== null ? selectedNksIndex.toString() : undefined}>
+              <Select 
+                onValueChange={handleNksChange} 
+                value={selectedNksIndex !== null ? selectedNksIndex.toString() : undefined}
+                disabled={!userAssignments || userAssignments.assignments.length === 0}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih NKS" />
+                  <SelectValue placeholder={
+                    !userAssignments ? "Data belum dimuat" : 
+                    userAssignments.assignments.length === 0 ? "Tidak ada penugasan" : 
+                    "Pilih NKS"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   {userAssignments?.assignments.map((assignment, index) => (
@@ -247,9 +324,10 @@ export const Page1Identity = ({
               <Input 
                 id="kecamatan" 
                 value={data.kecamatan} 
-                readOnly
-                className="bg-muted"
-                placeholder="Otomatis dari NKS" 
+                readOnly={!!userAssignments}
+                onChange={(e) => !userAssignments && updateData({ kecamatan: e.target.value })}
+                className={userAssignments ? "bg-muted" : ""}
+                placeholder={userAssignments ? "Otomatis dari NKS" : "Masukkan kecamatan"} 
               />
             </div>
 
@@ -259,9 +337,10 @@ export const Page1Identity = ({
               <Input 
                 id="desa" 
                 value={data.desa} 
-                readOnly
-                className="bg-muted"
-                placeholder="Otomatis dari NKS" 
+                readOnly={!!userAssignments}
+                onChange={(e) => !userAssignments && updateData({ desa: e.target.value })}
+                className={userAssignments ? "bg-muted" : ""}
+                placeholder={userAssignments ? "Otomatis dari NKS" : "Masukkan desa"} 
               />
             </div>
 
@@ -271,9 +350,10 @@ export const Page1Identity = ({
               <Input 
                 id="sls" 
                 value={data.sls} 
-                readOnly
-                className="bg-muted"
-                placeholder="Otomatis dari NKS" 
+                readOnly={!!userAssignments}
+                onChange={(e) => !userAssignments && updateData({ sls: e.target.value })}
+                className={userAssignments ? "bg-muted" : ""}
+                placeholder={userAssignments ? "Otomatis dari NKS" : "Masukkan SLS"} 
               />
             </div>
 
@@ -283,10 +363,14 @@ export const Page1Identity = ({
               <Select 
                 onValueChange={handleNoSampelChange} 
                 value={selectedNoSampelIndex !== null ? selectedNoSampelIndex.toString() : undefined}
-                disabled={selectedNksIndex === null}
+                disabled={!userAssignments || selectedNksIndex === null}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={selectedNksIndex === null ? "Pilih NKS dahulu" : "Pilih No Sampel"} />
+                  <SelectValue placeholder={
+                    !userAssignments ? "Data belum dimuat" : 
+                    selectedNksIndex === null ? "Pilih NKS dahulu" : 
+                    "Pilih No Sampel"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   {selectedNksIndex !== null && userAssignments?.assignments[selectedNksIndex]?.noSampelList.map((noSampel, index) => (
@@ -304,9 +388,10 @@ export const Page1Identity = ({
               <Input 
                 id="alamat" 
                 value={data.alamat} 
-                readOnly
-                className="bg-muted"
-                placeholder="Otomatis dari NKS" 
+                readOnly={!!userAssignments}
+                onChange={(e) => !userAssignments && updateData({ alamat: e.target.value })}
+                className={userAssignments ? "bg-muted" : ""}
+                placeholder={userAssignments ? "Otomatis dari NKS" : "Masukkan alamat"} 
               />
             </div>
 
@@ -316,9 +401,10 @@ export const Page1Identity = ({
               <Input 
                 id="namaKepalaRumahTangga" 
                 value={data.namaKepalaRumahTangga} 
-                readOnly
-                className="bg-muted"
-                placeholder="Otomatis dari No Sampel" 
+                readOnly={!!userAssignments}
+                onChange={(e) => !userAssignments && updateData({ namaKepalaRumahTangga: e.target.value })}
+                className={userAssignments ? "bg-muted" : ""}
+                placeholder={userAssignments ? "Otomatis dari No Sampel" : "Masukkan nama kepala rumah tangga"} 
               />
             </div>
           </div>
