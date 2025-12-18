@@ -166,28 +166,179 @@ function extractSpreadsheetId(input: string): string {
   return input;
 }
 
-// Format expense entry: KomoditasName_Value_Category_DetailSource
-function formatExpenseEntry(itemName: string, expense: any, category: string): string {
-  const entries: string[] = [];
+// Format expense entry with entries array support
+// Format: ItemName_Value_Category_Detail; ItemName_Value_Category_Detail | ItemName_Value_Category_Detail
+// "|" separates different categories (Pembelian vs Pemberian)
+// ";" separates different entries within the same category
+function formatExpenseEntry(itemName: string, expense: any, categoryKey: string): string {
+  // Check if expense has entries array (EnhancedExpenseInput format)
+  if (expense.entries && Array.isArray(expense.entries) && expense.entries.length > 0) {
+    const pembelianEntries: string[] = [];
+    const pemberianEntries: string[] = [];
+    
+    for (const entry of expense.entries) {
+      if (entry.nilai > 0) {
+        const detail = entry.jenisDetail || entry.kategori;
+        const formatted = `${itemName}_${entry.nilai}_${entry.kategori}_${detail}`;
+        
+        if (entry.kategori === 'Pembelian') {
+          pembelianEntries.push(formatted);
+        } else {
+          pemberianEntries.push(formatted);
+        }
+      }
+    }
+    
+    const parts: string[] = [];
+    if (pembelianEntries.length > 0) {
+      parts.push(pembelianEntries.join('; '));
+    }
+    if (pemberianEntries.length > 0) {
+      parts.push(pemberianEntries.join('; '));
+    }
+    
+    return parts.length > 0 ? parts.join(' | ') : '0';
+  }
   
-  // Check pembelian
+  // Fallback to old format (ExpenseInput format with pembelian/produksiSendiri)
+  const pembelianEntries: string[] = [];
+  const pemberianEntries: string[] = [];
+  
   if (expense.pembelian && expense.pembelian > 0) {
     const detail = expense.jenisPembelian || 'pembelian tunai';
-    entries.push(`${itemName}_${expense.pembelian}_pembelian_${detail}`);
+    pembelianEntries.push(`${itemName}_${expense.pembelian}_pembelian_${detail}`);
   }
   
-  // Check produksiSendiri
   if (expense.produksiSendiri && expense.produksiSendiri > 0) {
     const detail = expense.jenisProduksiSendiri || 'produksi sendiri';
-    entries.push(`${itemName}_${expense.produksiSendiri}_produksi sendiri_${detail}`);
+    pemberianEntries.push(`${itemName}_${expense.produksiSendiri}_produksi sendiri_${detail}`);
   }
   
-  // If no values, return 0
-  if (entries.length === 0) {
-    return '0';
+  const parts: string[] = [];
+  if (pembelianEntries.length > 0) {
+    parts.push(pembelianEntries.join('; '));
+  }
+  if (pemberianEntries.length > 0) {
+    parts.push(pemberianEntries.join('; '));
   }
   
-  return entries.join(' | ');
+  return parts.length > 0 ? parts.join(' | ') : '0';
+}
+
+// Format Page 5 data
+function formatPage5Data(data: any): string[] {
+  const values: string[] = [];
+  
+  // BLOK VA - Pendapatan Upah/Gaji (multiple rows in 1 cell, separated by |)
+  const upahEntries = data.pendapatanUpah || [];
+  const upahFormatted = upahEntries.map((entry: any, idx: number) => {
+    return `${idx + 1}. ${entry.uraianPekerjaan || ''}_${entry.kategoriLU || ''}_${entry.jenisPekerjaan || ''}_UpahUang:${entry.upahUang || 0}_UpahBarang:${entry.upahBarang || 0}_Lembur:${entry.lembur || 0}_ImputasiUpahGajiBarang:${entry.imputasiUpahGajiBarang || 0}`;
+  }).join(' | ');
+  values.push(upahFormatted || '0');
+  
+  // BLOK VB - Pendapatan Usaha (multiple rows in 1 cell, separated by |)
+  const usahaEntries = data.pendapatanUsaha || [];
+  const usahaFormatted = usahaEntries.map((entry: any, idx: number) => {
+    return `${idx + 1}. ${entry.uraianKegiatan || ''}_${entry.kategoriLU || ''}_${entry.jenisPekerjaan || ''}_NilaiProduksi:${entry.nilaiProduksi || 0}_BiayaProduksi:${entry.biayaProduksi || 0}_Surplus:${entry.surplus || 0}_ImputasiNilaiProduksi:${entry.imputasiNilaiProduksi || 0}`;
+  }).join(' | ');
+  values.push(usahaFormatted || '0');
+  
+  // BLOK VC - Produksi Sendiri (2 fixed rows, separated by |)
+  const produksiSendiri = data.produksiSendiri || {};
+  const perkiraanSewa = produksiSendiri.perkiraanSewaRumah || { nilaiProduksi: 0, biayaProduksi: 0, surplus: 0, imputasiNilaiProduksi: 0 };
+  const hasilPertanian = produksiSendiri.hasilPertanian || { nilaiProduksi: 0, biayaProduksi: 0, surplus: 0, imputasiNilaiProduksi: 0 };
+  const produksiFormatted = `PerkiraanSewaRumah_NilaiProduksi:${perkiraanSewa.nilaiProduksi || 0}_BiayaProduksi:${perkiraanSewa.biayaProduksi || 0}_Surplus:${perkiraanSewa.surplus || 0}_ImputasiNilaiProduksi:${perkiraanSewa.imputasiNilaiProduksi || 0} | HasilPertanian_NilaiProduksi:${hasilPertanian.nilaiProduksi || 0}_BiayaProduksi:${hasilPertanian.biayaProduksi || 0}_Surplus:${hasilPertanian.surplus || 0}_ImputasiNilaiProduksi:${hasilPertanian.imputasiNilaiProduksi || 0}`;
+  values.push(produksiFormatted);
+  
+  // BLOK VD - Pendapatan Kepemilikan
+  const kepemilikan = data.pendapatanKepemilikan || {};
+  const kepemilikanItems = ['sewaLahan', 'bagi_hasil', 'deviden', 'bunga'];
+  const kepemilikanFormatted = kepemilikanItems.map(item => {
+    const itemData = kepemilikan[item] || { diterima: 0, dibayar: 0 };
+    return `${item}_Diterima:${itemData.diterima || 0}_Dibayar:${itemData.dibayar || 0}`;
+  }).join(' | ');
+  values.push(kepemilikanFormatted);
+  
+  // BLOK VE - Transfer Berjalan
+  const transferBerjalan = data.transferBerjalan || {};
+  const transferBerjalanItems = ['pemerintahUangPensiun', 'pemerintahBantuan', 'badanUsaha', 'rumahTanggaLain', 'lembagaNirlaba', 'luarNegeri'];
+  const transferBerjalanFormatted = transferBerjalanItems.map(item => {
+    const itemData = transferBerjalan[item] || { diterimaUang: 0, diterimaBarang: 0, dibayarUang: 0, dibayarBarang: 0, imputasiTransferDiterimaUang: 0, imputasiTransferDiterimaBarang: 0 };
+    return `${item}_DiterimaUang:${itemData.diterimaUang || 0}_DiterimaBarang:${itemData.diterimaBarang || 0}_DibayarUang:${itemData.dibayarUang || 0}_DibayarBarang:${itemData.dibayarBarang || 0}_ImputasiDiterimaUang:${itemData.imputasiTransferDiterimaUang || 0}_ImputasiDiterimaBarang:${itemData.imputasiTransferDiterimaBarang || 0}`;
+  }).join(' | ');
+  values.push(transferBerjalanFormatted);
+  
+  // BLOK VF - Transfer Modal
+  const transferModal = data.transferModal || {};
+  const transferModalSources = ['pemerintah', 'badanUsaha', 'rumahTangga', 'lembagaNirlaba', 'luarNegeri'];
+  const assetTypes = ['bangunanTinggal', 'bangunanBukan', 'alatProduksi', 'tanamanHewan', 'kendaraan', 'lahan'];
+  const transferModalFormatted = transferModalSources.map(source => {
+    const sourceData = transferModal[source] || { diterima: {}, dibayar: {} };
+    const diterima = sourceData.diterima || {};
+    const dibayar = sourceData.dibayar || {};
+    const assetValues = assetTypes.map(asset => `${asset}_D:${diterima[asset] || 0}_B:${dibayar[asset] || 0}`).join(';');
+    return `${source}_(${assetValues})`;
+  }).join(' | ');
+  values.push(transferModalFormatted);
+  
+  // BLOK VG - Perubahan Aset
+  const asetPerubahan = data.asetPerubahan || {};
+  const asetTetapUsaha = asetPerubahan.asetTetapUsaha || {};
+  const asetTetapItems = ['bangunanBukan', 'kendaraan', 'mesinPeralatan', 'tanamanHewan', 'lainnya'];
+  const asetTetapFormatted = asetTetapItems.map(item => {
+    const itemData = asetTetapUsaha[item] || { pembelian: 0, pemberian: 0, pembuatanSendiri: 0, penjualan: 0, pemberianKepada: 0, netto: 0, imputasiPenamabahanPemberian: 0, imputasiPenguranganPemberianKepada: 0 };
+    return `AsetTetapUsaha_${item}_Pembelian:${itemData.pembelian || 0}_Pemberian:${itemData.pemberian || 0}_PembuatanSendiri:${itemData.pembuatanSendiri || 0}_Penjualan:${itemData.penjualan || 0}_PemberianKepada:${itemData.pemberianKepada || 0}_Netto:${itemData.netto || 0}_ImputasiPemberian:${itemData.imputasiPenamabahanPemberian || 0}_ImputasiPemberianKepada:${itemData.imputasiPenguranganPemberianKepada || 0}`;
+  }).join(' | ');
+  
+  const otherAsetItems = ['bangunanTinggal', 'biayaPemindahan', 'lahanBarang'];
+  const otherAsetFormatted = otherAsetItems.map(item => {
+    const itemData = asetPerubahan[item] || { pembelian: 0, pemberian: 0, pembuatanSendiri: 0, penjualan: 0, pemberianKepada: 0, netto: 0, imputasiPenamabahanPemberian: 0, imputasiPenguranganPemberianKepada: 0 };
+    return `${item}_Pembelian:${itemData.pembelian || 0}_Pemberian:${itemData.pemberian || 0}_PembuatanSendiri:${itemData.pembuatanSendiri || 0}_Penjualan:${itemData.penjualan || 0}_PemberianKepada:${itemData.pemberianKepada || 0}_Netto:${itemData.netto || 0}_ImputasiPemberian:${itemData.imputasiPenamabahanPemberian || 0}_ImputasiPemberianKepada:${itemData.imputasiPenguranganPemberianKepada || 0}`;
+  }).join(' | ');
+  
+  values.push(asetTetapFormatted + ' | ' + otherAsetFormatted);
+  
+  return values;
+}
+
+// Format Page 6 BLOK VII data
+function formatPage6Data(data: any): string[] {
+  const values: string[] = [];
+  const transaksiKeuangan = data.transaksiKeuangan || {};
+  
+  // Rincian Penerimaan (1 cell, rows separated by |)
+  const penerimaanItems = [
+    { key: 'pengambilanUangTunai', label: 'Pengambilan Uang Tunai' },
+    { key: 'meminjamUang', label: 'Meminjam Uang' },
+    { key: 'menerimaPembayaranKredit', label: 'Menerima Pembayaran Kredit' },
+    { key: 'kreditBarang', label: 'Kredit Barang' },
+    { key: 'lainnyaPenerimaan', label: 'Lainnya Penerimaan' }
+  ];
+  const penerimaanFormatted = penerimaanItems.map(item => {
+    const nilai = transaksiKeuangan[item.key] || 0;
+    const imputasiKey = `imputasiPenerimaan${item.key.charAt(0).toUpperCase() + item.key.slice(1)}`;
+    const imputasi = transaksiKeuangan[imputasiKey] || 0;
+    return `${item.label}_Nilai:${nilai}_Imputasi:${imputasi}`;
+  }).join(' | ');
+  values.push(penerimaanFormatted);
+  
+  // Rincian Pengeluaran (1 cell, rows separated by |)
+  const pengeluaranItems = [
+    { key: 'menyimpanUangTunai', label: 'Menyimpan Uang Tunai' },
+    { key: 'membayarHutang', label: 'Membayar Hutang' },
+    { key: 'memberikanKreditBarang', label: 'Memberikan Kredit Barang' },
+    { key: 'membayarKreditBarang', label: 'Membayar Kredit Barang' },
+    { key: 'lainnyaPengeluaran', label: 'Lainnya Pengeluaran' }
+  ];
+  const pengeluaranFormatted = pengeluaranItems.map(item => {
+    const nilai = transaksiKeuangan[item.key] || 0;
+    const imputasiKey = `imputasiPengeluaran${item.key.charAt(0).toUpperCase() + item.key.slice(1)}`;
+    const imputasi = transaksiKeuangan[imputasiKey] || 0;
+    return `${item.label}_Nilai:${nilai}_Imputasi:${imputasi}`;
+  }).join(' | ');
+  values.push(pengeluaranFormatted);
+  
+  return values;
 }
 
 function flattenSurveyData(data: any, username: string): string[] {
@@ -227,7 +378,7 @@ function flattenSurveyData(data: any, username: string): string[] {
     }
     
     // Regular food items
-    for (const item of category.items) {
+    for (const item of (category as any).items) {
       const itemKey = `${categoryKey}_${item}`;
       const expense = data.makananMinuman?.[itemKey] || { pembelian: 0, produksiSendiri: 0 };
       values.push(formatExpenseEntry(item, expense, categoryKey));
@@ -237,19 +388,27 @@ function flattenSurveyData(data: any, username: string): string[] {
   // PAGE 3: Non-food items - each commodity in ONE cell
   for (const [categoryKey, category] of Object.entries(NON_FOOD_DETAIL_CATEGORIES)) {
     // Monthly items
-    for (const item of category.monthlyItems) {
+    for (const item of (category as any).monthlyItems) {
       const monthlyData = data[`komoditi${categoryKey}Sebulan`] as Record<string, any> || {};
       const expense = monthlyData[item] || { pembelian: 0, produksiSendiri: 0 };
       values.push(formatExpenseEntry(`${item} (Sebulan)`, expense, `${categoryKey}_Sebulan`));
     }
     
     // Yearly items
-    for (const item of category.yearlyItems) {
+    for (const item of (category as any).yearlyItems) {
       const yearlyKey = `${categoryKey}_yearly_${item}`;
       const expense = data.komoditiSetahun?.[yearlyKey] || { pembelian: 0, produksiSendiri: 0 };
       values.push(formatExpenseEntry(`${item} (Setahun)`, expense, `${categoryKey}_Setahun`));
     }
   }
+  
+  // PAGE 5: Income data
+  const page5Values = formatPage5Data(data);
+  values.push(...page5Values);
+  
+  // PAGE 6: BLOK VII Financial transactions
+  const page6Values = formatPage6Data(data);
+  values.push(...page6Values);
   
   return values;
 }
