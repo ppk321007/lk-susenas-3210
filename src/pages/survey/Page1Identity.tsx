@@ -48,20 +48,26 @@ export const Page1Identity = ({
   const [selectedNoSampelIndex, setSelectedNoSampelIndex] = useState<number | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
+  const [isDevelopment, setIsDevelopment] = useState(false);
+
+  // Set environment flag
+  useEffect(() => {
+    setIsDevelopment(window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1'));
+  }, []);
 
   // Dapatkan user info saat komponen mount
   useEffect(() => {
     const getUserInfo = async () => {
       try {
-        // Method 1: Coba ambil dari Supabase auth state
-        const { data: { user }, error } = await supabase.auth.getUser();
+        // Method 1: Coba ambil dari session Supabase yang sudah ada
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error('Error getting user:', error);
-          return;
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
         }
-
-        if (user) {
+        
+        if (session?.user) {
+          const user = session.user;
           // Cari username dari berbagai sumber
           const name = user.user_metadata?.nama || 
                        user.user_metadata?.full_name || 
@@ -70,12 +76,57 @@ export const Page1Identity = ({
                        `user_${user.id.substring(0, 6)}`;
           
           setUserName(name);
-          console.log('User found:', { email: user.email, name });
+          console.log('User found via getSession:', { email: user.email, name });
         } else {
-          console.log('No user found in auth state');
+          // Method 2: Coba gunakan user dari localStorage sebagai fallback
+          console.log('No active session found, checking localStorage...');
+          const userInfo = localStorage.getItem('userInfo');
+          if (userInfo) {
+            try {
+              const { nama } = JSON.parse(userInfo);
+              if (nama) {
+                setUserName(nama);
+                console.log('Using localStorage user:', nama);
+              }
+            } catch (error) {
+              console.error('Error parsing localStorage:', error);
+            }
+          }
+          
+          // Method 3: Coba ambil user dengan getUser() sebagai fallback tambahan
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (userError) {
+            console.error('Error getting user:', userError);
+          }
+          
+          if (user) {
+            const name = user.user_metadata?.nama || 
+                         user.user_metadata?.full_name || 
+                         user.user_metadata?.name ||
+                         user.email?.split('@')[0] || 
+                         `user_${user.id.substring(0, 6)}`;
+            
+            if (!userName) {
+              setUserName(name);
+              console.log('User found via getUser:', name);
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to get user info:', error);
+        
+        // Final fallback: cek localStorage
+        const userInfo = localStorage.getItem('userInfo');
+        if (userInfo) {
+          try {
+            const { nama } = JSON.parse(userInfo);
+            if (nama) {
+              setUserName(nama);
+            }
+          } catch (error) {
+            console.error('Error in final fallback:', error);
+          }
+        }
       }
     };
 
@@ -164,32 +215,10 @@ export const Page1Identity = ({
       }
     };
 
-    fetchUserAssignments();
+    if (userName) {
+      fetchUserAssignments();
+    }
   }, [userName, toast, updateData]);
-
-  // Fallback: Coba ambil dari localStorage jika Supabase auth tidak ada user
-  useEffect(() => {
-    const checkLocalStorageFallback = () => {
-      if (!userName) {
-        const userInfo = localStorage.getItem('userInfo');
-        if (userInfo) {
-          try {
-            const { nama } = JSON.parse(userInfo);
-            if (nama && !userName) {
-              setUserName(nama);
-              console.log('Using localStorage fallback:', nama);
-            }
-          } catch (error) {
-            console.error('Error parsing localStorage:', error);
-          }
-        }
-      }
-    };
-
-    // Check setelah 1 detik untuk memberikan waktu Supabase auth
-    const timer = setTimeout(checkLocalStorageFallback, 1000);
-    return () => clearTimeout(timer);
-  }, [userName]);
 
   const handleNksChange = (value: string) => {
     const index = parseInt(value);
@@ -290,13 +319,18 @@ export const Page1Identity = ({
     setIsLoading(true);
 
     try {
-      // Coba refresh user info terlebih dahulu
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      // Coba refresh user info terlebih dahulu dengan getSession
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Error getting session in retry:', sessionError);
+      }
       
       let currentUserName = userName;
       
-      if (!userError && user) {
-        // Update userName dari Supabase auth
+      if (session?.user) {
+        const user = session.user;
+        // Update userName dari session
         const name = user.user_metadata?.nama || 
                      user.user_metadata?.full_name || 
                      user.user_metadata?.name ||
@@ -306,6 +340,22 @@ export const Page1Identity = ({
         if (name !== userName) {
           setUserName(name);
           currentUserName = name;
+        }
+      }
+
+      if (!currentUserName) {
+        // Final fallback ke localStorage
+        const userInfo = localStorage.getItem('userInfo');
+        if (userInfo) {
+          try {
+            const { nama } = JSON.parse(userInfo);
+            if (nama) {
+              setUserName(nama);
+              currentUserName = nama;
+            }
+          } catch (error) {
+            console.error('Error parsing localStorage:', error);
+          }
         }
       }
 
@@ -361,17 +411,30 @@ export const Page1Identity = ({
 
   // Fungsi untuk logout
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/login';
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+        toast({
+          title: "Error Logout",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+      // Clear localStorage juga
+      localStorage.removeItem('userInfo');
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Force redirect anyway
+      window.location.href = '/login';
+    }
   };
 
   // Fungsi untuk login
   const handleLoginRedirect = () => {
     window.location.href = '/login';
   };
-
-  // Debug info untuk developer
-  const showDebugInfo = fetchError && process.env.NODE_ENV === 'development';
 
   return (
     <div className="space-y-6">
@@ -426,13 +489,18 @@ export const Page1Identity = ({
               <Button onClick={handleLoginRedirect} variant="outline" size="sm">
                 Login Ulang
               </Button>
+              
+              <Button onClick={handleLogout} variant="destructive" size="sm">
+                Logout
+              </Button>
             </div>
             
-            {showDebugInfo && (
+            {isDevelopment && (
               <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-100 rounded">
-                <p className="font-semibold">Debug Info:</p>
+                <p className="font-semibold">Debug Info (Development Mode):</p>
                 <p>Username yang digunakan: {userName || '(tidak ada)'}</p>
                 <p>User Assignments state: {userAssignments ? 'Ada' : 'Null'}</p>
+                <p>Hostname: {window.location.hostname}</p>
               </div>
             )}
             
