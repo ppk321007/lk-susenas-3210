@@ -57,87 +57,47 @@ export const Page1Identity = ({
 
   // Dapatkan user info saat komponen mount
   useEffect(() => {
-    const getUserInfo = async () => {
+    const getUserInfo = () => {
       try {
-        // Method 1: Coba ambil dari session Supabase yang sudah ada
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Langsung gunakan localStorage sebagai sumber utama
+        const userInfo = localStorage.getItem('userInfo');
         
-        if (sessionError) {
-          console.error('Error getting session:', sessionError);
-        }
-        
-        if (session?.user) {
-          const user = session.user;
-          // Cari username dari berbagai sumber
-          const name = user.user_metadata?.nama || 
-                       user.user_metadata?.full_name || 
-                       user.user_metadata?.name ||
-                       user.email?.split('@')[0] || 
-                       `user_${user.id.substring(0, 6)}`;
-          
-          setUserName(name);
-          console.log('User found via getSession:', { email: user.email, name });
-        } else {
-          // Method 2: Coba gunakan user dari localStorage sebagai fallback
-          console.log('No active session found, checking localStorage...');
-          const userInfo = localStorage.getItem('userInfo');
-          if (userInfo) {
-            try {
-              const { nama } = JSON.parse(userInfo);
-              if (nama) {
-                setUserName(nama);
-                console.log('Using localStorage user:', nama);
-              }
-            } catch (error) {
-              console.error('Error parsing localStorage:', error);
-            }
-          }
-          
-          // Method 3: Coba ambil user dengan getUser() sebagai fallback tambahan
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          if (userError) {
-            console.error('Error getting user:', userError);
-          }
-          
-          if (user) {
-            const name = user.user_metadata?.nama || 
-                         user.user_metadata?.full_name || 
-                         user.user_metadata?.name ||
-                         user.email?.split('@')[0] || 
-                         `user_${user.id.substring(0, 6)}`;
+        if (userInfo) {
+          try {
+            const parsedInfo = JSON.parse(userInfo);
+            const name = parsedInfo.nama || 
+                        parsedInfo.full_name || 
+                        parsedInfo.name ||
+                        parsedInfo.email?.split('@')[0] || 
+                        'Pengguna';
             
-            if (!userName) {
-              setUserName(name);
-              console.log('User found via getUser:', name);
-            }
+            setUserName(name);
+            console.log('User found via localStorage:', name);
+            
+            // Juga set nama di data survey
+            updateData({ namaPendata: name });
+          } catch (error) {
+            console.error('Error parsing localStorage:', error);
+            setUserName('Pengguna');
           }
+        } else {
+          console.log('No user info in localStorage');
+          setUserName('Pengguna');
         }
       } catch (error) {
         console.error('Failed to get user info:', error);
-        
-        // Final fallback: cek localStorage
-        const userInfo = localStorage.getItem('userInfo');
-        if (userInfo) {
-          try {
-            const { nama } = JSON.parse(userInfo);
-            if (nama) {
-              setUserName(nama);
-            }
-          } catch (error) {
-            console.error('Error in final fallback:', error);
-          }
-        }
+        setUserName('Pengguna');
       }
     };
 
     getUserInfo();
-  }, []);
+  }, [updateData]);
 
   // Fetch user assignments on mount dan ketika userName berubah
   useEffect(() => {
     const fetchUserAssignments = async () => {
-      if (!userName) {
-        console.log('Waiting for userName...');
+      if (!userName || userName === 'Pengguna') {
+        console.log('Waiting for valid userName...');
         return;
       }
 
@@ -169,9 +129,8 @@ export const Page1Identity = ({
         if (response.success && response.data) {
           setUserAssignments(response.data);
           
-          // Auto-fill nama petugas dan pemeriksa
+          // Auto-fill pemeriksa
           updateData({
-            namaPendata: userName,
             pemeriksa: response.data.pemeriksa || ''
           });
           
@@ -181,7 +140,6 @@ export const Page1Identity = ({
           if (response.data && response.data.assignments) {
             setUserAssignments(response.data);
             updateData({
-              namaPendata: userName,
               pemeriksa: response.data.pemeriksa || ''
             });
           } else {
@@ -215,7 +173,7 @@ export const Page1Identity = ({
       }
     };
 
-    if (userName) {
+    if (userName && userName !== 'Pengguna') {
       fetchUserAssignments();
     }
   }, [userName, toast, updateData]);
@@ -319,47 +277,30 @@ export const Page1Identity = ({
     setIsLoading(true);
 
     try {
-      // Coba refresh user info terlebih dahulu dengan getSession
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Error getting session in retry:', sessionError);
-      }
-      
+      // Refresh user info dari localStorage
+      const userInfo = localStorage.getItem('userInfo');
       let currentUserName = userName;
       
-      if (session?.user) {
-        const user = session.user;
-        // Update userName dari session
-        const name = user.user_metadata?.nama || 
-                     user.user_metadata?.full_name || 
-                     user.user_metadata?.name ||
-                     user.email?.split('@')[0] || 
-                     `user_${user.id.substring(0, 6)}`;
-        
-        if (name !== userName) {
-          setUserName(name);
-          currentUserName = name;
-        }
-      }
-
-      if (!currentUserName) {
-        // Final fallback ke localStorage
-        const userInfo = localStorage.getItem('userInfo');
-        if (userInfo) {
-          try {
-            const { nama } = JSON.parse(userInfo);
-            if (nama) {
-              setUserName(nama);
-              currentUserName = nama;
-            }
-          } catch (error) {
-            console.error('Error parsing localStorage:', error);
+      if (userInfo) {
+        try {
+          const parsedInfo = JSON.parse(userInfo);
+          const name = parsedInfo.nama || 
+                      parsedInfo.full_name || 
+                      parsedInfo.name ||
+                      parsedInfo.email?.split('@')[0] || 
+                      'Pengguna';
+          
+          if (name !== userName) {
+            setUserName(name);
+            currentUserName = name;
+            updateData({ namaPendata: name });
           }
+        } catch (error) {
+          console.error('Error parsing localStorage:', error);
         }
       }
 
-      if (!currentUserName) {
+      if (!currentUserName || currentUserName === 'Pengguna') {
         throw new Error("Username tidak ditemukan. Silakan login ulang.");
       }
 
@@ -372,7 +313,6 @@ export const Page1Identity = ({
       if (response?.success && response.data) {
         setUserAssignments(response.data);
         updateData({
-          namaPendata: currentUserName,
           pemeriksa: response.data.pemeriksa || ''
         });
         
@@ -384,7 +324,6 @@ export const Page1Identity = ({
         // Fallback untuk format response alternatif
         setUserAssignments(response.data);
         updateData({
-          namaPendata: currentUserName,
           pemeriksa: response.data.pemeriksa || ''
         });
         
@@ -409,26 +348,14 @@ export const Page1Identity = ({
     }
   };
 
-  // Fungsi untuk logout
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Logout error:', error);
-        toast({
-          title: "Error Logout",
-          description: error.message,
-          variant: "destructive"
-        });
-      }
-      // Clear localStorage juga
-      localStorage.removeItem('userInfo');
-      window.location.href = '/login';
-    } catch (error) {
-      console.error('Logout failed:', error);
-      // Force redirect anyway
-      window.location.href = '/login';
-    }
+  // Fungsi untuk logout sederhana
+  const handleLogout = () => {
+    // Hapus data dari localStorage
+    localStorage.removeItem('userInfo');
+    localStorage.removeItem('supabase.auth.token');
+    
+    // Redirect ke login
+    window.location.href = '/login';
   };
 
   // Fungsi untuk login
@@ -442,7 +369,7 @@ export const Page1Identity = ({
         <h2 className="text-xl font-semibold text-red-600">Keterangan Identitas</h2>
         
         <div className="flex items-center gap-2">
-          {userName && (
+          {userName && userName !== 'Pengguna' && (
             <div className="text-sm text-muted-foreground hidden md:block">
               User: <span className="font-medium">{userName}</span>
             </div>
@@ -489,10 +416,6 @@ export const Page1Identity = ({
               <Button onClick={handleLoginRedirect} variant="outline" size="sm">
                 Login Ulang
               </Button>
-              
-              <Button onClick={handleLogout} variant="destructive" size="sm">
-                Logout
-              </Button>
             </div>
             
             {isDevelopment && (
@@ -501,6 +424,7 @@ export const Page1Identity = ({
                 <p>Username yang digunakan: {userName || '(tidak ada)'}</p>
                 <p>User Assignments state: {userAssignments ? 'Ada' : 'Null'}</p>
                 <p>Hostname: {window.location.hostname}</p>
+                <p>LocalStorage userInfo: {localStorage.getItem('userInfo') ? 'Ada' : 'Tidak ada'}</p>
               </div>
             )}
             
@@ -510,6 +434,7 @@ export const Page1Identity = ({
                 <li>Username Anda terdaftar dalam spreadsheet penugasan</li>
                 <li>Edge Function sudah berjalan dengan benar</li>
                 <li>Anda memiliki akses internet yang stabil</li>
+                <li>Anda sudah login dengan benar</li>
               </ul>
             </div>
           </div>
@@ -555,7 +480,7 @@ export const Page1Identity = ({
                   userAssignments.assignments.length === 0 ? "border-amber-200 bg-amber-50" : ""
                 }>
                   <SelectValue placeholder={
-                    !userName ? "Menunggu data user..." :
+                    !userName || userName === 'Pengguna' ? "Menunggu data user..." :
                     !userAssignments ? "Memuat data penugasan..." : 
                     userAssignments.assignments.length === 0 ? "Tidak ada penugasan" : 
                     "Pilih NKS"
@@ -570,7 +495,7 @@ export const Page1Identity = ({
                 </SelectContent>
               </Select>
               
-              {userAssignments?.assignments.length === 0 && userName && (
+              {userAssignments?.assignments.length === 0 && userName && userName !== 'Pengguna' && (
                 <p className="text-xs text-amber-600 mt-1">
                   Tidak ada penugasan ditemukan untuk username "{userName}"
                 </p>
