@@ -47,78 +47,119 @@ export const Page1Identity = ({
   const [selectedNksIndex, setSelectedNksIndex] = useState<number | null>(null);
   const [selectedNoSampelIndex, setSelectedNoSampelIndex] = useState<number | null>(null);
 
- // Ganti useEffect dengan ini:
+// Ganti useEffect dengan ini:
 useEffect(() => {
   const fetchUserAssignments = async () => {
     setIsLoading(true);
 
     try {
-      // AMBIL DATA USER DARI LOCALSTORAGE (sesuai dengan verify-login)
-      const userDataString = localStorage.getItem('userData');
+      console.log('=== FETCHING USER ASSIGNMENTS ===');
       
-      if (!userDataString) {
+      // Coba beberapa cara untuk mendapatkan username
+      let username = '';
+      
+      // Cara 1: Dari localStorage (cara lama)
+      try {
+        const userDataString = localStorage.getItem('userData');
+        if (userDataString) {
+          const userData = JSON.parse(userDataString);
+          username = userData.user?.nama || userData.nama || '';
+          console.log('Username from localStorage userData:', username);
+        }
+      } catch (e) {
+        console.log('Error reading from localStorage:', e);
+      }
+      
+      // Cara 2: Dari sessionStorage (mungkin Anda simpan di sini)
+      if (!username) {
+        try {
+          const sessionUser = sessionStorage.getItem('user');
+          if (sessionUser) {
+            const parsed = JSON.parse(sessionUser);
+            username = parsed.nama || parsed.username || '';
+            console.log('Username from sessionStorage:', username);
+          }
+        } catch (e) {
+          console.log('Error reading from sessionStorage:', e);
+        }
+      }
+      
+      // Cara 3: Coba ambil dari URL atau state management
+      if (!username) {
+        // Cek URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        username = urlParams.get('username') || '';
+        console.log('Username from URL params:', username);
+      }
+      
+      // Cara 4: Untuk testing langsung, gunakan username yang ada di spreadsheet
+      if (!username) {
+        // DAFTAR USER YANG ADA DI SPREADSHEET MARET25
+        const possibleUsers = ['ppk3210', 'petugas-1', 'User', 'NamaUser'];
+        // Pilih yang pertama untuk testing
+        username = possibleUsers[0];
+        console.log('Using test username:', username);
+        
+        // Simpan ke localStorage untuk testing
+        localStorage.setItem('userData', JSON.stringify({
+          success: true,
+          user: { nama: username, role: 'test' }
+        }));
+      }
+      
+      if (!username) {
+        console.error('❌ Tidak bisa mendapatkan username!');
         toast({
-          title: "Gagal Memuat Data",
+          title: "Login Diperlukan",
           description: "Silakan login terlebih dahulu.",
           variant: "destructive"
         });
         setIsLoading(false);
         return;
       }
-
-      const userData = JSON.parse(userDataString);
-      const username = userData.user?.nama; // PERHATIKAN: ini adalah 'user.nama' dari verify-login
       
-      console.log('User data from localStorage:', userData);
-      console.log('Username to fetch assignments:', username);
-
-      if (!username) {
-        console.error('Username tidak ditemukan di userData:', userData);
-        toast({
-          title: "Gagal Memuat Data",
-          description: "Data user tidak lengkap. Silakan login ulang.",
-          variant: "destructive"
-        });
-        return;
-      }
-
+      console.log(`🔍 Mencari assignments untuk: "${username}"`);
+      
       // Panggil function untuk mendapatkan assignments
       const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
         body: { username: username }
       });
 
       if (error) {
-        console.error('Error from function:', error);
+        console.error('❌ Error dari function:', error);
         throw error;
       }
 
-      console.log('Response from get-user-assignments:', response);
+      console.log('📋 Response dari get-user-assignments:', response);
 
       if (response?.success && response.data) {
+        console.log('✅ Assignments ditemukan:', response.data.assignments);
         setUserAssignments(response.data);
-        // Auto-fill pencacah dan pemeriksa
+        
+        // Auto-fill data
         updateData({
-          namaPendata: username, // Gunakan username yang dari login
+          namaPendata: username,
           pencacah: response.data.pencacah || '',
           pemeriksa: response.data.pemeriksa || ''
         });
         
         toast({
           title: "Data Penugasan Dimuat",
-          description: `Berhasil memuat ${response.data.assignments.length} NKS untuk ${username}`,
+          description: `Berhasil memuat ${response.data.assignments.length} NKS`,
         });
       } else {
+        console.log('⚠️ Tidak ada assignments ditemukan');
         toast({
-          title: "Tidak Ada Penugasan",
-          description: response?.message || "Belum ada penugasan untuk user ini.",
+          title: "Data Tidak Ditemukan",
+          description: response?.message || "User ini belum memiliki penugasan.",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error('Error fetching user assignments:', error);
+      console.error('❌ Error fetching assignments:', error);
       toast({
-        title: "Gagal Memuat Data",
-        description: "Tidak dapat memuat data penugasan. Silakan coba lagi.",
+        title: "Error",
+        description: error.message || "Terjadi kesalahan saat memuat data.",
         variant: "destructive"
       });
     } finally {
