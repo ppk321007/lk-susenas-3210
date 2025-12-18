@@ -65,10 +65,9 @@ export const Page1Identity = ({
 
         if (response?.success && response.data) {
           setUserAssignments(response.data);
-          // Auto-fill pencacah and pemeriksa
+          // Auto-fill nama petugas dan pemeriksa
           updateData({
             namaPendata: nama,
-            pencacah: response.data.pencacah || '',
             pemeriksa: response.data.pemeriksa || ''
           });
         }
@@ -201,6 +200,7 @@ export const Page1Identity = ({
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Kolom 1 */}
             <div className="space-y-2">
               <Label htmlFor="namaPendata">Nama Petugas Pendataan Lapangan</Label>
               <Input 
@@ -212,17 +212,7 @@ export const Page1Identity = ({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="pencacah">Pencacah</Label>
-              <Input 
-                id="pencacah" 
-                value={data.pencacah} 
-                readOnly
-                className="bg-muted"
-                placeholder="Otomatis dari data" 
-              />
-            </div>
-
+            {/* Kolom 2 */}
             <div className="space-y-2">
               <Label htmlFor="pemeriksa">Pemeriksa</Label>
               <Input 
@@ -234,6 +224,7 @@ export const Page1Identity = ({
               />
             </div>
 
+            {/* Kolom 3 */}
             <div className="space-y-2">
               <Label htmlFor="nks">NKS</Label>
               <Select onValueChange={handleNksChange} value={selectedNksIndex !== null ? selectedNksIndex.toString() : undefined}>
@@ -250,6 +241,7 @@ export const Page1Identity = ({
               </Select>
             </div>
 
+            {/* Kolom 4 */}
             <div className="space-y-2">
               <Label htmlFor="kecamatan">Kecamatan</Label>
               <Input 
@@ -261,6 +253,7 @@ export const Page1Identity = ({
               />
             </div>
 
+            {/* Kolom 5 */}
             <div className="space-y-2">
               <Label htmlFor="desa">Desa/Kelurahan</Label>
               <Input 
@@ -272,6 +265,7 @@ export const Page1Identity = ({
               />
             </div>
 
+            {/* Kolom 6 */}
             <div className="space-y-2">
               <Label htmlFor="sls">SLS</Label>
               <Input 
@@ -283,6 +277,7 @@ export const Page1Identity = ({
               />
             </div>
 
+            {/* Kolom 7 */}
             <div className="space-y-2">
               <Label htmlFor="noSampel">No Sampel</Label>
               <Select 
@@ -303,6 +298,7 @@ export const Page1Identity = ({
               </Select>
             </div>
 
+            {/* Kolom 8 */}
             <div className="space-y-2">
               <Label htmlFor="alamat">Alamat</Label>
               <Input 
@@ -314,6 +310,7 @@ export const Page1Identity = ({
               />
             </div>
 
+            {/* Kolom 9 */}
             <div className="space-y-2">
               <Label htmlFor="namaKepalaRumahTangga">Nama Kepala Rumah Tangga</Label>
               <Input 
