@@ -1,8 +1,7 @@
-// components/Page1Identity.tsx
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Upload, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Upload, Loader2, AlertCircle, User } from "lucide-react";
 import { SurveyData } from "@/types/survey";
 import { useToast } from "@/hooks/use-toast";
 import { useRef, useEffect, useState } from "react";
@@ -44,72 +43,113 @@ export const Page1Identity = ({
 }: Page1IdentityProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [userAssignments, setUserAssignments] = useState<UserAssignments | null>(null);
   const [selectedNksIndex, setSelectedNksIndex] = useState<number | null>(null);
   const [selectedNoSampelIndex, setSelectedNoSampelIndex] = useState<number | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [currentUsername, setCurrentUsername] = useState<string>('');
 
-  // Fetch user assignments on mount
+  // Get username from localStorage
+  useEffect(() => {
+    const getUsername = () => {
+      try {
+        // Check multiple possible storage keys
+        const possibleKeys = ['userInfo', 'user', 'username', 'currentUser', 'userData'];
+        
+        for (const key of possibleKeys) {
+          const storedData = localStorage.getItem(key);
+          if (storedData) {
+            try {
+              const parsedData = JSON.parse(storedData);
+              // Try different property names for username
+              const username = 
+                parsedData.nama || 
+                parsedData.username || 
+                parsedData.name || 
+                parsedData.email?.split('@')[0] || 
+                parsedData.user;
+              
+              if (username) {
+                console.log(`Found username '${username}' in localStorage key '${key}'`);
+                setCurrentUsername(username);
+                return username;
+              }
+            } catch (e) {
+              // If not JSON, use as username directly
+              console.log(`Using raw localStorage value from key '${key}' as username`);
+              setCurrentUsername(storedData);
+              return storedData;
+            }
+          }
+        }
+        
+        // If nothing found, try to get from Supabase session
+        const checkSupabaseSession = async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const username = session.user.user_metadata?.username || 
+                            session.user.user_metadata?.name || 
+                            session.user.email?.split('@')[0];
+            if (username) {
+              console.log(`Found username '${username}' from Supabase session`);
+              setCurrentUsername(username);
+              return username;
+            }
+          }
+          return null;
+        };
+        
+        checkSupabaseSession();
+        
+      } catch (error) {
+        console.error('Error getting username:', error);
+        return null;
+      }
+    };
+
+    getUsername();
+  }, []);
+
+  // Fetch user assignments when username changes
   useEffect(() => {
     const fetchUserAssignments = async () => {
+      if (!currentUsername) {
+        console.log('No username available, skipping fetch');
+        return;
+      }
+
+      setIsLoading(true);
+      setFetchError(null);
+
       try {
-        setIsLoading(true);
-        setFetchError(null);
+        console.log(`Fetching assignments for user: ${currentUsername}`);
 
-        // Get user info from localStorage
-        const userInfoStr = localStorage.getItem('userInfo');
-        if (!userInfoStr) {
-          setFetchError('Informasi pengguna tidak ditemukan. Silakan login kembali.');
-          setIsLoading(false);
-          return;
-        }
-
-        let userInfo;
-        try {
-          userInfo = JSON.parse(userInfoStr);
-        } catch (e) {
-          setFetchError('Format informasi pengguna tidak valid.');
-          setIsLoading(false);
-          return;
-        }
-
-        const { nama } = userInfo;
-        if (!nama) {
-          setFetchError('Nama pengguna tidak ditemukan.');
-          setIsLoading(false);
-          return;
-        }
-
-        console.log('Fetching assignments for user:', nama);
-
-        // Call edge function
         const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
-          body: { username: nama }
+          body: { username: currentUsername }
         });
 
-        if (error) {
-          console.error('Supabase function error:', error);
-          throw new Error(`Gagal memanggil fungsi: ${error.message}`);
-        }
+        console.log('Function response:', response);
 
-        console.log('API Response:', response);
+        if (error) {
+          throw new Error(`Function error: ${error.message}`);
+        }
 
         if (response?.success) {
           if (response.data) {
             console.log('Assignments data received:', response.data);
             setUserAssignments(response.data);
             
-            // Auto-fill user data
+            // Auto-fill pencacah and pemeriksa
             updateData({
-              namaPendata: nama,
+              namaPendata: currentUsername,
               pencacah: response.data.pencacah || '',
               pemeriksa: response.data.pemeriksa || ''
             });
             
             toast({
               title: "Data Berhasil Dimuat",
-              description: `Data penugasan untuk ${nama} berhasil dimuat.`,
+              description: `Data penugasan untuk ${currentUsername} berhasil dimuat.`,
             });
           } else {
             setFetchError('Data penugasan tidak ditemukan untuk pengguna ini.');
@@ -136,8 +176,13 @@ export const Page1Identity = ({
       }
     };
 
-    fetchUserAssignments();
-  }, []);
+    // Add a small delay to ensure localStorage is loaded
+    const timer = setTimeout(() => {
+      fetchUserAssignments();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [currentUsername, updateData, toast]);
 
   const handleNksChange = (value: string) => {
     const index = parseInt(value);
@@ -261,6 +306,18 @@ export const Page1Identity = ({
     });
   };
 
+  const handleManualUsername = () => {
+    const manualUsername = prompt('Masukkan username Anda (contoh: ppk3210):');
+    if (manualUsername) {
+      localStorage.setItem('userInfo', JSON.stringify({ nama: manualUsername }));
+      setCurrentUsername(manualUsername);
+      toast({
+        title: "Username Diatur",
+        description: `Username ${manualUsername} telah diatur.`,
+      });
+    }
+  };
+
   const renderAssignmentsInfo = () => {
     if (!userAssignments) return null;
     
@@ -281,10 +338,29 @@ export const Page1Identity = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-red-600">Keterangan Identitas</h2>
+        <div className="flex items-center gap-2">
+          <User className="h-5 w-5 text-red-600" />
+          <h2 className="text-xl font-semibold text-red-600">Keterangan Identitas</h2>
+          {currentUsername && (
+            <span className="text-sm bg-red-100 text-red-700 px-2 py-1 rounded">
+              {currentUsername}
+            </span>
+          )}
+        </div>
         
-        {/* Load Data Button */}
-        <div className="relative">
+        <div className="flex items-center gap-2">
+          {!currentUsername && (
+            <Button 
+              onClick={handleManualUsername}
+              variant="outline" 
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <User className="h-4 w-4" />
+              Set Username
+            </Button>
+          )}
+          
           <input 
             ref={fileInputRef} 
             type="file" 
@@ -305,7 +381,22 @@ export const Page1Identity = ({
         </div>
       </div>
 
-      {isLoading ? (
+      {!currentUsername && !isLoading ? (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Username tidak ditemukan. Silakan login atau atur username secara manual.
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2 ml-2"
+              onClick={handleManualUsername}
+            >
+              Atur Username
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : isLoading ? (
         <div className="flex flex-col items-center justify-center py-8 space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
           <span className="text-gray-600">Memuat data penugasan...</span>
@@ -319,7 +410,7 @@ export const Page1Identity = ({
             <Button 
               variant="outline" 
               size="sm" 
-              className="mt-2"
+              className="mt-2 ml-2"
               onClick={() => window.location.reload()}
             >
               Coba Lagi
