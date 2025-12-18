@@ -47,45 +47,87 @@ export const Page1Identity = ({
   const [selectedNksIndex, setSelectedNksIndex] = useState<number | null>(null);
   const [selectedNoSampelIndex, setSelectedNoSampelIndex] = useState<number | null>(null);
 
-  // Fetch user assignments on mount
-  useEffect(() => {
-    const fetchUserAssignments = async () => {
-      const userInfo = localStorage.getItem('userInfo');
-      if (!userInfo) return;
+ // Ganti useEffect dengan ini:
+useEffect(() => {
+  const fetchUserAssignments = async () => {
+    setIsLoading(true);
 
-      const { nama } = JSON.parse(userInfo);
-      setIsLoading(true);
-
-      try {
-        const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
-          body: { username: nama }
-        });
-
-        if (error) throw error;
-
-        if (response?.success && response.data) {
-          setUserAssignments(response.data);
-          // Auto-fill pencacah and pemeriksa
-          updateData({
-            namaPendata: nama,
-            pencacah: response.data.pencacah || '',
-            pemeriksa: response.data.pemeriksa || ''
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching user assignments:', error);
+    try {
+      // AMBIL DATA USER DARI LOCALSTORAGE (sesuai dengan verify-login)
+      const userDataString = localStorage.getItem('userData');
+      
+      if (!userDataString) {
         toast({
           title: "Gagal Memuat Data",
-          description: "Tidak dapat memuat data penugasan. Silakan coba lagi.",
+          description: "Silakan login terlebih dahulu.",
           variant: "destructive"
         });
-      } finally {
         setIsLoading(false);
+        return;
       }
-    };
 
-    fetchUserAssignments();
-  }, []);
+      const userData = JSON.parse(userDataString);
+      const username = userData.user?.nama; // PERHATIKAN: ini adalah 'user.nama' dari verify-login
+      
+      console.log('User data from localStorage:', userData);
+      console.log('Username to fetch assignments:', username);
+
+      if (!username) {
+        console.error('Username tidak ditemukan di userData:', userData);
+        toast({
+          title: "Gagal Memuat Data",
+          description: "Data user tidak lengkap. Silakan login ulang.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Panggil function untuk mendapatkan assignments
+      const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
+        body: { username: username }
+      });
+
+      if (error) {
+        console.error('Error from function:', error);
+        throw error;
+      }
+
+      console.log('Response from get-user-assignments:', response);
+
+      if (response?.success && response.data) {
+        setUserAssignments(response.data);
+        // Auto-fill pencacah dan pemeriksa
+        updateData({
+          namaPendata: username, // Gunakan username yang dari login
+          pencacah: response.data.pencacah || '',
+          pemeriksa: response.data.pemeriksa || ''
+        });
+        
+        toast({
+          title: "Data Penugasan Dimuat",
+          description: `Berhasil memuat ${response.data.assignments.length} NKS untuk ${username}`,
+        });
+      } else {
+        toast({
+          title: "Tidak Ada Penugasan",
+          description: response?.message || "Belum ada penugasan untuk user ini.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user assignments:', error);
+      toast({
+        title: "Gagal Memuat Data",
+        description: "Tidak dapat memuat data penugasan. Silakan coba lagi.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchUserAssignments();
+}, []);
 
   const handleNksChange = (value: string) => {
     const index = parseInt(value);
