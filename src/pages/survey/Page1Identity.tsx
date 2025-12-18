@@ -47,35 +47,56 @@ export const Page1Identity = ({
   const [selectedNksIndex, setSelectedNksIndex] = useState<number | null>(null);
   const [selectedNoSampelIndex, setSelectedNoSampelIndex] = useState<number | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
 
-  // Fetch user assignments on mount
+  // Dapatkan user info saat komponen mount
+  useEffect(() => {
+    const getUserInfo = async () => {
+      try {
+        // Method 1: Coba ambil dari Supabase auth state
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+          console.error('Error getting user:', error);
+          return;
+        }
+
+        if (user) {
+          // Cari username dari berbagai sumber
+          const name = user.user_metadata?.nama || 
+                       user.user_metadata?.full_name || 
+                       user.user_metadata?.name ||
+                       user.email?.split('@')[0] || 
+                       `user_${user.id.substring(0, 6)}`;
+          
+          setUserName(name);
+          console.log('User found:', { email: user.email, name });
+        } else {
+          console.log('No user found in auth state');
+        }
+      } catch (error) {
+        console.error('Failed to get user info:', error);
+      }
+    };
+
+    getUserInfo();
+  }, []);
+
+  // Fetch user assignments on mount dan ketika userName berubah
   useEffect(() => {
     const fetchUserAssignments = async () => {
+      if (!userName) {
+        console.log('Waiting for userName...');
+        return;
+      }
+
       try {
         setIsLoading(true);
         setFetchError(null);
 
-        // 1. Dapatkan session dari Supabase
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          throw new Error(`Error sesi: ${sessionError.message}`);
-        }
+        console.log(`Fetching assignments for user: ${userName}`);
 
-        if (!session) {
-          setFetchError("Anda belum login. Silakan login terlebih dahulu.");
-          return;
-        }
-
-        // 2. Ambil user data dari session
-        const user = session.user;
-        const userEmail = user.email;
-        const userName = user.user_metadata?.nama || user.user_metadata?.full_name || userEmail?.split('@')[0] || user.id.substring(0, 8);
-
-        console.log('Fetching assignments for user:', { userName, userEmail });
-
-        // 3. Panggil Edge Function dengan username
+        // Panggil Edge Function dengan username
         const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
           body: { username: userName }
         });
@@ -89,7 +110,7 @@ export const Page1Identity = ({
           throw new Error("Tidak ada respon dari server");
         }
 
-        // 4. Handle berbagai format response
+        // Handle berbagai format response
         if (response.error) {
           throw new Error(response.error);
         }
@@ -122,12 +143,12 @@ export const Page1Identity = ({
         // Berikan pesan error yang lebih spesifik
         let errorMessage = error.message || "Gagal memuat data penugasan";
         
-        if (error.message.includes('sesi') || error.message.includes('login')) {
-          errorMessage = "Sesi login tidak valid. Silakan login ulang.";
-        } else if (error.message.includes('Format data')) {
+        if (error.message.includes('Format data')) {
           errorMessage = "Data penugasan tidak dalam format yang diharapkan.";
         } else if (error.message.includes('tidak ada respon')) {
           errorMessage = "Server tidak merespon. Periksa koneksi internet.";
+        } else if (error.message.includes('Edge Function')) {
+          errorMessage = "Server internal error. Silakan hubungi admin.";
         }
         
         setFetchError(errorMessage);
@@ -135,7 +156,8 @@ export const Page1Identity = ({
         toast({
           title: "Gagal Memuat Data Penugasan",
           description: errorMessage,
-          variant: "destructive"
+          variant: "destructive",
+          duration: 5000
         });
       } finally {
         setIsLoading(false);
@@ -143,7 +165,31 @@ export const Page1Identity = ({
     };
 
     fetchUserAssignments();
-  }, [toast, updateData]);
+  }, [userName, toast, updateData]);
+
+  // Fallback: Coba ambil dari localStorage jika Supabase auth tidak ada user
+  useEffect(() => {
+    const checkLocalStorageFallback = () => {
+      if (!userName) {
+        const userInfo = localStorage.getItem('userInfo');
+        if (userInfo) {
+          try {
+            const { nama } = JSON.parse(userInfo);
+            if (nama && !userName) {
+              setUserName(nama);
+              console.log('Using localStorage fallback:', nama);
+            }
+          } catch (error) {
+            console.error('Error parsing localStorage:', error);
+          }
+        }
+      }
+    };
+
+    // Check setelah 1 detik untuk memberikan waktu Supabase auth
+    const timer = setTimeout(checkLocalStorageFallback, 1000);
+    return () => clearTimeout(timer);
+  }, [userName]);
 
   const handleNksChange = (value: string) => {
     const index = parseInt(value);
@@ -244,25 +290,31 @@ export const Page1Identity = ({
     setIsLoading(true);
 
     try {
-      // Dapatkan session lagi untuk memastikan data terbaru
-      const { data: { session } } = await supabase.auth.getSession();
+      // Coba refresh user info terlebih dahulu
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       
-      if (!session) {
-        setFetchError("Anda belum login. Silakan login ulang.");
-        toast({
-          title: "Login Diperlukan",
-          description: "Silakan login terlebih dahulu.",
-          variant: "destructive"
-        });
-        return;
+      let currentUserName = userName;
+      
+      if (!userError && user) {
+        // Update userName dari Supabase auth
+        const name = user.user_metadata?.nama || 
+                     user.user_metadata?.full_name || 
+                     user.user_metadata?.name ||
+                     user.email?.split('@')[0] || 
+                     `user_${user.id.substring(0, 6)}`;
+        
+        if (name !== userName) {
+          setUserName(name);
+          currentUserName = name;
+        }
       }
 
-      const user = session.user;
-      const userName = user.user_metadata?.nama || user.user_metadata?.full_name || 
-                       user.email?.split('@')[0] || user.id.substring(0, 8);
+      if (!currentUserName) {
+        throw new Error("Username tidak ditemukan. Silakan login ulang.");
+      }
 
       const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
-        body: { username: userName }
+        body: { username: currentUserName }
       });
 
       if (error) throw error;
@@ -270,7 +322,7 @@ export const Page1Identity = ({
       if (response?.success && response.data) {
         setUserAssignments(response.data);
         updateData({
-          namaPendata: userName,
+          namaPendata: currentUserName,
           pemeriksa: response.data.pemeriksa || ''
         });
         
@@ -282,7 +334,7 @@ export const Page1Identity = ({
         // Fallback untuk format response alternatif
         setUserAssignments(response.data);
         updateData({
-          namaPendata: userName,
+          namaPendata: currentUserName,
           pemeriksa: response.data.pemeriksa || ''
         });
         
@@ -307,41 +359,58 @@ export const Page1Identity = ({
     }
   };
 
-  // Fungsi untuk logout jika session bermasalah
-  const handleLogoutRedirect = () => {
-    supabase.auth.signOut();
+  // Fungsi untuk logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     window.location.href = '/login';
   };
+
+  // Fungsi untuk login
+  const handleLoginRedirect = () => {
+    window.location.href = '/login';
+  };
+
+  // Debug info untuk developer
+  const showDebugInfo = fetchError && process.env.NODE_ENV === 'development';
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-red-600">Keterangan Identitas</h2>
         
-        <div className="relative">
-          <input 
-            ref={fileInputRef} 
-            type="file" 
-            accept=".json" 
-            onChange={handleLoadData} 
-            className="hidden" 
-          />
-          <Button 
-            onClick={() => fileInputRef.current?.click()} 
-            className="flex items-center gap-2" 
-            variant="outline" 
-            size="sm"
-          >
-            <Upload className="h-4 w-4" />
-            Unggah Data
-          </Button>
+        <div className="flex items-center gap-2">
+          {userName && (
+            <div className="text-sm text-muted-foreground hidden md:block">
+              User: <span className="font-medium">{userName}</span>
+            </div>
+          )}
+          <div className="relative">
+            <input 
+              ref={fileInputRef} 
+              type="file" 
+              accept=".json" 
+              onChange={handleLoadData} 
+              className="hidden" 
+            />
+            <Button 
+              onClick={() => fileInputRef.current?.click()} 
+              className="flex items-center gap-2" 
+              variant="outline" 
+              size="sm"
+            >
+              <Upload className="h-4 w-4" />
+              Unggah Data
+            </Button>
+          </div>
         </div>
       </div>
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-8 space-y-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-sm text-muted-foreground">Memuat data penugasan...</span>
+          <span className="text-sm text-muted-foreground">
+            {userName ? `Memuat data penugasan untuk ${userName}...` : "Memuat data pengguna..."}
+          </span>
         </div>
       ) : fetchError ? (
         <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
@@ -354,19 +423,25 @@ export const Page1Identity = ({
                 Coba Lagi
               </Button>
               
-              {fetchError.includes("login") && (
-                <Button onClick={handleLogoutRedirect} variant="outline" size="sm">
-                  Ke Halaman Login
-                </Button>
-              )}
+              <Button onClick={handleLoginRedirect} variant="outline" size="sm">
+                Login Ulang
+              </Button>
             </div>
+            
+            {showDebugInfo && (
+              <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-100 rounded">
+                <p className="font-semibold">Debug Info:</p>
+                <p>Username yang digunakan: {userName || '(tidak ada)'}</p>
+                <p>User Assignments state: {userAssignments ? 'Ada' : 'Null'}</p>
+              </div>
+            )}
             
             <div className="text-xs text-muted-foreground mt-2">
               <p>Tip: Pastikan:</p>
               <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>Edge Function sudah dikonfigurasi dengan benar di Supabase</li>
                 <li>Username Anda terdaftar dalam spreadsheet penugasan</li>
-                <li>Session login masih valid</li>
+                <li>Edge Function sudah berjalan dengan benar</li>
+                <li>Anda memiliki akses internet yang stabil</li>
               </ul>
             </div>
           </div>
@@ -379,10 +454,10 @@ export const Page1Identity = ({
               <Label htmlFor="namaPendata">Nama Petugas Pendataan Lapangan</Label>
               <Input 
                 id="namaPendata" 
-                value={data.namaPendata} 
+                value={data.namaPendata || userName} 
                 readOnly
                 className="bg-muted"
-                placeholder="Otomatis dari login" 
+                placeholder={userName ? userName : "Otomatis dari login"} 
               />
             </div>
 
@@ -412,7 +487,8 @@ export const Page1Identity = ({
                   userAssignments.assignments.length === 0 ? "border-amber-200 bg-amber-50" : ""
                 }>
                   <SelectValue placeholder={
-                    !userAssignments ? "Data belum dimuat" : 
+                    !userName ? "Menunggu data user..." :
+                    !userAssignments ? "Memuat data penugasan..." : 
                     userAssignments.assignments.length === 0 ? "Tidak ada penugasan" : 
                     "Pilih NKS"
                   } />
@@ -426,9 +502,9 @@ export const Page1Identity = ({
                 </SelectContent>
               </Select>
               
-              {userAssignments?.assignments.length === 0 && (
+              {userAssignments?.assignments.length === 0 && userName && (
                 <p className="text-xs text-amber-600 mt-1">
-                  Tidak ada penugasan ditemukan untuk username Anda
+                  Tidak ada penugasan ditemukan untuk username "{userName}"
                 </p>
               )}
             </div>
