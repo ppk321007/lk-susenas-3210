@@ -57,35 +57,85 @@ export const Page1Identity = ({
 
   // Dapatkan user info saat komponen mount
   useEffect(() => {
-    const getUserInfo = () => {
+    const getUserInfo = async () => {
       try {
-        // Langsung gunakan localStorage sebagai sumber utama
-        const userInfo = localStorage.getItem('userInfo');
+        // Method 1: Coba ambil session dari Supabase
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
-        if (userInfo) {
-          try {
-            const parsedInfo = JSON.parse(userInfo);
-            const name = parsedInfo.nama || 
-                        parsedInfo.full_name || 
-                        parsedInfo.name ||
-                        parsedInfo.email?.split('@')[0] || 
-                        'Pengguna';
-            
-            setUserName(name);
-            console.log('User found via localStorage:', name);
-            
-            // Juga set nama di data survey
-            updateData({ namaPendata: name });
-          } catch (error) {
-            console.error('Error parsing localStorage:', error);
-            setUserName('Pengguna');
-          }
-        } else {
-          console.log('No user info in localStorage');
-          setUserName('Pengguna');
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          // Fallback ke localStorage
+          fallbackToLocalStorage();
+          return;
         }
+
+        if (sessionData?.session?.user) {
+          const user = sessionData.session.user;
+          // Cari username dari berbagai sumber
+          const name = user.user_metadata?.nama || 
+                       user.user_metadata?.full_name || 
+                       user.user_metadata?.name ||
+                       user.email?.split('@')[0] || 
+                       `user_${user.id.substring(0, 6)}`;
+          
+          setUserName(name);
+          updateData({ namaPendata: name });
+          console.log('User found via Supabase session:', name);
+          return;
+        }
+
+        // Method 2: Coba ambil user langsung
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error('Get user error:', userError);
+          fallbackToLocalStorage();
+          return;
+        }
+
+        if (userData?.user) {
+          const user = userData.user;
+          const name = user.user_metadata?.nama || 
+                       user.user_metadata?.full_name || 
+                       user.user_metadata?.name ||
+                       user.email?.split('@')[0] || 
+                       `user_${user.id.substring(0, 6)}`;
+          
+          setUserName(name);
+          updateData({ namaPendata: name });
+          console.log('User found via Supabase getUser:', name);
+          return;
+        }
+
+        // Method 3: Fallback ke localStorage
+        fallbackToLocalStorage();
+
       } catch (error) {
         console.error('Failed to get user info:', error);
+        fallbackToLocalStorage();
+      }
+    };
+
+    const fallbackToLocalStorage = () => {
+      try {
+        const userInfo = localStorage.getItem('userInfo');
+        if (userInfo) {
+          const parsedInfo = JSON.parse(userInfo);
+          const name = parsedInfo.nama || 
+                      parsedInfo.full_name || 
+                      parsedInfo.name ||
+                      parsedInfo.email?.split('@')[0] || 
+                      'Pengguna';
+          
+          setUserName(name);
+          updateData({ namaPendata: name });
+          console.log('User found via localStorage fallback:', name);
+        } else {
+          setUserName('Pengguna');
+          console.log('No user info found anywhere');
+        }
+      } catch (error) {
+        console.error('LocalStorage fallback error:', error);
         setUserName('Pengguna');
       }
     };
@@ -277,26 +327,46 @@ export const Page1Identity = ({
     setIsLoading(true);
 
     try {
-      // Refresh user info dari localStorage
-      const userInfo = localStorage.getItem('userInfo');
+      // Coba refresh user info dari Supabase
       let currentUserName = userName;
       
-      if (userInfo) {
-        try {
-          const parsedInfo = JSON.parse(userInfo);
-          const name = parsedInfo.nama || 
-                      parsedInfo.full_name || 
-                      parsedInfo.name ||
-                      parsedInfo.email?.split('@')[0] || 
-                      'Pengguna';
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.user) {
+          const user = sessionData.session.user;
+          const name = user.user_metadata?.nama || 
+                       user.user_metadata?.full_name || 
+                       user.user_metadata?.name ||
+                       user.email?.split('@')[0] || 
+                       `user_${user.id.substring(0, 6)}`;
           
           if (name !== userName) {
             setUserName(name);
             currentUserName = name;
             updateData({ namaPendata: name });
           }
-        } catch (error) {
-          console.error('Error parsing localStorage:', error);
+        }
+      } catch (supabaseError) {
+        console.error('Supabase refresh error:', supabaseError);
+        // Fallback ke localStorage
+        const userInfo = localStorage.getItem('userInfo');
+        if (userInfo) {
+          try {
+            const parsedInfo = JSON.parse(userInfo);
+            const name = parsedInfo.nama || 
+                        parsedInfo.full_name || 
+                        parsedInfo.name ||
+                        parsedInfo.email?.split('@')[0] || 
+                        'Pengguna';
+            
+            if (name !== userName) {
+              setUserName(name);
+              currentUserName = name;
+              updateData({ namaPendata: name });
+            }
+          } catch (parseError) {
+            console.error('LocalStorage parse error:', parseError);
+          }
         }
       }
 
@@ -348,14 +418,25 @@ export const Page1Identity = ({
     }
   };
 
-  // Fungsi untuk logout sederhana
-  const handleLogout = () => {
-    // Hapus data dari localStorage
-    localStorage.removeItem('userInfo');
-    localStorage.removeItem('supabase.auth.token');
-    
-    // Redirect ke login
-    window.location.href = '/login';
+  // Fungsi untuk logout
+  const handleLogout = async () => {
+    try {
+      // Coba logout dari Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase logout error:', error);
+      }
+      
+      // Hapus data dari localStorage
+      localStorage.removeItem('userInfo');
+      
+      // Redirect ke login
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Force redirect anyway
+      window.location.href = '/login';
+    }
   };
 
   // Fungsi untuk login
@@ -424,7 +505,6 @@ export const Page1Identity = ({
                 <p>Username yang digunakan: {userName || '(tidak ada)'}</p>
                 <p>User Assignments state: {userAssignments ? 'Ada' : 'Null'}</p>
                 <p>Hostname: {window.location.hostname}</p>
-                <p>LocalStorage userInfo: {localStorage.getItem('userInfo') ? 'Ada' : 'Tidak ada'}</p>
               </div>
             )}
             
@@ -434,7 +514,6 @@ export const Page1Identity = ({
                 <li>Username Anda terdaftar dalam spreadsheet penugasan</li>
                 <li>Edge Function sudah berjalan dengan benar</li>
                 <li>Anda memiliki akses internet yang stabil</li>
-                <li>Anda sudah login dengan benar</li>
               </ul>
             </div>
           </div>
