@@ -24,11 +24,18 @@ interface Assignment {
   namaKrtList: string[];
 }
 
-interface UserAssignments {
-  user: string;
-  pencacah: string;
-  pemeriksa: string;
-  assignments: Assignment[];
+interface UserAssignmentsResponse {
+  success: boolean;
+  data?: {
+    user: string;
+    role: string;
+    pencacah: string;
+    pemeriksa: string;
+    assignments: Assignment[];
+    message?: string;
+  };
+  error?: string;
+  message?: string;
 }
 
 interface Page1IdentityProps {
@@ -43,99 +50,38 @@ export const Page1Identity = ({
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [userAssignments, setUserAssignments] = useState<UserAssignments | null>(null);
+  const [userAssignments, setUserAssignments] = useState<UserAssignmentsResponse['data'] | null>(null);
   const [selectedNksIndex, setSelectedNksIndex] = useState<number | null>(null);
   const [selectedNoSampelIndex, setSelectedNoSampelIndex] = useState<number | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
-  const [isDevelopment, setIsDevelopment] = useState(false);
 
-  // Set environment flag
+  // Dapatkan user info dari localStorage saja (tidak perlu Supabase auth)
   useEffect(() => {
-    setIsDevelopment(window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1'));
-  }, []);
-
-  // Dapatkan user info saat komponen mount
-  useEffect(() => {
-    const getUserInfo = async () => {
-      try {
-        // Method 1: Coba ambil session dari Supabase
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          // Fallback ke localStorage
-          fallbackToLocalStorage();
-          return;
-        }
-
-        if (sessionData?.session?.user) {
-          const user = sessionData.session.user;
-          // Cari username dari berbagai sumber
-          const name = user.user_metadata?.nama || 
-                       user.user_metadata?.full_name || 
-                       user.user_metadata?.name ||
-                       user.email?.split('@')[0] || 
-                       `user_${user.id.substring(0, 6)}`;
-          
-          setUserName(name);
-          updateData({ namaPendata: name });
-          console.log('User found via Supabase session:', name);
-          return;
-        }
-
-        // Method 2: Coba ambil user langsung
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        
-        if (userError) {
-          console.error('Get user error:', userError);
-          fallbackToLocalStorage();
-          return;
-        }
-
-        if (userData?.user) {
-          const user = userData.user;
-          const name = user.user_metadata?.nama || 
-                       user.user_metadata?.full_name || 
-                       user.user_metadata?.name ||
-                       user.email?.split('@')[0] || 
-                       `user_${user.id.substring(0, 6)}`;
-          
-          setUserName(name);
-          updateData({ namaPendata: name });
-          console.log('User found via Supabase getUser:', name);
-          return;
-        }
-
-        // Method 3: Fallback ke localStorage
-        fallbackToLocalStorage();
-
-      } catch (error) {
-        console.error('Failed to get user info:', error);
-        fallbackToLocalStorage();
-      }
-    };
-
-    const fallbackToLocalStorage = () => {
+    const getUserInfo = () => {
       try {
         const userInfo = localStorage.getItem('userInfo');
         if (userInfo) {
           const parsedInfo = JSON.parse(userInfo);
+          // Coba beberapa kemungkinan key untuk username
           const name = parsedInfo.nama || 
-                      parsedInfo.full_name || 
-                      parsedInfo.name ||
+                      parsedInfo.username || 
+                      parsedInfo.user ||
                       parsedInfo.email?.split('@')[0] || 
                       'Pengguna';
           
           setUserName(name);
-          updateData({ namaPendata: name });
-          console.log('User found via localStorage fallback:', name);
+          // Update data survey dengan nama user
+          if (name !== 'Pengguna') {
+            updateData({ namaPendata: name });
+          }
+          console.log('User info dari localStorage:', name);
         } else {
+          console.warn('Tidak ada userInfo di localStorage');
           setUserName('Pengguna');
-          console.log('No user info found anywhere');
         }
       } catch (error) {
-        console.error('LocalStorage fallback error:', error);
+        console.error('Error parsing localStorage:', error);
         setUserName('Pengguna');
       }
     };
@@ -143,11 +89,11 @@ export const Page1Identity = ({
     getUserInfo();
   }, [updateData]);
 
-  // Fetch user assignments on mount dan ketika userName berubah
+  // Fetch user assignments
   useEffect(() => {
     const fetchUserAssignments = async () => {
       if (!userName || userName === 'Pengguna') {
-        console.log('Waiting for valid userName...');
+        console.log('Menunggu username yang valid...');
         return;
       }
 
@@ -155,65 +101,70 @@ export const Page1Identity = ({
         setIsLoading(true);
         setFetchError(null);
 
-        console.log(`Fetching assignments for user: ${userName}`);
+        console.log(`Mengambil data penugasan untuk: ${userName}`);
 
-        // Panggil Edge Function dengan username
+        // Panggil Edge Function
         const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
           body: { username: userName }
         });
 
         if (error) {
-          console.error('Edge Function error:', error);
-          throw new Error(`Error dari server: ${error.message}`);
+          console.error('Error dari Supabase Functions:', error);
+          throw new Error(`Error server: ${error.message}`);
         }
 
+        // Validasi response
         if (!response) {
-          throw new Error("Tidak ada respon dari server");
+          throw new Error("Tidak ada response dari server");
         }
 
-        // Handle berbagai format response
-        if (response.error) {
-          throw new Error(response.error);
-        }
+        console.log('Response dari Edge Function:', response);
 
         if (response.success && response.data) {
+          // Simpan data assignments
           setUserAssignments(response.data);
           
-          // Auto-fill pemeriksa
+          // Auto-fill data ke form
           updateData({
-            pemeriksa: response.data.pemeriksa || ''
+            namaPendata: response.data.user,
+            pemeriksa: response.data.pemeriksa || '',
+            // Anda bisa menambahkan auto-fill lainnya di sini
           });
           
-          console.log('Assignments loaded successfully:', response.data.assignments.length);
-        } else {
-          // Coba format response alternatif
-          if (response.data && response.data.assignments) {
-            setUserAssignments(response.data);
-            updateData({
-              pemeriksa: response.data.pemeriksa || ''
+          console.log(`✓ Berhasil memuat ${response.data.assignments.length} penugasan`);
+          
+          // Jika ada message dari server (contoh: "belum ada penugasan")
+          if (response.data.message) {
+            toast({
+              title: "Info Penugasan",
+              description: response.data.message,
+              variant: "default"
             });
-          } else {
-            throw new Error("Format data tidak valid dari server");
           }
+        } else if (response.message) {
+          // Jika ada message error
+          throw new Error(response.message);
+        } else {
+          throw new Error("Format response tidak valid");
         }
       } catch (error: any) {
-        console.error('Error fetching user assignments:', error);
+        console.error('Error fetching assignments:', error);
         
-        // Berikan pesan error yang lebih spesifik
+        // Tentukan pesan error yang user-friendly
         let errorMessage = error.message || "Gagal memuat data penugasan";
         
-        if (error.message.includes('Format data')) {
-          errorMessage = "Data penugasan tidak dalam format yang diharapkan.";
-        } else if (error.message.includes('tidak ada respon')) {
-          errorMessage = "Server tidak merespon. Periksa koneksi internet.";
-        } else if (error.message.includes('Edge Function')) {
-          errorMessage = "Server internal error. Silakan hubungi admin.";
+        if (error.message.includes('tidak terdaftar')) {
+          errorMessage = "Username Anda tidak terdaftar di sistem. Hubungi administrator.";
+        } else if (error.message.includes('koneksi')) {
+          errorMessage = "Koneksi internet terputus. Periksa koneksi Anda.";
+        } else if (error.message.includes('server')) {
+          errorMessage = "Server sedang mengalami masalah. Coba lagi nanti.";
         }
         
         setFetchError(errorMessage);
         
         toast({
-          title: "Gagal Memuat Data Penugasan",
+          title: "Gagal Memuat Data",
           description: errorMessage,
           variant: "destructive",
           duration: 5000
@@ -223,6 +174,7 @@ export const Page1Identity = ({
       }
     };
 
+    // Hanya fetch jika userName valid
     if (userName && userName !== 'Pengguna') {
       fetchUserAssignments();
     }
@@ -327,55 +279,32 @@ export const Page1Identity = ({
     setIsLoading(true);
 
     try {
-      // Coba refresh user info dari Supabase
-      let currentUserName = userName;
-      
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData?.session?.user) {
-          const user = sessionData.session.user;
-          const name = user.user_metadata?.nama || 
-                       user.user_metadata?.full_name || 
-                       user.user_metadata?.name ||
-                       user.email?.split('@')[0] || 
-                       `user_${user.id.substring(0, 6)}`;
+      // Refresh username dari localStorage
+      const userInfo = localStorage.getItem('userInfo');
+      if (userInfo) {
+        try {
+          const parsedInfo = JSON.parse(userInfo);
+          const name = parsedInfo.nama || 
+                      parsedInfo.username || 
+                      parsedInfo.user ||
+                      parsedInfo.email?.split('@')[0] || 
+                      'Pengguna';
           
-          if (name !== userName) {
+          if (name !== userName && name !== 'Pengguna') {
             setUserName(name);
-            currentUserName = name;
-            updateData({ namaPendata: name });
           }
-        }
-      } catch (supabaseError) {
-        console.error('Supabase refresh error:', supabaseError);
-        // Fallback ke localStorage
-        const userInfo = localStorage.getItem('userInfo');
-        if (userInfo) {
-          try {
-            const parsedInfo = JSON.parse(userInfo);
-            const name = parsedInfo.nama || 
-                        parsedInfo.full_name || 
-                        parsedInfo.name ||
-                        parsedInfo.email?.split('@')[0] || 
-                        'Pengguna';
-            
-            if (name !== userName) {
-              setUserName(name);
-              currentUserName = name;
-              updateData({ namaPendata: name });
-            }
-          } catch (parseError) {
-            console.error('LocalStorage parse error:', parseError);
-          }
+        } catch (error) {
+          console.error('Error parsing localStorage:', error);
         }
       }
 
-      if (!currentUserName || currentUserName === 'Pengguna') {
-        throw new Error("Username tidak ditemukan. Silakan login ulang.");
+      if (!userName || userName === 'Pengguna') {
+        throw new Error("Silakan login ulang untuk mendapatkan username");
       }
 
+      // Panggil ulang Edge Function
       const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
-        body: { username: currentUserName }
+        body: { username: userName }
       });
 
       if (error) throw error;
@@ -383,24 +312,16 @@ export const Page1Identity = ({
       if (response?.success && response.data) {
         setUserAssignments(response.data);
         updateData({
+          namaPendata: response.data.user,
           pemeriksa: response.data.pemeriksa || ''
         });
         
         toast({
-          title: "Data Berhasil Dimuat",
+          title: "Data Berhasil Dimuat Ulang",
           description: "Data penugasan berhasil dimuat ulang."
         });
-      } else if (response?.data) {
-        // Fallback untuk format response alternatif
-        setUserAssignments(response.data);
-        updateData({
-          pemeriksa: response.data.pemeriksa || ''
-        });
-        
-        toast({
-          title: "Data Berhasil Dimuat",
-          description: "Data penugasan berhasil dimuat ulang."
-        });
+      } else if (response?.message) {
+        throw new Error(response.message);
       } else {
         throw new Error("Format response tidak dikenali");
       }
@@ -418,30 +339,19 @@ export const Page1Identity = ({
     }
   };
 
-  // Fungsi untuk logout
-  const handleLogout = async () => {
-    try {
-      // Coba logout dari Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Supabase logout error:', error);
-      }
-      
-      // Hapus data dari localStorage
-      localStorage.removeItem('userInfo');
-      
-      // Redirect ke login
-      window.location.href = '/login';
-    } catch (error) {
-      console.error('Logout failed:', error);
-      // Force redirect anyway
-      window.location.href = '/login';
-    }
-  };
-
-  // Fungsi untuk login
   const handleLoginRedirect = () => {
     window.location.href = '/login';
+  };
+
+  const handleManualEntry = () => {
+    // Mode manual: user bisa input data sendiri
+    setUserAssignments(null);
+    setFetchError(null);
+    toast({
+      title: "Mode Input Manual",
+      description: "Silakan isi data secara manual di form bawah.",
+      variant: "default"
+    });
   };
 
   return (
@@ -482,6 +392,7 @@ export const Page1Identity = ({
           <span className="text-sm text-muted-foreground">
             {userName ? `Memuat data penugasan untuk ${userName}...` : "Memuat data pengguna..."}
           </span>
+          <span className="text-xs text-muted-foreground">Membaca dari Google Sheets...</span>
         </div>
       ) : fetchError ? (
         <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
@@ -489,7 +400,7 @@ export const Page1Identity = ({
             <div className="text-destructive font-medium">Gagal Memuat Data Penugasan</div>
             <div className="text-sm text-muted-foreground">{fetchError}</div>
             
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button onClick={retryFetchAssignments} variant="default" size="sm">
                 Coba Lagi
               </Button>
@@ -497,29 +408,46 @@ export const Page1Identity = ({
               <Button onClick={handleLoginRedirect} variant="outline" size="sm">
                 Login Ulang
               </Button>
+              
+              <Button onClick={handleManualEntry} variant="ghost" size="sm">
+                Input Manual
+              </Button>
             </div>
             
-            {isDevelopment && (
-              <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-100 rounded">
-                <p className="font-semibold">Debug Info (Development Mode):</p>
-                <p>Username yang digunakan: {userName || '(tidak ada)'}</p>
-                <p>User Assignments state: {userAssignments ? 'Ada' : 'Null'}</p>
-                <p>Hostname: {window.location.hostname}</p>
-              </div>
-            )}
-            
             <div className="text-xs text-muted-foreground mt-2">
-              <p>Tip: Pastikan:</p>
+              <p className="font-medium">Penyelesaian masalah:</p>
               <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>Username Anda terdaftar dalam spreadsheet penugasan</li>
-                <li>Edge Function sudah berjalan dengan benar</li>
-                <li>Anda memiliki akses internet yang stabil</li>
+                <li>Pastikan username Anda terdaftar di spreadsheet USER</li>
+                <li>Pastikan Anda memiliki penugasan di spreadsheet PETUGAS</li>
+                <li>Periksa koneksi internet Anda</li>
+                <li>Hubungi admin jika masalah berlanjut</li>
               </ul>
             </div>
           </div>
         </div>
       ) : (
         <>
+          {/* Tampilkan info role jika ada */}
+          {userAssignments?.role && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-medium">Role:</span> {userAssignments.role}
+                  {userAssignments.pencacah && (
+                    <span className="ml-4">
+                      <span className="font-medium">Pencacah:</span> {userAssignments.pencacah}
+                    </span>
+                  )}
+                </div>
+                {userAssignments.assignments.length > 0 && (
+                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                    {userAssignments.assignments.length} penugasan ditemukan
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Kolom 1: Nama Petugas Pendataan Lapangan */}
             <div className="space-y-2">
@@ -527,9 +455,10 @@ export const Page1Identity = ({
               <Input 
                 id="namaPendata" 
                 value={data.namaPendata || userName} 
-                readOnly
-                className="bg-muted"
-                placeholder={userName ? userName : "Otomatis dari login"} 
+                readOnly={!!userAssignments}
+                onChange={(e) => !userAssignments && updateData({ namaPendata: e.target.value })}
+                className={userAssignments ? "bg-muted" : ""}
+                placeholder={userAssignments ? "Otomatis dari login" : "Masukkan nama petugas"} 
               />
             </div>
 
@@ -538,11 +467,11 @@ export const Page1Identity = ({
               <Label htmlFor="pemeriksa">Pemeriksa</Label>
               <Input 
                 id="pemeriksa" 
-                value={data.pemeriksa} 
-                readOnly={!!userAssignments}
-                onChange={(e) => !userAssignments && updateData({ pemeriksa: e.target.value })}
-                className={userAssignments ? "bg-muted" : ""}
-                placeholder={userAssignments ? "Otomatis dari data" : "Masukkan nama pemeriksa"} 
+                value={data.pemeriksa || userAssignments?.pemeriksa || ''} 
+                readOnly={!!userAssignments?.pemeriksa}
+                onChange={(e) => !userAssignments?.pemeriksa && updateData({ pemeriksa: e.target.value })}
+                className={userAssignments?.pemeriksa ? "bg-muted" : ""}
+                placeholder={userAssignments?.pemeriksa ? "Otomatis dari data" : "Masukkan nama pemeriksa"} 
               />
             </div>
 
@@ -559,8 +488,7 @@ export const Page1Identity = ({
                   userAssignments.assignments.length === 0 ? "border-amber-200 bg-amber-50" : ""
                 }>
                   <SelectValue placeholder={
-                    !userName || userName === 'Pengguna' ? "Menunggu data user..." :
-                    !userAssignments ? "Memuat data penugasan..." : 
+                    !userAssignments ? "Data belum dimuat" : 
                     userAssignments.assignments.length === 0 ? "Tidak ada penugasan" : 
                     "Pilih NKS"
                   } />
@@ -568,7 +496,7 @@ export const Page1Identity = ({
                 <SelectContent>
                   {userAssignments?.assignments.map((assignment, index) => (
                     <SelectItem key={index} value={index.toString()}>
-                      {assignment.nks}
+                      {assignment.nks} - {assignment.kecamatan}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -587,9 +515,9 @@ export const Page1Identity = ({
               <Input 
                 id="kecamatan" 
                 value={data.kecamatan} 
-                readOnly={!!userAssignments}
+                readOnly={!!userAssignments && selectedNksIndex !== null}
                 onChange={(e) => !userAssignments && updateData({ kecamatan: e.target.value })}
-                className={userAssignments ? "bg-muted" : ""}
+                className={userAssignments && selectedNksIndex !== null ? "bg-muted" : ""}
                 placeholder={userAssignments ? "Otomatis dari NKS" : "Masukkan kecamatan"} 
               />
             </div>
@@ -600,9 +528,9 @@ export const Page1Identity = ({
               <Input 
                 id="desa" 
                 value={data.desa} 
-                readOnly={!!userAssignments}
+                readOnly={!!userAssignments && selectedNksIndex !== null}
                 onChange={(e) => !userAssignments && updateData({ desa: e.target.value })}
-                className={userAssignments ? "bg-muted" : ""}
+                className={userAssignments && selectedNksIndex !== null ? "bg-muted" : ""}
                 placeholder={userAssignments ? "Otomatis dari NKS" : "Masukkan desa"} 
               />
             </div>
@@ -613,9 +541,9 @@ export const Page1Identity = ({
               <Input 
                 id="sls" 
                 value={data.sls} 
-                readOnly={!!userAssignments}
+                readOnly={!!userAssignments && selectedNksIndex !== null}
                 onChange={(e) => !userAssignments && updateData({ sls: e.target.value })}
-                className={userAssignments ? "bg-muted" : ""}
+                className={userAssignments && selectedNksIndex !== null ? "bg-muted" : ""}
                 placeholder={userAssignments ? "Otomatis dari NKS" : "Masukkan SLS"} 
               />
             </div>
@@ -654,9 +582,9 @@ export const Page1Identity = ({
               <Input 
                 id="alamat" 
                 value={data.alamat} 
-                readOnly={!!userAssignments}
+                readOnly={!!userAssignments && selectedNksIndex !== null}
                 onChange={(e) => !userAssignments && updateData({ alamat: e.target.value })}
-                className={userAssignments ? "bg-muted" : ""}
+                className={userAssignments && selectedNksIndex !== null ? "bg-muted" : ""}
                 placeholder={userAssignments ? "Otomatis dari NKS" : "Masukkan alamat"} 
               />
             </div>
@@ -667,9 +595,9 @@ export const Page1Identity = ({
               <Input 
                 id="namaKepalaRumahTangga" 
                 value={data.namaKepalaRumahTangga} 
-                readOnly={!!userAssignments}
+                readOnly={!!userAssignments && selectedNoSampelIndex !== null}
                 onChange={(e) => !userAssignments && updateData({ namaKepalaRumahTangga: e.target.value })}
-                className={userAssignments ? "bg-muted" : ""}
+                className={userAssignments && selectedNoSampelIndex !== null ? "bg-muted" : ""}
                 placeholder={userAssignments ? "Otomatis dari No Sampel" : "Masukkan nama kepala rumah tangga"} 
               />
             </div>
