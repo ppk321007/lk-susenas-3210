@@ -30,15 +30,23 @@ export const SurveyLayout = ({
   const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
-    const userInfo = localStorage.getItem('userInfo');
-    if (userInfo) {
-      const { nama } = JSON.parse(userInfo);
+    const stored = localStorage.getItem('userInfo') ?? sessionStorage.getItem('user');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      const nama = (parsed?.nama ?? "").toString();
+
+      // Normalize storage so logout + Page 1 read consistently
+      if (!localStorage.getItem('userInfo')) {
+        localStorage.setItem('userInfo', JSON.stringify(parsed));
+      }
+
       setUserName(nama);
     }
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('userInfo');
+    sessionStorage.removeItem('user');
     toast({
       title: "Berhasil Logout",
       description: "Anda telah keluar dari aplikasi."

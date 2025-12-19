@@ -38,8 +38,9 @@ const Login = () => {
       if (error) throw error;
 
       if (data.success) {
-        // Store user info in sessionStorage
+        // Store user info (pages in the app read from localStorage)
         sessionStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('userInfo', JSON.stringify(data.user));
         
         toast({
           title: "Berhasil",
