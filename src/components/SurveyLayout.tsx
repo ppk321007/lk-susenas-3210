@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, LogOut, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, User, Loader2 } from "lucide-react";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,7 @@ interface SurveyLayoutProps {
   onPrevious: () => void;
   onPageJump?: (page: number) => void;
   title: string;
+  isSaving?: boolean;
 }
 
 export const SurveyLayout = ({
@@ -23,7 +24,8 @@ export const SurveyLayout = ({
   onNext,
   onPrevious,
   onPageJump,
-  title
+  title,
+  isSaving = false
 }: SurveyLayoutProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -89,13 +91,20 @@ export const SurveyLayout = ({
               {children}
             </div>
             
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={onPrevious} disabled={currentPage === 1} className="flex items-center gap-2">
+            <div className="flex justify-between items-center">
+              <Button variant="outline" onClick={onPrevious} disabled={currentPage === 1 || isSaving} className="flex items-center gap-2">
                 <ChevronLeft className="h-4 w-4" />
                 Previous
               </Button>
+
+              {isSaving && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Menyimpan...
+                </div>
+              )}
               
-              <Button onClick={onNext} disabled={currentPage === totalPages} className="flex items-center gap-2">
+              <Button onClick={onNext} disabled={currentPage === totalPages || isSaving} className="flex items-center gap-2">
                 Next
                 <ChevronRight className="h-4 w-4" />
               </Button>

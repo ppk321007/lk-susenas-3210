@@ -1,5 +1,8 @@
 project_id = "xerhknlimexezgtdzpbl"
 
+[functions.load-survey-data]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321

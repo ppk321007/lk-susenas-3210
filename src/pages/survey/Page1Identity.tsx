@@ -1,10 +1,10 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Upload, Loader2 } from "lucide-react";
+import { Plus, Trash2, Upload, Loader2, RefreshCw } from "lucide-react";
 import { SurveyData } from "@/types/survey";
 import { useToast } from "@/hooks/use-toast";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
@@ -34,18 +34,24 @@ interface UserAssignments {
 interface Page1IdentityProps {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
+  onHouseholdChange?: (nks: string, noSampel: string) => Promise<any>;
+  resetSurveyData?: (identityData: Partial<SurveyData>) => void;
 }
 
 export const Page1Identity = ({
   data,
-  updateData
+  updateData,
+  onHouseholdChange,
+  resetSurveyData
 }: Page1IdentityProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
   const [userAssignments, setUserAssignments] = useState<UserAssignments | null>(null);
   const [selectedNksIndex, setSelectedNksIndex] = useState<number | null>(null);
   const [selectedNoSampelIndex, setSelectedNoSampelIndex] = useState<number | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Fetch user assignments on mount
   useEffect(() => {
@@ -78,6 +84,23 @@ export const Page1Identity = ({
             pencacah: response.data.pencacah || '',
             pemeriksa: response.data.pemeriksa || ''
           });
+
+          // If we already have data.nks and data.noSampel, restore the selection
+          if (data.nks && data.noSampel && !hasInitialized) {
+            const nksIdx = response.data.assignments.findIndex(
+              (a: Assignment) => a.nks === data.nks
+            );
+            if (nksIdx >= 0) {
+              setSelectedNksIndex(nksIdx);
+              const noSampelIdx = response.data.assignments[nksIdx].noSampelList.findIndex(
+                (ns: string) => ns === data.noSampel
+              );
+              if (noSampelIdx >= 0) {
+                setSelectedNoSampelIndex(noSampelIdx);
+              }
+            }
+            setHasInitialized(true);
+          }
         }
       } catch (error) {
         console.error('Error fetching user assignments:', error);
@@ -94,36 +117,104 @@ export const Page1Identity = ({
     fetchUserAssignments();
   }, []);
 
-  const handleNksChange = (value: string) => {
+  // Load existing survey data for a household
+  const loadExistingHouseholdData = useCallback(async (nks: string, noSampel: string) => {
+    if (!onHouseholdChange) return;
+
+    setIsLoadingData(true);
+    try {
+      const result = await onHouseholdChange(nks, noSampel);
+      
+      if (result?.success && result?.data) {
+        // Found existing data, merge it
+        const existingData = result.data;
+        updateData({
+          ...existingData,
+          // Make sure we keep the current identity selections
+          nks: nks,
+          noSampel: noSampel
+        });
+        toast({
+          title: "Data Ditemukan",
+          description: "Data survei yang sudah ada berhasil dimuat."
+        });
+      }
+    } catch (error) {
+      console.error('Error loading household data:', error);
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [onHouseholdChange, updateData, toast]);
+
+  const handleNksChange = async (value: string) => {
     const index = parseInt(value);
     setSelectedNksIndex(index);
     setSelectedNoSampelIndex(null); // Reset no sampel selection
     
     if (userAssignments && index >= 0 && index < userAssignments.assignments.length) {
       const assignment = userAssignments.assignments[index];
-      updateData({
-        nks: assignment.nks,
-        kecamatan: assignment.kecamatan,
-        desa: assignment.desa,
-        sls: assignment.sls,
-        alamat: assignment.alamat,
-        noSampel: '',
-        namaKepalaRumahTangga: ''
-      });
+      
+      // If we have resetSurveyData, use it to reset while keeping identity
+      if (resetSurveyData) {
+        resetSurveyData({
+          namaPendata: data.namaPendata,
+          pencacah: data.pencacah,
+          pemeriksa: data.pemeriksa,
+          nks: assignment.nks,
+          kecamatan: assignment.kecamatan,
+          desa: assignment.desa,
+          sls: assignment.sls,
+          alamat: assignment.alamat,
+          noSampel: '',
+          namaKepalaRumahTangga: ''
+        });
+      } else {
+        updateData({
+          nks: assignment.nks,
+          kecamatan: assignment.kecamatan,
+          desa: assignment.desa,
+          sls: assignment.sls,
+          alamat: assignment.alamat,
+          noSampel: '',
+          namaKepalaRumahTangga: ''
+        });
+      }
     }
   };
 
-  const handleNoSampelChange = (value: string) => {
+  const handleNoSampelChange = async (value: string) => {
     const index = parseInt(value);
     setSelectedNoSampelIndex(index);
     
     if (userAssignments && selectedNksIndex !== null) {
       const assignment = userAssignments.assignments[selectedNksIndex];
       if (index >= 0 && index < assignment.noSampelList.length) {
-        updateData({
-          noSampel: assignment.noSampelList[index],
-          namaKepalaRumahTangga: assignment.namaKrtList[index] || ''
-        });
+        const newNoSampel = assignment.noSampelList[index];
+        const newNamaKrt = assignment.namaKrtList[index] || '';
+        
+        // If we have resetSurveyData, reset the survey data first
+        if (resetSurveyData) {
+          resetSurveyData({
+            namaPendata: data.namaPendata,
+            pencacah: data.pencacah,
+            pemeriksa: data.pemeriksa,
+            nks: assignment.nks,
+            kecamatan: assignment.kecamatan,
+            desa: assignment.desa,
+            sls: assignment.sls,
+            alamat: assignment.alamat,
+            noSampel: newNoSampel,
+            namaKepalaRumahTangga: newNamaKrt
+          });
+        } else {
+          updateData({
+            noSampel: newNoSampel,
+            namaKepalaRumahTangga: newNamaKrt
+          });
+        }
+        
+        // Try to load existing data for this household
+        await loadExistingHouseholdData(assignment.nks, newNoSampel);
       }
     }
   };
@@ -207,6 +298,13 @@ export const Page1Identity = ({
         </div>
       ) : (
         <>
+          {isLoadingData && (
+            <div className="flex items-center justify-center py-2 bg-blue-50 rounded-md">
+              <RefreshCw className="h-4 w-4 animate-spin mr-2 text-blue-600" />
+              <span className="text-sm text-blue-600">Memuat data rumah tangga...</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="namaPendata">Nama Petugas Pendataan Lapangan</Label>
@@ -243,7 +341,10 @@ export const Page1Identity = ({
 
             <div className="space-y-2">
               <Label htmlFor="nks">NKS</Label>
-              <Select onValueChange={handleNksChange} value={selectedNksIndex !== null ? selectedNksIndex.toString() : undefined}>
+              <Select 
+                onValueChange={handleNksChange} 
+                value={selectedNksIndex !== null ? selectedNksIndex.toString() : undefined}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih NKS" />
                 </SelectTrigger>
