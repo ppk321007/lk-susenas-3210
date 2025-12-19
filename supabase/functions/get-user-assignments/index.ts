@@ -92,9 +92,9 @@ serve(async (req) => {
     const credentials: ServiceAccountCredentials = JSON.parse(serviceAccountJson);
     const accessToken = await getAccessToken(credentials);
 
-    // Spreadsheet for user assignments
+    // Spreadsheet for user assignments - using PETUGAS sheet
     const spreadsheetId = extractSpreadsheetId('1YNxMezrawePnG_pSdgrnnmnXf_OUB8aM_HcJhP82p4E');
-    const range = 'MARET25!A2:J';
+    const range = 'PETUGAS!A2:J';
 
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`;
     console.log(`Fetching from URL: ${url}`);
@@ -172,9 +172,10 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error fetching user assignments:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
