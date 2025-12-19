@@ -213,41 +213,31 @@ export const Page2Food = ({
         </CardContent>
       </Card>
 
-      {/* Progress Overview */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-            {Object.entries(categoryProgress).map(([categoryKey, progress]) => (
-              <div 
-                key={categoryKey} 
-                className={`text-center p-3 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md ${
-                  activeTab === categoryKey ? 'ring-2 ring-blue-500 ring-offset-2' : ''
-                } ${getCompletionColor(progress.percentage)}`}
-                onClick={() => setActiveTab(categoryKey)}
-              >
-                <div className="flex justify-center mb-1">
-                  {progress.percentage === 100 ? (
-                    <CheckCircle2 className="h-4 w-4" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4" />
-                  )}
-                </div>
-                <div className="text-xs font-bold">Kat. {categoryKey}</div>
-                <div className="text-xs opacity-75">
-                  {progress.completed}/{progress.total}
-                </div>
-                <Progress 
-                  value={progress.percentage} 
-                  className={`h-1 mt-1 ${
-                    progress.percentage === 100 ? "bg-green-200" :
-                    progress.percentage >= 50 ? "bg-yellow-200" : "bg-red-200"
-                  }`}
-                />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Progress Overview - Compact */}
+      <div className="flex flex-wrap gap-2 justify-center">
+        {Object.entries(categoryProgress).map(([categoryKey, progress]) => (
+          <Button 
+            key={categoryKey}
+            variant={activeTab === categoryKey ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab(categoryKey)}
+            className={`text-xs px-3 py-1 h-8 ${
+              activeTab !== categoryKey && (
+                progress.percentage === 100 ? "border-green-400 text-green-700 bg-green-50" :
+                progress.percentage >= 50 ? "border-yellow-400 text-yellow-700 bg-yellow-50" : 
+                "border-gray-300"
+              )
+            }`}
+          >
+            {progress.percentage === 100 ? (
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+            ) : progress.percentage > 0 ? (
+              <AlertCircle className="h-3 w-3 mr-1" />
+            ) : null}
+            {categoryKey} ({progress.completed}/{progress.total})
+          </Button>
+        ))}
+      </div>
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

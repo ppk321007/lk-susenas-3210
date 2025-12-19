@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, User } from "lucide-react";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+
 interface SurveyLayoutProps {
   children: React.ReactNode;
   currentPage: number;
@@ -11,6 +15,7 @@ interface SurveyLayoutProps {
   onPageJump?: (page: number) => void;
   title: string;
 }
+
 export const SurveyLayout = ({
   children,
   currentPage,
@@ -20,8 +25,47 @@ export const SurveyLayout = ({
   onPageJump,
   title
 }: SurveyLayoutProps) => {
-  return <div className="min-h-screen p-2 lg:p-4 bg-orange-200">
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [userName, setUserName] = useState<string>("");
+
+  useEffect(() => {
+    const userInfo = localStorage.getItem('userInfo');
+    if (userInfo) {
+      const { nama } = JSON.parse(userInfo);
+      setUserName(nama);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('userInfo');
+    toast({
+      title: "Berhasil Logout",
+      description: "Anda telah keluar dari aplikasi."
+    });
+    navigate('/login');
+  };
+
+  return (
+    <div className="min-h-screen p-2 lg:p-4 bg-orange-200">
       <div className="max-w-none w-full mx-auto">
+        {/* Header with logout */}
+        <div className="flex justify-between items-center mb-3 px-2">
+          <div className="flex items-center gap-2 text-sm text-gray-700">
+            <User className="h-4 w-4" />
+            <span className="font-medium">{userName}</span>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLogout}
+            className="flex items-center gap-2 bg-white hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
+        </div>
+
         <Card className="w-full">
           <CardHeader className="text-center pb-4">
             <CardTitle className="font-bold text-professional-navy text-3xl">LK VSEN.KP-3210</CardTitle>
@@ -65,5 +109,6 @@ export const SurveyLayout = ({
           </CardContent>
         </Card>
       </div>
-    </div>;
+    </div>
+  );
 };

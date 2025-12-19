@@ -234,9 +234,10 @@ Deno.serve(async (req) => {
     }
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in verify-login:', error);
     return new Response(
-      JSON.stringify({ success: false, message: `Terjadi kesalahan: ${error.message}` }),
+      JSON.stringify({ success: false, message: `Terjadi kesalahan: ${errorMessage}` }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
