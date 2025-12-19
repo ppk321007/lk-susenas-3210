@@ -113,8 +113,9 @@ serve(async (req) => {
     const rows = data.values || [];
     console.log(`Found ${rows.length} data rows`);
 
-    // Find user's row
-    const userRow = rows.find((row: string[]) => row[0]?.toLowerCase() === username.toLowerCase());
+    // Find user's row (normalize casing + whitespace)
+    const normalize = (v: unknown) => (v ?? "").toString().trim().toLowerCase();
+    const userRow = rows.find((row: string[]) => normalize(row?.[0]) === normalize(username));
 
     if (!userRow) {
       console.log(`No assignment found for user: ${username}`);
@@ -128,22 +129,29 @@ serve(async (req) => {
     // Headers: User, Pencacah, Pemeriksa, NKS, Kecamatan, Desa/Kelurahan, SLS, No Sampel, Alamat, Nama KRT
     const [user, pencacah, pemeriksa, nksRaw, kecamatanRaw, desaRaw, slsRaw, noSampelRaw, alamatRaw, namaKrtRaw] = userRow;
 
+    // Robust splitters (support "|" / ";" with or without spaces)
+    const splitPipe = (v?: string) => (v ?? "")
+      .split(/\s*\|\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const splitSemi = (v?: string) => (v ?? "")
+      .split(/\s*;\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     // NKS and related fields use | as separator for different NKS
-    const nksList = nksRaw?.split(' | ').map((n: string) => n.trim()) || [];
-    const kecamatanList = kecamatanRaw?.split(' | ').map((k: string) => k.trim()) || [];
-    const desaList = desaRaw?.split(' | ').map((d: string) => d.trim()) || [];
-    const slsList = slsRaw?.split(' | ').map((s: string) => s.trim()) || [];
-    const alamatList = alamatRaw?.split(' | ').map((a: string) => a.trim()) || [];
-    
+    const nksList = splitPipe(nksRaw);
+    const kecamatanList = splitPipe(kecamatanRaw);
+    const desaList = splitPipe(desaRaw);
+    const slsList = splitPipe(slsRaw);
+    const alamatList = splitPipe(alamatRaw);
+
     // No Sampel uses ; to separate groups for different NKS, and | within each group
-    const noSampelGroups = noSampelRaw?.split(' ; ').map((g: string) => 
-      g.split(' | ').map((n: string) => n.trim())
-    ) || [];
-    
+    const noSampelGroups = splitSemi(noSampelRaw).map((g) => splitPipe(g));
+
     // Nama KRT uses ; to separate groups for different NKS, and | within each group
-    const namaKrtGroups = namaKrtRaw?.split(' ; ').map((g: string) => 
-      g.split(' | ').map((n: string) => n.trim())
-    ) || [];
+    const namaKrtGroups = splitSemi(namaKrtRaw).map((g) => splitPipe(g));
 
     // Build assignments array
     const assignments = nksList.map((nks: string, index: number) => ({

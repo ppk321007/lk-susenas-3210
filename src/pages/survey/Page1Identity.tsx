@@ -50,10 +50,17 @@ export const Page1Identity = ({
   // Fetch user assignments on mount
   useEffect(() => {
     const fetchUserAssignments = async () => {
-      const userInfo = localStorage.getItem('userInfo');
-      if (!userInfo) return;
+      const stored = localStorage.getItem('userInfo') ?? sessionStorage.getItem('user');
+      if (!stored) return;
 
-      const { nama } = JSON.parse(userInfo);
+      const parsed = JSON.parse(stored);
+      const nama = (parsed?.nama ?? "").toString().trim();
+      if (!nama) return;
+
+      // Normalize storage so other pages/components can read consistently
+      if (!localStorage.getItem('userInfo')) {
+        localStorage.setItem('userInfo', JSON.stringify(parsed));
+      }
       setIsLoading(true);
 
       try {
