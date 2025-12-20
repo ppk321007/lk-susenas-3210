@@ -9,22 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { 
-  RotateCcw, 
-  CheckCircle2, 
-  AlertCircle,
-  ChevronRight,
-  ChevronLeft,
-  BarChart3,
-  SkipForward
-} from "lucide-react";
+import { RotateCcw, CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, BarChart3, SkipForward } from "lucide-react";
 import { useState, useMemo } from "react";
-
 interface Page2FoodProps {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
 }
-
 export const Page2Food = ({
   data,
   updateData
@@ -32,18 +22,19 @@ export const Page2Food = ({
   const {
     updateWithImputasi
   } = useSurveyImputasi(data, updateData);
-  
   const [activeTab, setActiveTab] = useState<string>("1");
   const incompleteEntries = validatePage2Entries(data);
 
   // Hitung progress per kategori
   const categoryProgress = useMemo(() => {
-    const progress: Record<string, { completed: number; total: number; percentage: number }> = {};
-    
+    const progress: Record<string, {
+      completed: number;
+      total: number;
+      percentage: number;
+    }> = {};
     Object.entries(FOOD_CATEGORIES).forEach(([categoryKey, category]) => {
       let completed = 0;
       let total = category.items.length;
-      
       category.items.forEach(item => {
         const itemKey = `${categoryKey}_${item}`;
         const expense = data.makananMinuman[itemKey];
@@ -52,14 +43,12 @@ export const Page2Food = ({
           completed++;
         }
       });
-      
       progress[categoryKey] = {
         completed,
         total,
-        percentage: total > 0 ? Math.round((completed / total) * 100) : 0
+        percentage: total > 0 ? Math.round(completed / total * 100) : 0
       };
     });
-    
     return progress;
   }, [data.makananMinuman]);
 
@@ -67,7 +56,6 @@ export const Page2Food = ({
   const overallTotal = useMemo(() => {
     let totalPembelian = 0;
     let totalProduksiSendiri = 0;
-
     Object.keys(FOOD_CATEGORIES).forEach(categoryKey => {
       const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
       category.items.forEach(item => {
@@ -79,10 +67,11 @@ export const Page2Food = ({
         }
       });
     });
-
-    return { totalPembelian, totalProduksiSendiri };
+    return {
+      totalPembelian,
+      totalProduksiSendiri
+    };
   }, [data.makananMinuman]);
-
   const updateFoodExpense = (itemKey: string, expense: FoodExpense) => {
     updateWithImputasi({
       makananMinuman: {
@@ -91,40 +80,46 @@ export const Page2Food = ({
       }
     });
   };
-
   const skipCategory = (categoryKey: string) => {
     // Set semua item dalam kategori menjadi 0 (tidak ada pengeluaran)
-    const updates: Partial<SurveyData> = { makananMinuman: { ...data.makananMinuman } };
-    
+    const updates: Partial<SurveyData> = {
+      makananMinuman: {
+        ...data.makananMinuman
+      }
+    };
     const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
     category.items.forEach(item => {
       const itemKey = `${categoryKey}_${item}`;
       // Jika belum ada data, set ke 0
       if (!updates.makananMinuman![itemKey]) {
-        updates.makananMinuman![itemKey] = { pembelian: 0, produksiSendiri: 0 };
+        updates.makananMinuman![itemKey] = {
+          pembelian: 0,
+          produksiSendiri: 0
+        };
       }
     });
-    
     updateWithImputasi(updates);
   };
-
   const resetCategory = (categoryKey: string) => {
-    const updates: Partial<SurveyData> = { makananMinuman: { ...data.makananMinuman } };
-    
+    const updates: Partial<SurveyData> = {
+      makananMinuman: {
+        ...data.makananMinuman
+      }
+    };
     const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
     category.items.forEach(item => {
       const itemKey = `${categoryKey}_${item}`;
-      updates.makananMinuman![itemKey] = { pembelian: 0, produksiSendiri: 0 };
+      updates.makananMinuman![itemKey] = {
+        pembelian: 0,
+        produksiSendiri: 0
+      };
     });
-    
     updateWithImputasi(updates);
   };
-
   const getCategoryTotal = (categoryKey: string) => {
     const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
     let totalPembelian = 0;
     let totalProduksiSendiri = 0;
-    
     category.items.forEach(item => {
       const key = `${categoryKey}_${item}`;
       const expense = data.makananMinuman[key];
@@ -133,20 +128,19 @@ export const Page2Food = ({
         totalProduksiSendiri += expense.produksiSendiri || 0;
       }
     });
-    
-    return { totalPembelian, totalProduksiSendiri };
+    return {
+      totalPembelian,
+      totalProduksiSendiri
+    };
   };
-
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('id-ID').format(num);
   };
-
   const getCompletionStatus = (percentage: number) => {
     if (percentage === 100) return "complete";
     if (percentage >= 50) return "partial";
     return "empty";
   };
-
   const navigateToNextTab = () => {
     const categoryKeys = Object.keys(FOOD_CATEGORIES);
     const currentIndex = categoryKeys.indexOf(activeTab);
@@ -154,7 +148,6 @@ export const Page2Food = ({
       setActiveTab(categoryKeys[currentIndex + 1]);
     }
   };
-
   const navigateToPrevTab = () => {
     const categoryKeys = Object.keys(FOOD_CATEGORIES);
     const currentIndex = categoryKeys.indexOf(activeTab);
@@ -162,15 +155,12 @@ export const Page2Food = ({
       setActiveTab(categoryKeys[currentIndex - 1]);
     }
   };
-
   const getCompletionColor = (percentage: number) => {
     if (percentage === 100) return "text-green-600 bg-green-50 border-green-200";
     if (percentage >= 50) return "text-yellow-600 bg-yellow-50 border-yellow-200";
     return "text-red-600 bg-red-50 border-red-200";
   };
-
-  return (
-    <div className="max-w-none w-full space-y-6">
+  return <div className="max-w-none w-full space-y-6">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
@@ -215,64 +205,31 @@ export const Page2Food = ({
 
       {/* Progress Overview - Compact */}
       <div className="flex flex-wrap gap-2 justify-center">
-        {Object.entries(categoryProgress).map(([categoryKey, progress]) => (
-          <Button 
-            key={categoryKey}
-            variant={activeTab === categoryKey ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveTab(categoryKey)}
-            className={`text-xs px-3 py-1 h-8 ${
-              activeTab !== categoryKey && (
-                progress.percentage === 100 ? "border-green-400 text-green-700 bg-green-50" :
-                progress.percentage >= 50 ? "border-yellow-400 text-yellow-700 bg-yellow-50" : 
-                "border-gray-300"
-              )
-            }`}
-          >
-            {progress.percentage === 100 ? (
-              <CheckCircle2 className="h-3 w-3 mr-1" />
-            ) : progress.percentage > 0 ? (
-              <AlertCircle className="h-3 w-3 mr-1" />
-            ) : null}
+        {Object.entries(categoryProgress).map(([categoryKey, progress]) => <Button key={categoryKey} variant={activeTab === categoryKey ? "default" : "outline"} size="sm" onClick={() => setActiveTab(categoryKey)} className={`text-xs px-3 py-1 h-8 ${activeTab !== categoryKey && (progress.percentage === 100 ? "border-green-400 text-green-700 bg-green-50" : progress.percentage >= 50 ? "border-yellow-400 text-yellow-700 bg-yellow-50" : "border-gray-300")}`}>
+            {progress.percentage === 100 ? <CheckCircle2 className="h-3 w-3 mr-1" /> : progress.percentage > 0 ? <AlertCircle className="h-3 w-3 mr-1" /> : null}
             {categoryKey} ({progress.completed}/{progress.total})
-          </Button>
-        ))}
+          </Button>)}
       </div>
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-4 md:grid-cols-7 mb-6 h-auto">
           {Object.entries(FOOD_CATEGORIES).map(([categoryKey, category]) => {
-            const progress = categoryProgress[categoryKey];
-            const status = getCompletionStatus(progress.percentage);
-            
-            return (
-              <TabsTrigger 
-                key={categoryKey} 
-                value={categoryKey}
-                className="relative py-2 text-xs"
-              >
+          const progress = categoryProgress[categoryKey];
+          const status = getCompletionStatus(progress.percentage);
+          return <TabsTrigger key={categoryKey} value={categoryKey} className="relative py-2 text-xs">
                 {categoryKey}
-                <Badge 
-                  variant={status === "complete" ? "default" : "secondary"}
-                  className={`ml-1 h-3 w-3 p-0 text-[8px] ${
-                    status === "complete" ? "bg-green-500" : 
-                    status === "partial" ? "bg-yellow-500" : "bg-gray-300"
-                  }`}
-                >
+                <Badge variant={status === "complete" ? "default" : "secondary"} className={`ml-1 h-3 w-3 p-0 text-[8px] ${status === "complete" ? "bg-green-500" : status === "partial" ? "bg-yellow-500" : "bg-gray-300"}`}>
                   {progress.completed}
                 </Badge>
-              </TabsTrigger>
-            );
-          })}
+              </TabsTrigger>;
+        })}
         </TabsList>
 
         {Object.entries(FOOD_CATEGORIES).map(([categoryKey, category]) => {
-          const totals = getCategoryTotal(categoryKey);
-          const progress = categoryProgress[categoryKey];
-
-          return (
-            <TabsContent key={categoryKey} value={categoryKey} className="space-y-4">
+        const totals = getCategoryTotal(categoryKey);
+        const progress = categoryProgress[categoryKey];
+        return <TabsContent key={categoryKey} value={categoryKey} className="space-y-4">
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -281,14 +238,7 @@ export const Page2Food = ({
                         <CardTitle className="text-lg text-red-600">
                           {categoryKey}. {category.title}
                         </CardTitle>
-                        <Badge 
-                          variant={
-                            getCompletionStatus(progress.percentage) === "complete" ? "default" : 
-                            getCompletionStatus(progress.percentage) === "partial" ? "secondary" : "destructive"
-                          }
-                        >
-                          {progress.percentage}% Lengkap
-                        </Badge>
+                        
                       </div>
                       
                       {/* Category Summary */}
@@ -312,22 +262,11 @@ export const Page2Food = ({
                     
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => skipCategory(categoryKey)}
-                        className="flex items-center gap-1"
-                        disabled={progress.percentage === 100}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => skipCategory(categoryKey)} className="flex items-center gap-1" disabled={progress.percentage === 100}>
                         <SkipForward className="h-4 w-4" />
                         Lewati
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => resetCategory(categoryKey)}
-                        className="flex items-center gap-1"
-                      >
+                      <Button variant="outline" size="sm" onClick={() => resetCategory(categoryKey)} className="flex items-center gap-1">
                         <RotateCcw className="h-4 w-4" />
                         Reset
                       </Button>
@@ -336,47 +275,22 @@ export const Page2Food = ({
                 </CardHeader>
                 
                 <CardContent>
-                  {category.items.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {category.items.map((item) => {
-                        const itemKey = `${categoryKey}_${item}`;
-                        const currentExpense = data.makananMinuman[itemKey] || {
-                          pembelian: 0,
-                          produksiSendiri: 0
-                        };
-                        
-                        return (
-                          <EnhancedExpenseInput 
-                            key={itemKey}
-                            label={item}
-                            value={currentExpense}
-                            onChange={expense => updateFoodExpense(itemKey, expense)}
-                            itemKey={itemKey}
-                            incompleteEntries={incompleteEntries}
-                          />
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <MakananMinumanJadiInput 
-                      data={data}
-                      updateData={updateData}
-                      categoryKey={categoryKey}
-                      categoryTitle={category.title}
-                      incompleteEntries={incompleteEntries}
-                    />
-                  )}
+                  {category.items.length > 0 ? <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {category.items.map(item => {
+                  const itemKey = `${categoryKey}_${item}`;
+                  const currentExpense = data.makananMinuman[itemKey] || {
+                    pembelian: 0,
+                    produksiSendiri: 0
+                  };
+                  return <EnhancedExpenseInput key={itemKey} label={item} value={currentExpense} onChange={expense => updateFoodExpense(itemKey, expense)} itemKey={itemKey} incompleteEntries={incompleteEntries} />;
+                })}
+                    </div> : <MakananMinumanJadiInput data={data} updateData={updateData} categoryKey={categoryKey} categoryTitle={category.title} incompleteEntries={incompleteEntries} />}
                 </CardContent>
               </Card>
               
               {/* Navigation Footer */}
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t">
-                <Button 
-                  variant="outline" 
-                  onClick={navigateToPrevTab}
-                  disabled={activeTab === Object.keys(FOOD_CATEGORIES)[0]}
-                  className="w-full sm:w-auto"
-                >
+                <Button variant="outline" onClick={navigateToPrevTab} disabled={activeTab === Object.keys(FOOD_CATEGORIES)[0]} className="w-full sm:w-auto">
                   <ChevronLeft className="h-4 w-4 mr-2" />
                   Kategori Sebelumnya
                 </Button>
@@ -388,20 +302,13 @@ export const Page2Food = ({
                   </div>
                 </div>
                 
-                <Button 
-                  variant="outline" 
-                  onClick={navigateToNextTab}
-                  disabled={activeTab === Object.keys(FOOD_CATEGORIES)[Object.keys(FOOD_CATEGORIES).length - 1]}
-                  className="w-full sm:w-auto"
-                >
+                <Button variant="outline" onClick={navigateToNextTab} disabled={activeTab === Object.keys(FOOD_CATEGORIES)[Object.keys(FOOD_CATEGORIES).length - 1]} className="w-full sm:w-auto">
                   Kategori Selanjutnya
                   <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
-            </TabsContent>
-          );
-        })}
+            </TabsContent>;
+      })}
       </Tabs>
-    </div>
-  );
+    </div>;
 };
