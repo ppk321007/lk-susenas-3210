@@ -318,15 +318,6 @@ const Index = () => {
     });
   }, []);
 
-  // Set survey data with loaded data (triggers recalculation)
-  const setLoadedSurveyData = useCallback((loadedData: SurveyData) => {
-    setSurveyData(loadedData);
-    // Trigger imputasi recalculation after state update
-    setTimeout(() => {
-      updateWithImputasi({});
-    }, 100);
-  }, [updateWithImputasi]);
-
   const getPageTitle = () => {
     const titles = {
       1: "Keterangan Identitas",
@@ -353,7 +344,6 @@ const Index = () => {
             {...pageProps} 
             onHouseholdChange={loadExistingData}
             resetSurveyData={resetSurveyDataKeepIdentity}
-            setLoadedSurveyData={setLoadedSurveyData}
           />
         );
       case 2:
@@ -374,7 +364,6 @@ const Index = () => {
             {...pageProps}
             onHouseholdChange={loadExistingData}
             resetSurveyData={resetSurveyDataKeepIdentity}
-            setLoadedSurveyData={setLoadedSurveyData}
           />
         );
     }

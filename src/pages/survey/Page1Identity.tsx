@@ -36,15 +36,13 @@ interface Page1IdentityProps {
   updateData: (updates: Partial<SurveyData>) => void;
   onHouseholdChange?: (nks: string, noSampel: string) => Promise<any>;
   resetSurveyData?: (identityData: Partial<SurveyData>) => void;
-  setLoadedSurveyData?: (loadedData: SurveyData) => void;
 }
 
 export const Page1Identity = ({
   data,
   updateData,
   onHouseholdChange,
-  resetSurveyData,
-  setLoadedSurveyData
+  resetSurveyData
 }: Page1IdentityProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -128,21 +126,14 @@ export const Page1Identity = ({
       const result = await onHouseholdChange(nks, noSampel);
       
       if (result?.success && result?.data) {
-        // Found existing data, use setLoadedSurveyData to trigger recalculation
+        // Found existing data, merge it
         const existingData = result.data;
-        if (setLoadedSurveyData) {
-          setLoadedSurveyData({
-            ...existingData,
-            nks: nks,
-            noSampel: noSampel
-          });
-        } else {
-          updateData({
-            ...existingData,
-            nks: nks,
-            noSampel: noSampel
-          });
-        }
+        updateData({
+          ...existingData,
+          // Make sure we keep the current identity selections
+          nks: nks,
+          noSampel: noSampel
+        });
         toast({
           title: "Data Ditemukan",
           description: "Data survei yang sudah ada berhasil dimuat."
@@ -153,7 +144,7 @@ export const Page1Identity = ({
     } finally {
       setIsLoadingData(false);
     }
-  }, [onHouseholdChange, updateData, setLoadedSurveyData, toast]);
+  }, [onHouseholdChange, updateData, toast]);
 
   const handleNksChange = async (value: string) => {
     const index = parseInt(value);

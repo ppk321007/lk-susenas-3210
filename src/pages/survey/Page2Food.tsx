@@ -205,18 +205,10 @@ export const Page2Food = ({
 
       {/* Progress Overview - Compact */}
       <div className="flex flex-wrap gap-2 justify-center">
-        {Object.entries(categoryProgress).map(([categoryKey, progress]) => (
-          <Button 
-            key={categoryKey} 
-            variant={activeTab === categoryKey ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setActiveTab(categoryKey)} 
-            className={`text-xs px-3 py-1 h-8 ${activeTab !== categoryKey && (progress.percentage === 100 ? "border-green-400 text-green-700 bg-green-50" : progress.percentage >= 50 ? "border-yellow-400 text-yellow-700 bg-yellow-50" : "border-gray-300")}`}
-          >
+        {Object.entries(categoryProgress).map(([categoryKey, progress]) => <Button key={categoryKey} variant={activeTab === categoryKey ? "default" : "outline"} size="sm" onClick={() => setActiveTab(categoryKey)} className={`text-xs px-3 py-1 h-8 ${activeTab !== categoryKey && (progress.percentage === 100 ? "border-green-400 text-green-700 bg-green-50" : progress.percentage >= 50 ? "border-yellow-400 text-yellow-700 bg-yellow-50" : "border-gray-300")}`}>
             {progress.percentage === 100 ? <CheckCircle2 className="h-3 w-3 mr-1" /> : progress.percentage > 0 ? <AlertCircle className="h-3 w-3 mr-1" /> : null}
-            Kategori {categoryKey}
-          </Button>
-        ))}
+            {categoryKey} ({progress.completed}/{progress.total})
+          </Button>)}
       </div>
 
       {/* Main Content Tabs */}
