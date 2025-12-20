@@ -1,380 +1,537 @@
-import { SurveyData } from "@/types/survey";
-import { FOOD_CATEGORIES } from "@/data/foodCategories";
-import { NON_FOOD_CATEGORIES } from "@/data/nonFoodCategories";
+import { SurveyData, NonFoodExpense } from "@/types/survey";
+import { NON_FOOD_DETAIL_CATEGORIES } from "@/data/nonFoodDetailCategories";
+import { EnhancedExpenseInput } from "@/components/EnhancedExpenseInput";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
 import { useSurveyImputasi } from "@/hooks/useSurveyImputasi";
-interface Page3RecapProps {
+import { validatePage3Entries } from "@/utils/validationUtils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { RotateCcw, CheckCircle2, ChevronRight, ChevronLeft, SkipForward, Calendar, Clock } from "lucide-react";
+import { useState, useMemo } from "react";
+
+interface Page3NonFoodProps {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
 }
-export const Page4Recap = ({
+
+export const Page3NonFood = ({
   data,
   updateData
-}: Page3RecapProps) => {
-  const { recalculateImputasi } = useSurveyImputasi(data, updateData);
+}: Page3NonFoodProps) => {
+  const {
+    updateWithImputasi
+  } = useSurveyImputasi(data, updateData);
+  
+  const [activeTab, setActiveTab] = useState<string>("1");
+  const incompleteEntries = validatePage3Entries(data);
+
+  // Fungsi helper untuk mengecek apakah item incomplete
+  const isItemIncomplete = (itemKey: string) => {
+    return incompleteEntries.some(entry => entry.itemKey === itemKey);
+  };
+
+  // Fungsi helper untuk mendapatkan expense
+  const getCurrentExpense = (categoryKey: string, isMonthly: boolean, itemKey: string) => {
+    if (isMonthly) {
+      const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
+      return monthlyData?.[itemKey] || {
+        pembelian: 0,
+        produksiSendiri: 0
+      };
+    } else {
+      return data.komoditiSetahun[`${categoryKey}_yearly_${itemKey}`] || {
+        pembelian: 0,
+        produksiSendiri: 0
+      };
+    }
+  };
+
+  // Hitung progress per kategori
+  const categoryProgress = useMemo(() => {
+    const progress: Record<string, {
+      completed: number;
+      total: number;
+      percentage: number;
+    }> = {};
+    
+    Object.entries(NON_FOOD_DETAIL_CATEGORIES).forEach(([categoryKey, category]) => {
+      let completed = 0;
+      let total = category.monthlyItems.length + category.yearlyItems.length;
+
+      // Check monthly items
+      category.monthlyItems.forEach(item => {
+        const expense = getCurrentExpense(categoryKey, true, item);
+        if (expense && (expense.pembelian > 0 || expense.produksiSendiri > 0)) {
+          completed++;
+        }
+      });
+
+      // Check yearly items
+      category.yearlyItems.forEach(item => {
+        const expense = getCurrentExpense(categoryKey, false, item);
+        if (expense && (expense.pembelian > 0 || expense.produksiSendiri > 0)) {
+          completed++;
+        }
+      });
+      
+      progress[categoryKey] = {
+        completed,
+        total,
+        percentage: total > 0 ? Math.round(completed / total * 100) : 0
+      };
+    });
+    
+    return progress;
+  }, [data]);
+
+  // Hitung total keseluruhan
+  const overallTotal = useMemo(() => {
+    let monthlyTotal = 0;
+    let yearlyTotal = 0;
+    
+    Object.keys(NON_FOOD_DETAIL_CATEGORIES).forEach(categoryKey => {
+      const category = NON_FOOD_DETAIL_CATEGORIES[categoryKey as keyof typeof NON_FOOD_DETAIL_CATEGORIES];
+
+      // Monthly items
+      category.monthlyItems.forEach(item => {
+        const expense = getCurrentExpense(categoryKey, true, item);
+        if (expense) {
+          monthlyTotal += expense.pembelian || 0;
+          monthlyTotal += expense.produksiSendiri || 0;
+        }
+      });
+
+      // Yearly items
+      category.yearlyItems.forEach(item => {
+        const expense = getCurrentExpense(categoryKey, false, item);
+        if (expense) {
+          yearlyTotal += expense.pembelian || 0;
+          yearlyTotal += expense.produksiSendiri || 0;
+        }
+      });
+    });
+    
+    return {
+      monthlyTotal,
+      yearlyTotal
+    };
+  }, [data]);
+
+  // Hitung jumlah kategori yang terisi (minimal 1 item terisi)
+  const completedCategories = useMemo(() => {
+    return Object.values(categoryProgress).filter(p => p.completed > 0).length;
+  }, [categoryProgress]);
+
+  // Total kategori
+  const totalCategories = Object.keys(NON_FOOD_DETAIL_CATEGORIES).length;
+
+  const updateCategoryExpense = (categoryKey: string, isMonthly: boolean, itemKey: string, expense: any) => {
+    if (isMonthly) {
+      const currentData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any> || {};
+      updateWithImputasi({
+        [`komoditi${categoryKey}Sebulan`]: {
+          ...currentData,
+          [itemKey]: expense
+        }
+      } as any);
+    } else {
+      updateWithImputasi({
+        komoditiSetahun: {
+          ...data.komoditiSetahun,
+          [`${categoryKey}_yearly_${itemKey}`]: expense
+        }
+      });
+    }
+  };
+
+  const skipCategory = (categoryKey: string) => {
+    const category = NON_FOOD_DETAIL_CATEGORIES[categoryKey as keyof typeof NON_FOOD_DETAIL_CATEGORIES];
+    const updates: any = {};
+
+    // Reset monthly items
+    if (category.monthlyItems.length > 0) {
+      const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any> || {};
+      const newMonthlyData = {
+        ...monthlyData
+      };
+      
+      category.monthlyItems.forEach(item => {
+        newMonthlyData[item] = {
+          pembelian: 0,
+          produksiSendiri: 0
+        };
+      });
+      
+      updates[`komoditi${categoryKey}Sebulan`] = newMonthlyData;
+    }
+
+    // Reset yearly items
+    if (category.yearlyItems.length > 0) {
+      const newYearlyData = {
+        ...data.komoditiSetahun
+      };
+      
+      category.yearlyItems.forEach(item => {
+        newYearlyData[`${categoryKey}_yearly_${item}`] = {
+          pembelian: 0,
+          produksiSendiri: 0
+        };
+      });
+      
+      updates.komoditiSetahun = newYearlyData;
+    }
+    
+    updateWithImputasi(updates);
+  };
+
+  const resetCategory = (categoryKey: string) => {
+    skipCategory(categoryKey); // Same functionality for now
+  };
+
+  const getCategoryTotal = (categoryKey: string) => {
+    const category = NON_FOOD_DETAIL_CATEGORIES[categoryKey as keyof typeof NON_FOOD_DETAIL_CATEGORIES];
+    let monthlyTotal = 0;
+    let yearlyTotal = 0;
+
+    // Calculate monthly total
+    category.monthlyItems.forEach(item => {
+      const expense = getCurrentExpense(categoryKey, true, item);
+      if (expense) {
+        monthlyTotal += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+      }
+    });
+
+    // Calculate yearly total  
+    category.yearlyItems.forEach(item => {
+      const expense = getCurrentExpense(categoryKey, false, item);
+      if (expense) {
+        yearlyTotal += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+      }
+    });
+    
+    return {
+      monthlyTotal,
+      yearlyTotal
+    };
+  };
+
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('id-ID').format(num);
   };
 
-  // Table 1: Individual member food and tobacco expenses
-  const getMemberExpenses = () => {
-    return data.namaAnggotaRumahTangga.map((nama, index) => {
-      // Get expenses for makanan minuman jadi and rokok for this member
-      const makananKey = `M_${index}`;
-      const rokokKey = `N_${index}`;
-      const makananExpense = data.makananMinuman[makananKey] || {
-        pembelian: 0,
-        produksiSendiri: 0
-      };
-      const rokokExpense = data.makananMinuman[rokokKey] || {
-        pembelian: 0,
-        produksiSendiri: 0
-      };
-      return {
-        nama,
-        makananPembelian: makananExpense.pembelian,
-        makananProduksi: makananExpense.produksiSendiri,
-        rokokPembelian: rokokExpense.pembelian,
-        rokokProduksi: rokokExpense.produksiSendiri
-      };
-    });
+  const getCompletionStatus = (percentage: number) => {
+    if (percentage === 100) return "complete";
+    if (percentage >= 50) return "partial";
+    return "empty";
   };
 
-  // Table 2: Weekly food expenses summary
-  const getCategoryTotals = () => {
-    const categories = ["Padi-Padian", "Umbi-umbian", "Ikan/Udang/cumi/kerang", "Daging", "Telur dan Susu", "Sayur-sayuran", "Kacang-kacangan", "Buah-buahan", "Minyak dan kelapa", "Bahan Minuman", "Bumbu-bumbuan", "Bahan Makanan Lainnya", "Makanan dan Minuman Jadi", "Rokok dan Tembakau"];
-    return categories.map((categoryName, index) => {
-      const categoryKey = String.fromCharCode(65 + index); // A, B, C, etc.
-      const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
-      let totalPembelian = 0;
-      let totalProduksi = 0;
-      if (category && category.items.length > 0) {
-        category.items.forEach(item => {
-          const key = `${categoryKey}_${item}`;
-          const expense = data.makananMinuman[key];
-          if (expense) {
-            totalPembelian += expense.pembelian || 0;
-            totalProduksi += expense.produksiSendiri || 0;
-          }
-        });
-      } else {
-        // For M and N categories (per member)
-        data.namaAnggotaRumahTangga.forEach((_, memberIndex) => {
-          const key = `${categoryKey}_${memberIndex}`;
-          const expense = data.makananMinuman[key];
-          if (expense) {
-            totalPembelian += expense.pembelian || 0;
-            totalProduksi += expense.produksiSendiri || 0;
-          }
-        });
-      }
-      return {
-        jenis: categoryName,
-        pembelian: totalPembelian,
-        produksi: totalProduksi,
-        total: totalPembelian + totalProduksi
-      };
-    });
+  const navigateToNextTab = () => {
+    const categoryKeys = Object.keys(NON_FOOD_DETAIL_CATEGORIES);
+    const currentIndex = categoryKeys.indexOf(activeTab);
+    if (currentIndex < categoryKeys.length - 1) {
+      setActiveTab(categoryKeys[currentIndex + 1]);
+    }
   };
-  const memberExpenses = getMemberExpenses();
-  const categoryTotals = getCategoryTotals();
-  const subtotal = categoryTotals.reduce((sum, cat) => sum + cat.total, 0);
-  const rataRataSebulan = subtotal * 30 / 7; // Convert weekly to monthly
 
-  return <div className="max-w-none w-full space-y-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">
-          HALAMAN 4 - REKAPITULASI PENGELUARAN
-        </h2>
-        <Button
-          onClick={recalculateImputasi}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh Data
-        </Button>
+  const navigateToPrevTab = () => {
+    const categoryKeys = Object.keys(NON_FOOD_DETAIL_CATEGORIES);
+    const currentIndex = categoryKeys.indexOf(activeTab);
+    if (currentIndex > 0) {
+      setActiveTab(categoryKeys[currentIndex - 1]);
+    }
+  };
+
+  // Helper untuk mendapatkan warna background berdasarkan index (2 warna saja)
+  const getBackgroundColorClass = (index: number) => {
+    return index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+  };
+
+  // Get all category keys
+  const categoryKeys = Object.keys(NON_FOOD_DETAIL_CATEGORIES);
+
+  return (
+    <div className="max-w-none w-full space-y-4">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold mb-1">
+            HALAMAN 3 - KONSUMSI DAN PENGELUARAN BARANG BUKAN MAKANAN
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Isi data konsumsi dan pengeluaran untuk barang bukan makanan (sebulan dan setahun terakhir)
+          </p>
+        </div>
       </div>
-      
-      {/* Table 1: Individual Member Expenses */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg text-red-600">
-            BLOK IV.3.1 REKAPITULASI PENGELUARAN MAKANAN DAN MINUMAN JADI SERTA ROKOK SELURUH ANGGOTA RUMAH TANGGA
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-          <tr className="bg-professional-table-header text-professional-table-header-foreground">
-            <th className="border border-gray-300 p-2">No</th>
-            <th className="border border-gray-300 p-2">Nama ART</th>
-                  <th className="border border-gray-300 p-2 text-center" colSpan={2}>
-                    Makanan dan Minuman Jadi
-                  </th>
-                  <th className="border border-gray-300 p-2 text-center" colSpan={2}>
-                    Rokok dan Tembakau
-                  </th>
-                </tr>
-                <tr className="bg-muted/50">
-                  <th className="border border-gray-300 p-1"></th>
-                  <th className="border border-gray-300 p-1"></th>
-                  <th className="border border-gray-300 p-1 text-xs">Berasal dari Pembelian</th>
-                  <th className="border border-gray-300 p-1 text-xs">Berasal dari Produksi Sendiri</th>
-                  <th className="border border-gray-300 p-1 text-xs">Berasal dari Pembelian</th>
-                  <th className="border border-gray-300 p-1 text-xs">Berasal dari Produksi Sendiri</th>
-                </tr>
-              </thead>
-              <tbody>
-                {memberExpenses.map((member, index) => <tr key={index}>
-                    <td className="border border-gray-300 p-2 text-center">{index + 1}</td>
-                    <td className="border border-gray-300 p-2">{member.nama}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(member.makananPembelian)}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(member.makananProduksi)}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(member.rokokPembelian)}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(member.rokokProduksi)}</td>
-                  </tr>)}
-                <tr className="bg-muted font-semibold">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>JUMLAH</td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.makananPembelian, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.makananProduksi, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.rokokPembelian, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(memberExpenses.reduce((sum, member) => sum + member.rokokProduksi, 0))}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Table 2: Weekly Food Expenses Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg text-red-600">
-            BLOK IV.3.2 REKAPITULASI PENGELUARAN MAKANAN DAN MINUMAN JADI SERTA ROKOK
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-          <tr className="bg-professional-table-header text-professional-table-header-foreground">
-            <th className="border border-gray-300 p-2">No</th>
-            <th className="border border-gray-300 p-2">Jenis Pengeluaran</th>
-                  <th className="border border-gray-300 p-2">Pembelian Seminggu Terakhir</th>
-                  <th className="border border-gray-300 p-2">Produksi Sendiri, Pemberian, dsb Seminggu Terakhir</th>
-                  <th className="border border-gray-300 p-2">Total Seminggu Terakhir</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categoryTotals.map((category, index) => <tr key={index}>
-                    <td className="border border-gray-300 p-2 text-center">{index + 1}</td>
-                    <td className="border border-gray-300 p-2">{category.jenis}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(category.pembelian)}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(category.produksi)}</td>
-                    <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(category.total)}</td>
-                  </tr>)}
-                <tr className="bg-muted font-semibold">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>SUBJUMLAH</td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(categoryTotals.reduce((sum, cat) => sum + cat.pembelian, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(categoryTotals.reduce((sum, cat) => sum + cat.produksi, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(subtotal)}</td>
-                </tr>
-                <tr className="bg-primary/10 font-semibold">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>
-                    RATA-RATA PENGELUARAN MAKANAN SEBULAN
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Math.round(categoryTotals.reduce((sum, cat) => sum + cat.pembelian, 0) * 30 / 7))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Math.round(categoryTotals.reduce((sum, cat) => sum + cat.produksi, 0) * 30 / 7))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(Math.round(rataRataSebulan))}</td>
-                </tr>
-              </tbody>
-            </table>
+      {/* Progress Header - Desktop Layout */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+        <div className="flex-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="text-sm">
+              <div className="font-medium">Halaman 3 - Barang Bukan Makanan</div>
+              <div className="text-gray-600">Progress: {completedCategories}/{totalCategories} kategori terisi</div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={navigateToPrevTab}
+                disabled={activeTab === categoryKeys[0]}
+                className="flex items-center gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Sebelumnya
+              </Button>
+              
+              <div className="text-sm px-2 py-1 bg-white rounded border">
+                Kategori {activeTab}
+              </div>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={navigateToNextTab}
+                disabled={activeTab === categoryKeys[categoryKeys.length - 1]}
+                className="flex items-center gap-1"
+              >
+                Selanjutnya
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Table 3: Non-Food Expenses with real data connection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg text-red-600">
-            BLOK IV.3.3 REKAPITULASI PENGELUARAN BARANG BUKAN MAKANAN
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-          <tr className="bg-professional-table-header text-professional-table-header-foreground">
-            <th className="border border-gray-300 p-2">No</th>
-            <th className="border border-gray-300 p-2">Jenis Pengeluaran</th>
-                  <th className="border border-gray-300 p-2">Sebulan Terakhir</th>
-                  <th className="border border-gray-300 p-2">Setahun Terakhir</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(NON_FOOD_CATEGORIES).map(([categoryKey, category], index) => {
-                // Calculate monthly total for this category
-                const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                let monthlyTotal = 0;
-                if (monthlyData && typeof monthlyData === 'object') {
-                  monthlyTotal = Object.values(monthlyData).reduce((sum, val) => {
-                    if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                      return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                    }
-                    return sum + (typeof val === 'number' ? val : 0);
-                  }, 0);
-                }
-
-                // Calculate yearly total for this category
-                let yearlyTotal = 0;
-                if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                  yearlyTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                    if (value && typeof value === 'object') {
-                      const objValue = value as any;
-                      if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                        return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                      }
-                    }
-                    return sum + (typeof value === 'number' ? value : 0);
-                  }, 0);
-                }
-                return <tr key={categoryKey}>
-                      <td className="border border-gray-300 p-2 text-center">{index + 1}</td>
-                      <td className="border border-gray-300 p-2">{category.title}</td>
-                      <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(monthlyTotal)}</td>
-                      <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(yearlyTotal)}</td>
-                    </tr>;
-              })}
-                <tr className="bg-muted font-semibold">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>SUBJUMLAH</td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Object.keys(NON_FOOD_CATEGORIES).reduce((total, categoryKey) => {
-                    const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                    let monthlyDataTotal = 0;
-                    if (monthlyData && typeof monthlyData === 'object') {
-                      monthlyDataTotal = Object.values(monthlyData).reduce((sum, val) => {
-                        if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                          return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                        }
-                        return sum + (typeof val === 'number' ? val : 0);
-                      }, 0);
-                    }
-                    return total + monthlyDataTotal;
-                  }, 0))}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Object.keys(NON_FOOD_CATEGORIES).reduce((total, categoryKey) => {
-                    let yearlyDataTotal = 0;
-                    if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                      yearlyDataTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                        if (value && typeof value === 'object') {
-                          const objValue = value as any;
-                          if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                            return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                          }
-                        }
-                        return sum + (typeof value === 'number' ? value : 0);
-                      }, 0);
-                    }
-                    return total + yearlyDataTotal;
-                  }, 0))}
-                  </td>
-                </tr>
-                <tr className="bg-primary/10 font-semibold">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>
-                    RATA-RATA PENGELUARAN BUKAN MAKANAN SEBULAN
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Math.round(Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
-                    const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                    let monthlyDataTotal = 0;
-                    if (monthlyData && typeof monthlyData === 'object') {
-                      monthlyDataTotal = Object.values(monthlyData).reduce((sum, val) => {
-                        if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                          return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                        }
-                        return sum + (typeof val === 'number' ? val : 0);
-                      }, 0);
-                    }
-                    return totalMonthly + monthlyDataTotal;
-                  }, 0) + Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
-                    let yearlyDataTotal = 0;
-                    if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                      yearlyDataTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                        if (value && typeof value === 'object') {
-                          const objValue = value as any;
-                          if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                            return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                          }
-                        }
-                        return sum + (typeof value === 'number' ? value : 0);
-                      }, 0);
-                    }
-                    return totalYearly + yearlyDataTotal;
-                  }, 0) / 12))}
-                  </td>
-                  <td className="border border-gray-300 p-2"></td>
-                </tr>
-                <tr className="bg-secondary/20 font-semibold text-primary">
-                  <td className="border border-gray-300 p-2 text-center" colSpan={2}>
-                    RATA-RATA PENGELUARAN RUMAH TANGGA SEBULAN
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    Rp {formatNumber(Math.round(rataRataSebulan + Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
-                    const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                    let monthlyDataTotal = 0;
-                    if (monthlyData && typeof monthlyData === 'object') {
-                      monthlyDataTotal = Object.values(monthlyData).reduce((sum, val) => {
-                        if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                          return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                        }
-                        return sum + (typeof val === 'number' ? val : 0);
-                      }, 0);
-                    }
-                    return totalMonthly + monthlyDataTotal;
-                  }, 0) + Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
-                    let yearlyDataTotal = 0;
-                    if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                      yearlyDataTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                        if (value && typeof value === 'object') {
-                          const objValue = value as any;
-                          if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                            return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                          }
-                        }
-                        return sum + (typeof value === 'number' ? value : 0);
-                      }, 0);
-                    }
-                    return totalYearly + yearlyDataTotal;
-                  }, 0) / 12))}
-                  </td>
-                  <td className="border border-gray-300 p-2"></td>
-                </tr>
-              </tbody>
-            </table>
+        </div>
+        
+        <div className="text-right">
+          <div className="text-sm font-medium">
+            Total: Rp {formatNumber(overallTotal.monthlyTotal + overallTotal.yearlyTotal)}
           </div>
-        </CardContent>
-      </Card>
-    </div>;
+          <div className="text-xs text-gray-500">Sebulan & Setahun</div>
+        </div>
+      </div>
+
+      {/* Category Navigation Buttons */}
+      <div className="flex flex-wrap gap-2 justify-center">
+        {categoryKeys.map(key => {
+          const progress = categoryProgress[key];
+          const isActive = activeTab === key;
+          const isComplete = progress.percentage === 100;
+          const hasData = progress.percentage > 0;
+          
+          return (
+            <Button
+              key={key}
+              variant={isActive ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveTab(key)}
+              className={`text-xs px-3 py-1 h-8 ${
+                !isActive && isComplete 
+                  ? "border-green-400 text-green-700 bg-green-50 hover:bg-green-100" 
+                  : !isActive && hasData
+                  ? "border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100"
+                  : ""
+              }`}
+            >
+              {isComplete && <CheckCircle2 className="h-3 w-3 mr-1" />}
+              Kategori {key}
+            </Button>
+          );
+        })}
+      </div>
+
+      {/* Main Content Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="hidden">
+          {categoryKeys.map(key => (
+            <TabsTrigger key={key} value={key} />
+          ))}
+        </TabsList>
+
+        {categoryKeys.map(categoryKey => {
+          const category = NON_FOOD_DETAIL_CATEGORIES[categoryKey as keyof typeof NON_FOOD_DETAIL_CATEGORIES];
+          const totals = getCategoryTotal(categoryKey);
+          const progress = categoryProgress[categoryKey];
+          
+          return (
+            <TabsContent 
+              key={categoryKey} 
+              value={categoryKey} 
+              className="space-y-4"
+            >
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CardTitle className="text-base">
+                          <span className="text-red-600">Kategori {categoryKey}:</span> {category.title}
+                        </CardTitle>
+                        
+                        {progress.percentage < 100 && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs cursor-pointer hover:bg-gray-100"
+                            onClick={() => skipCategory(categoryKey)}
+                          >
+                            <SkipForward className="h-3 w-3 mr-1" />
+                            Lewati Kategori
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {/* Category Summary */}
+                      <div className="grid grid-cols-2 gap-2 p-2 bg-gray-50 rounded">
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
+                            <Calendar className="h-3 w-3" />
+                            Sebulan
+                          </div>
+                          <div className="text-sm font-semibold">Rp {formatNumber(totals.monthlyTotal)}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
+                            <Clock className="h-3 w-3" />
+                            Setahun
+                          </div>
+                          <div className="text-sm font-semibold">Rp {formatNumber(totals.yearlyTotal)}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Reset Button */}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => resetCategory(categoryKey)}
+                      className="flex items-center gap-1"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Reset Kategori
+                    </Button>
+                  </div>
+                </CardHeader>
+                
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Sebulan Terakhir */}
+                    {category.monthlyItems.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="h-4 w-1 bg-blue-500 rounded"></div>
+                          <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            Sebulan Terakhir
+                          </h4>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                          {category.monthlyItems.map((item, index) => {
+                            const currentExpense = getCurrentExpense(categoryKey, true, item);
+                            const itemKey = `${categoryKey}_monthly_${item}`;
+                            const isIncomplete = isItemIncomplete(itemKey);
+                            
+                            return (
+                              <div 
+                                key={item}
+                                className={`p-3 border rounded-lg ${getBackgroundColorClass(index)} ${
+                                  isIncomplete
+                                    ? 'border-red-200' 
+                                    : 'border-gray-200'
+                                }`}
+                              >
+                                <EnhancedExpenseInput
+                                  label={item}
+                                  value={currentExpense}
+                                  onChange={expense => updateCategoryExpense(categoryKey, true, item, expense)}
+                                  useNewCategories={true}
+                                  itemKey={item}
+                                  incompleteEntries={incompleteEntries}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Setahun Terakhir */}
+                    {category.yearlyItems.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="h-4 w-1 bg-green-500 rounded"></div>
+                          <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            Setahun Terakhir
+                          </h4>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                          {category.yearlyItems.map((item, index) => {
+                            const currentExpense = getCurrentExpense(categoryKey, false, item);
+                            const itemKey = `${categoryKey}_yearly_${item}`;
+                            const isIncomplete = isItemIncomplete(itemKey);
+                            
+                            return (
+                              <div 
+                                key={item}
+                                className={`p-3 border rounded-lg ${getBackgroundColorClass(index)} ${
+                                  isIncomplete
+                                    ? 'border-red-200' 
+                                    : 'border-gray-200'
+                                }`}
+                              >
+                                <EnhancedExpenseInput
+                                  label={item}
+                                  value={currentExpense}
+                                  onChange={expense => updateCategoryExpense(categoryKey, false, item, expense)}
+                                  useNewCategories={true}
+                                  itemKey={itemKey}
+                                  incompleteEntries={incompleteEntries}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Navigation Footer */}
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-3 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={navigateToPrevTab}
+                  disabled={activeTab === categoryKeys[0]}
+                  className="w-full sm:w-auto"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Kategori Sebelumnya
+                </Button>
+                
+                <div className="text-xs text-center text-gray-500">
+                  <div>Kategori {categoryKey} • {progress.completed}/{progress.total} item terisi</div>
+                  <div className="font-medium text-sm">
+                    Total Kategori: Rp {formatNumber(totals.monthlyTotal + totals.yearlyTotal)}
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={navigateToNextTab}
+                  disabled={activeTab === categoryKeys[categoryKeys.length - 1]}
+                  className="w-full sm:w-auto"
+                >
+                  Kategori Selanjutnya
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </TabsContent>
+          );
+        })}
+      </Tabs>
+    </div>
+  );
 };
