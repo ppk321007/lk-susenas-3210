@@ -87,16 +87,24 @@ export const Page2Food = ({
     };
   }, [data.makananMinuman]);
 
+  // Hitung progress keseluruhan
+  const overallProgress = useMemo(() => {
+    const allProgress = Object.values(categoryProgress);
+    if (allProgress.length === 0) return 0;
+    
+    const totalCompleted = allProgress.reduce((sum, p) => sum + p.completed, 0);
+    const totalItems = allProgress.reduce((sum, p) => sum + p.total, 0);
+    
+    return totalItems > 0 ? Math.round(totalCompleted / totalItems * 100) : 0;
+  }, [categoryProgress]);
+
   // Hitung jumlah kategori yang terisi (minimal 1 item terisi)
   const completedCategories = useMemo(() => {
     return Object.values(categoryProgress).filter(p => p.completed > 0).length;
   }, [categoryProgress]);
 
-  // Progress untuk progress bar (x/13, maksimal 100%)
-  const progressBarValue = useMemo(() => {
-    const completed = Math.min(completedCategories, 13);
-    return Math.round((completed / 13) * 100);
-  }, [completedCategories]);
+  // Total kategori
+  const totalCategories = Object.keys(FOOD_CATEGORIES).length;
 
   const updateFoodExpense = (itemKey: string, expense: FoodExpense) => {
     updateWithImputasi({
@@ -197,9 +205,9 @@ export const Page2Food = ({
     }
   };
 
-  // Helper untuk mendapatkan warna background berdasarkan index
+  // Helper untuk mendapatkan warna background berdasarkan index (2 warna saja)
   const getBackgroundColorClass = (index: number) => {
-    return index % 2 === 0 ? 'bg-blue-50/50' : 'bg-orange-50/50';
+    return index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
   };
 
   // Get all category keys
@@ -219,33 +227,13 @@ export const Page2Food = ({
         </div>
       </div>
 
-      {/* Progress Bar dengan x/13 */}
-      <div className="bg-gray-50 p-3 rounded-lg border">
-        <div className="flex items-center justify-between mb-1">
-          <div className="text-sm font-medium">
-            Progress: {Math.min(completedCategories, 13)}/13 kategori
-          </div>
-          <div className="text-sm font-medium text-blue-600">
-            {progressBarValue}%
-          </div>
-        </div>
-        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-blue-500 rounded-full transition-all duration-300"
-            style={{ width: `${progressBarValue}%` }}
-          />
-        </div>
-        <div className="text-xs text-gray-500 mt-1">
-          Kategori A sampai N yang telah terisi
-        </div>
-      </div>
-
       {/* Progress Header - Desktop Layout */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border">
         <div className="flex-1">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="text-sm">
               <div className="font-medium">Halaman 2 - Bahan Makanan & Minuman</div>
+              <div className="text-gray-600">Progress: {completedCategories}/{totalCategories} kategori terisi</div>
             </div>
             
             <div className="flex items-center gap-2">
@@ -397,7 +385,7 @@ export const Page2Food = ({
                             key={itemKey} 
                             className={`p-3 border rounded-lg ${getBackgroundColorClass(index)} ${
                               isIncomplete 
-                                ? 'border-red-300 border-2' 
+                                ? 'border-red-200' 
                                 : 'border-gray-200'
                             }`}
                           >
