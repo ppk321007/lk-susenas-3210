@@ -8,7 +8,7 @@ import { validatePage2Entries } from "@/utils/validationUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RotateCcw, CheckCircle2, ChevronRight, ChevronLeft, SkipForward } from "lucide-react";
+import { RotateCcw, CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, BarChart3, SkipForward } from "lucide-react";
 import { useState, useMemo } from "react";
 
 interface Page2FoodProps {
@@ -97,14 +97,6 @@ export const Page2Food = ({
     
     return totalItems > 0 ? Math.round(totalCompleted / totalItems * 100) : 0;
   }, [categoryProgress]);
-
-  // Hitung jumlah kategori yang terisi (minimal 1 item terisi)
-  const completedCategories = useMemo(() => {
-    return Object.values(categoryProgress).filter(p => p.completed > 0).length;
-  }, [categoryProgress]);
-
-  // Total kategori
-  const totalCategories = Object.keys(FOOD_CATEGORIES).length;
 
   const updateFoodExpense = (itemKey: string, expense: FoodExpense) => {
     updateWithImputasi({
@@ -205,9 +197,15 @@ export const Page2Food = ({
     }
   };
 
-  // Helper untuk mendapatkan warna background berdasarkan index (2 warna saja)
-  const getBackgroundColorClass = (index: number) => {
-    return index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+  // Helper untuk mendapatkan warna border berdasarkan index
+  const getBorderColorClass = (index: number) => {
+    const colors = [
+      'border-l-blue-300',
+      'border-l-green-300',
+      'border-l-amber-300',
+      'border-l-violet-300'
+    ];
+    return colors[index % colors.length];
   };
 
   // Get all category keys
@@ -215,7 +213,7 @@ export const Page2Food = ({
 
   return (
     <div className="max-w-none w-full space-y-4">
-      {/* Header Section */}
+      {/* Header Section - Minimalis */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold mb-1">
@@ -225,90 +223,98 @@ export const Page2Food = ({
             Isi data konsumsi dan pengeluaran untuk setiap kategori
           </p>
         </div>
+        
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={navigateToPrevTab}
+            className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={activeTab === categoryKeys[0]}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          
+          <div className="text-sm px-2 py-1 bg-gray-100 rounded">
+            {activeTab}/{categoryKeys.length}
+          </div>
+          
+          <button 
+            onClick={navigateToNextTab}
+            className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={activeTab === categoryKeys[categoryKeys.length - 1]}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Progress Header - Desktop Layout */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border">
+      {/* Overall Progress Bar - Minimalis */}
+      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
         <div className="flex-1">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="text-sm">
-              <div className="font-medium">Halaman 2 - Bahan Makanan & Minuman</div>
-              <div className="text-gray-600">Progress: {completedCategories}/{totalCategories} kategori terisi</div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={navigateToPrevTab}
-                disabled={activeTab === categoryKeys[0]}
-                className="flex items-center gap-1"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Sebelumnya
-              </Button>
-              
-              <div className="text-sm px-2 py-1 bg-white rounded border">
-                Kategori {activeTab}
-              </div>
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={navigateToNextTab}
-                disabled={activeTab === categoryKeys[categoryKeys.length - 1]}
-                className="flex items-center gap-1"
-              >
-                Selanjutnya
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="flex justify-between text-xs mb-1">
+            <span className="font-medium">Progress Keseluruhan</span>
+            <span>{overallProgress}%</span>
+          </div>
+          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-blue-500 rounded-full transition-all duration-300"
+              style={{ width: `${overallProgress}%` }}
+            />
           </div>
         </div>
         
-        <div className="text-right">
-          <div className="text-sm font-medium">
-            Total: Rp {formatNumber(overallTotal.totalPembelian + overallTotal.totalProduksiSendiri)}
-          </div>
-          <div className="text-xs text-gray-500">Pembelian & Produksi Sendiri</div>
+        <div className="text-right text-xs">
+          <div className="font-medium">Rp {formatNumber(overallTotal.totalPembelian + overallTotal.totalProduksiSendiri)}</div>
+          <div className="text-gray-500">Total</div>
         </div>
       </div>
 
-      {/* Category Navigation Buttons */}
-      <div className="flex flex-wrap gap-2 justify-center">
-        {categoryKeys.map(key => {
-          const progress = categoryProgress[key];
-          const isActive = activeTab === key;
-          const isComplete = progress.percentage === 100;
-          const hasData = progress.percentage > 0;
-          
-          return (
-            <Button
-              key={key}
-              variant={isActive ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTab(key)}
-              className={`text-xs px-3 py-1 h-8 ${
-                !isActive && isComplete 
-                  ? "border-green-400 text-green-700 bg-green-50 hover:bg-green-100" 
-                  : !isActive && hasData
-                  ? "border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100"
-                  : ""
-              }`}
-            >
-              {isComplete && <CheckCircle2 className="h-3 w-3 mr-1" />}
-              Kategori {key}
-            </Button>
-          );
-        })}
+      {/* Progress Dots - Navigasi Visual */}
+      <div className="flex gap-1 justify-center">
+        {categoryKeys.map(key => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`h-1.5 rounded-full transition-all ${
+              activeTab === key 
+                ? 'w-6 bg-blue-500' 
+                : categoryProgress[key].percentage === 100 
+                  ? 'w-2 bg-green-400'
+                  : categoryProgress[key].percentage > 0
+                    ? 'w-2 bg-yellow-400'
+                    : 'w-2 bg-gray-300'
+            }`}
+            title={`Kategori ${key}: ${categoryProgress[key].percentage}% selesai`}
+          />
+        ))}
       </div>
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="hidden">
-          {categoryKeys.map(key => (
-            <TabsTrigger key={key} value={key} />
-          ))}
+        <TabsList className="flex overflow-x-auto py-1 mb-4 no-scrollbar">
+          {categoryKeys.map(key => {
+            const progress = categoryProgress[key];
+            const status = getCompletionStatus(progress.percentage);
+            
+            return (
+              <TabsTrigger 
+                key={key} 
+                value={key}
+                className="px-3 py-1.5 text-xs whitespace-nowrap"
+              >
+                <span className="mr-1">{key}</span>
+                <Badge 
+                  variant="outline" 
+                  className={`h-4 w-4 p-0 text-[9px] ${
+                    status === "complete" ? "bg-green-100 text-green-700 border-green-300" :
+                    status === "partial" ? "bg-yellow-100 text-yellow-700 border-yellow-300" :
+                    "bg-gray-100 text-gray-700 border-gray-300"
+                  }`}
+                >
+                  {progress.completed}
+                </Badge>
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         {categoryKeys.map(categoryKey => {
@@ -328,7 +334,7 @@ export const Page2Food = ({
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <CardTitle className="text-base">
-                          <span className="text-red-600">Kategori {categoryKey}:</span> {category.title}
+                          <span className="text-red-600">{categoryKey}.</span> {category.title}
                         </CardTitle>
                         
                         {progress.percentage < 100 && (
@@ -338,19 +344,19 @@ export const Page2Food = ({
                             onClick={() => skipCategory(categoryKey)}
                           >
                             <SkipForward className="h-3 w-3 mr-1" />
-                            Lewati Kategori
+                            Lewati
                           </Badge>
                         )}
                       </div>
                       
-                      {/* Category Summary */}
+                      {/* Category Summary - Minimalis */}
                       <div className="grid grid-cols-2 gap-2 p-2 bg-gray-50 rounded">
                         <div className="text-center">
-                          <div className="text-xs text-gray-500">Total Pembelian</div>
+                          <div className="text-xs text-gray-500">Pembelian</div>
                           <div className="text-sm font-semibold">Rp {formatNumber(totals.totalPembelian)}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xs text-gray-500">Total Produksi Sendiri</div>
+                          <div className="text-xs text-gray-500">Produksi Sendiri</div>
                           <div className="text-sm font-semibold">Rp {formatNumber(totals.totalProduksiSendiri)}</div>
                         </div>
                       </div>
@@ -364,14 +370,14 @@ export const Page2Food = ({
                       className="flex items-center gap-1"
                     >
                       <RotateCcw className="h-3 w-3" />
-                      Reset Kategori
+                      Reset
                     </Button>
                   </div>
                 </CardHeader>
                 
                 <CardContent>
                   {category.items.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <div className="space-y-2">
                       {category.items.map((item, index) => {
                         const itemKey = `${categoryKey}_${item}`;
                         const currentExpense = data.makananMinuman[itemKey] || {
@@ -383,9 +389,9 @@ export const Page2Food = ({
                         return (
                           <div 
                             key={itemKey} 
-                            className={`p-3 border rounded-lg ${getBackgroundColorClass(index)} ${
+                            className={`p-3 border rounded-lg ${getBorderColorClass(index)} ${
                               isIncomplete 
-                                ? 'border-red-200' 
+                                ? 'border-red-200 bg-red-50' 
                                 : 'border-gray-200'
                             }`}
                           >
@@ -412,34 +418,32 @@ export const Page2Food = ({
                 </CardContent>
               </Card>
               
-              {/* Navigation Footer */}
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-3 border-t">
-                <Button 
-                  variant="outline" 
+              {/* Navigation Footer - Minimalis */}
+              <div className="flex justify-between items-center pt-3 border-t">
+                <button 
                   onClick={navigateToPrevTab}
+                  className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={activeTab === categoryKeys[0]}
-                  className="w-full sm:w-auto"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Kategori Sebelumnya
-                </Button>
+                  <ChevronLeft className="h-4 w-4" />
+                  Sebelumnya
+                </button>
                 
                 <div className="text-xs text-center text-gray-500">
-                  <div>Kategori {categoryKey} • {progress.completed}/{progress.total} item terisi</div>
-                  <div className="font-medium text-sm">
-                    Total Kategori: Rp {formatNumber(totals.totalPembelian + totals.totalProduksiSendiri)}
+                  <div>{progress.completed}/{progress.total} item terisi</div>
+                  <div className="font-medium">
+                    Total: Rp {formatNumber(totals.totalPembelian + totals.totalProduksiSendiri)}
                   </div>
                 </div>
                 
-                <Button 
-                  variant="outline" 
+                <button 
                   onClick={navigateToNextTab}
+                  className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={activeTab === categoryKeys[categoryKeys.length - 1]}
-                  className="w-full sm:w-auto"
                 >
-                  Kategori Selanjutnya
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
+                  Selanjutnya
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </TabsContent>
           );
