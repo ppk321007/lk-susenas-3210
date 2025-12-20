@@ -123,8 +123,11 @@ export const Page3NonFood = ({
     return Object.values(categoryProgress).filter(p => p.completed > 0).length;
   }, [categoryProgress]);
 
-  // Total kategori
-  const totalCategories = Object.keys(NON_FOOD_DETAIL_CATEGORIES).length;
+  // Progress untuk progress bar (x/19, maksimal 100%)
+  const progressBarValue = useMemo(() => {
+    const completed = Math.min(completedCategories, 19);
+    return Math.round((completed / 19) * 100);
+  }, [completedCategories]);
 
   const updateCategoryExpense = (categoryKey: string, isMonthly: boolean, itemKey: string, expense: any) => {
     if (isMonthly) {
@@ -242,9 +245,9 @@ export const Page3NonFood = ({
     }
   };
 
-  // Helper untuk mendapatkan warna background berdasarkan index (2 warna saja)
+  // Helper untuk mendapatkan warna background berdasarkan index
   const getBackgroundColorClass = (index: number) => {
-    return index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+    return index % 2 === 0 ? 'bg-blue-50/50' : 'bg-orange-50/50';
   };
 
   // Get all category keys
@@ -264,13 +267,33 @@ export const Page3NonFood = ({
         </div>
       </div>
 
+      {/* Progress Bar dengan x/19 */}
+      <div className="bg-purple-50 p-3 rounded-lg border border-purple-100">
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-sm font-medium">
+            Progress: {Math.min(completedCategories, 19)}/19 kategori
+          </div>
+          <div className="text-sm font-medium text-purple-600">
+            {progressBarValue}%
+          </div>
+        </div>
+        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-purple-500 rounded-full transition-all duration-300"
+            style={{ width: `${progressBarValue}%` }}
+          />
+        </div>
+        <div className="text-xs text-gray-500 mt-1">
+          Kategori A sampai F yang telah terisi
+        </div>
+      </div>
+
       {/* Progress Header - Desktop Layout */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
         <div className="flex-1">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="text-sm">
               <div className="font-medium">Halaman 3 - Barang Bukan Makanan</div>
-              <div className="text-gray-600">Progress: {completedCategories}/{totalCategories} kategori terisi</div>
             </div>
             
             <div className="flex items-center gap-2">
@@ -436,7 +459,7 @@ export const Page3NonFood = ({
                                 key={item}
                                 className={`p-3 border rounded-lg ${getBackgroundColorClass(index)} ${
                                   isIncomplete
-                                    ? 'border-red-200' 
+                                    ? 'border-red-300 border-2' 
                                     : 'border-gray-200'
                                 }`}
                               >
@@ -477,7 +500,7 @@ export const Page3NonFood = ({
                                 key={item}
                                 className={`p-3 border rounded-lg ${getBackgroundColorClass(index)} ${
                                   isIncomplete
-                                    ? 'border-red-200' 
+                                    ? 'border-red-300 border-2' 
                                     : 'border-gray-200'
                                 }`}
                               >
