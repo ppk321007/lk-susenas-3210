@@ -48,7 +48,20 @@ export const Page2Food = ({
     return incompleteEntries.some(entry => entry.itemKey === itemKey);
   };
 
-  // Hitung progress per kategori
+  // Helper to calculate total from expense (handles entries from spreadsheet)
+  const getExpenseTotal = (expense: any) => {
+    if (!expense) return 0;
+    
+    // Check if entries exist and sum from entries
+    if (expense.entries && expense.entries.length > 0) {
+      return expense.entries.reduce((sum: number, entry: any) => sum + (entry.nilai || 0), 0);
+    }
+    
+    // Fallback to direct values
+    return (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+  };
+
+  // Hitung progress per kategori - FIXED: check entries too
   const categoryProgress = useMemo(() => {
     const progress: Record<string, {
       completed: number;
@@ -63,8 +76,8 @@ export const Page2Food = ({
       category.items.forEach(item => {
         const itemKey = `${categoryKey}_${item}`;
         const expense = data.makananMinuman[itemKey];
-        // Anggap completed jika salah satu field terisi
-        if (expense && (expense.pembelian > 0 || expense.produksiSendiri > 0)) {
+        // Anggap completed jika ada nilai (dari entries atau langsung)
+        if (expense && getExpenseTotal(expense) > 0) {
           completed++;
         }
       });
