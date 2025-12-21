@@ -16,6 +16,22 @@ interface Page2FoodProps {
   updateData: (updates: Partial<SurveyData>) => void;
 }
 
+// Warna latar belakang yang berbeda untuk setiap item
+const ITEM_COLORS = [
+  'bg-blue-50/70',
+  'bg-green-50/70',
+  'bg-amber-50/70',
+  'bg-purple-50/70',
+  'bg-rose-50/70',
+  'bg-cyan-50/70',
+  'bg-orange-50/70',
+  'bg-teal-50/70',
+  'bg-indigo-50/70',
+  'bg-pink-50/70',
+  'bg-lime-50/70',
+  'bg-sky-50/70',
+];
+
 export const Page2Food = ({
   data,
   updateData
@@ -24,7 +40,7 @@ export const Page2Food = ({
     updateWithImputasi
   } = useSurveyImputasi(data, updateData);
   
-  const [activeTab, setActiveTab] = useState<string>("1");
+  const [activeTab, setActiveTab] = useState<string>("A");
   const incompleteEntries = validatePage2Entries(data);
 
   // Fungsi helper untuk mengecek apakah item incomplete
@@ -63,7 +79,7 @@ export const Page2Food = ({
     return progress;
   }, [data.makananMinuman]);
 
-  // Hitung total keseluruhan
+  // Hitung total keseluruhan - FIXED: Calculate from entries if available
   const overallTotal = useMemo(() => {
     let totalPembelian = 0;
     let totalProduksiSendiri = 0;
@@ -75,8 +91,20 @@ export const Page2Food = ({
         const key = `${categoryKey}_${item}`;
         const expense = data.makananMinuman[key];
         if (expense) {
-          totalPembelian += expense.pembelian || 0;
-          totalProduksiSendiri += expense.produksiSendiri || 0;
+          // Check if entries exist and sum from entries
+          if (expense.entries && expense.entries.length > 0) {
+            expense.entries.forEach((entry: any) => {
+              if (entry.kategori === 'Pembelian') {
+                totalPembelian += entry.nilai || 0;
+              } else {
+                totalProduksiSendiri += entry.nilai || 0;
+              }
+            });
+          } else {
+            // Fallback to direct values
+            totalPembelian += expense.pembelian || 0;
+            totalProduksiSendiri += expense.produksiSendiri || 0;
+          }
         }
       });
     });
@@ -87,24 +115,13 @@ export const Page2Food = ({
     };
   }, [data.makananMinuman]);
 
-  // Hitung progress keseluruhan
-  const overallProgress = useMemo(() => {
-    const allProgress = Object.values(categoryProgress);
-    if (allProgress.length === 0) return 0;
-    
-    const totalCompleted = allProgress.reduce((sum, p) => sum + p.completed, 0);
-    const totalItems = allProgress.reduce((sum, p) => sum + p.total, 0);
-    
-    return totalItems > 0 ? Math.round(totalCompleted / totalItems * 100) : 0;
-  }, [categoryProgress]);
-
   // Hitung jumlah kategori yang terisi (minimal 1 item terisi)
   const completedCategories = useMemo(() => {
     return Object.values(categoryProgress).filter(p => p.completed > 0).length;
   }, [categoryProgress]);
 
-  // Total kategori
-  const totalCategories = Object.keys(FOOD_CATEGORIES).length;
+  // Total kategori = 13 (sesuai permintaan)
+  const totalCategories = 13;
 
   const updateFoodExpense = (itemKey: string, expense: FoodExpense) => {
     updateWithImputasi({
@@ -168,8 +185,20 @@ export const Page2Food = ({
       const key = `${categoryKey}_${item}`;
       const expense = data.makananMinuman[key];
       if (expense) {
-        totalPembelian += expense.pembelian || 0;
-        totalProduksiSendiri += expense.produksiSendiri || 0;
+        // Check if entries exist and sum from entries
+        if (expense.entries && expense.entries.length > 0) {
+          expense.entries.forEach((entry: any) => {
+            if (entry.kategori === 'Pembelian') {
+              totalPembelian += entry.nilai || 0;
+            } else {
+              totalProduksiSendiri += entry.nilai || 0;
+            }
+          });
+        } else {
+          // Fallback to direct values
+          totalPembelian += expense.pembelian || 0;
+          totalProduksiSendiri += expense.produksiSendiri || 0;
+        }
       }
     });
     
@@ -205,13 +234,17 @@ export const Page2Food = ({
     }
   };
 
-  // Helper untuk mendapatkan warna background berdasarkan index (2 warna saja)
+  // Helper untuk mendapatkan warna background berdasarkan index
   const getBackgroundColorClass = (index: number) => {
-    return index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+    return ITEM_COLORS[index % ITEM_COLORS.length];
   };
 
   // Get all category keys
   const categoryKeys = Object.keys(FOOD_CATEGORIES);
+
+  // Calculate progress bar percentage - cap at 100% if > 13
+  const progressBarPercentage = Math.min((completedCategories / totalCategories) * 100, 100);
+  const isProgressComplete = completedCategories >= totalCategories;
 
   return (
     <div className="max-w-none w-full space-y-4">
@@ -228,12 +261,27 @@ export const Page2Food = ({
       </div>
 
       {/* Progress Header - Desktop Layout */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
         <div className="flex-1">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="text-sm">
+            <div className="text-sm flex-1">
               <div className="font-medium">Halaman 2 - Bahan Makanan & Minuman</div>
-              <div className="text-gray-600">Progress: {completedCategories}/{totalCategories} kategori terisi</div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-gray-600">Progress:</span>
+                <span className={`font-bold ${isProgressComplete ? 'text-green-600' : 'text-blue-600'}`}>
+                  {completedCategories}/{totalCategories}
+                </span>
+                <span className="text-gray-500 text-xs">kategori terisi</span>
+              </div>
+              {/* Progress Bar */}
+              <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    isProgressComplete ? 'bg-green-500' : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${progressBarPercentage}%` }}
+                />
+              </div>
             </div>
             
             <div className="flex items-center gap-2">

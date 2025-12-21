@@ -15,6 +15,34 @@ interface Page3NonFoodProps {
   updateData: (updates: Partial<SurveyData>) => void;
 }
 
+// Warna latar belakang yang berbeda untuk setiap item (monthly)
+const MONTHLY_COLORS = [
+  'bg-blue-50/70',
+  'bg-cyan-50/70',
+  'bg-sky-50/70',
+  'bg-indigo-50/70',
+  'bg-violet-50/70',
+  'bg-blue-100/50',
+  'bg-cyan-100/50',
+  'bg-sky-100/50',
+  'bg-indigo-100/50',
+  'bg-violet-100/50',
+];
+
+// Warna latar belakang yang berbeda untuk setiap item (yearly)
+const YEARLY_COLORS = [
+  'bg-green-50/70',
+  'bg-emerald-50/70',
+  'bg-teal-50/70',
+  'bg-lime-50/70',
+  'bg-amber-50/70',
+  'bg-green-100/50',
+  'bg-emerald-100/50',
+  'bg-teal-100/50',
+  'bg-lime-100/50',
+  'bg-amber-100/50',
+];
+
 export const Page3NonFood = ({
   data,
   updateData
@@ -23,7 +51,7 @@ export const Page3NonFood = ({
     updateWithImputasi
   } = useSurveyImputasi(data, updateData);
   
-  const [activeTab, setActiveTab] = useState<string>("1");
+  const [activeTab, setActiveTab] = useState<string>("A");
   const incompleteEntries = validatePage3Entries(data);
 
   // Fungsi helper untuk mengecek apakah item incomplete
@@ -31,7 +59,7 @@ export const Page3NonFood = ({
     return incompleteEntries.some(entry => entry.itemKey === itemKey);
   };
 
-  // Fungsi helper untuk mendapatkan expense
+  // Fungsi helper untuk mendapatkan expense - FIXED: handle entries correctly
   const getCurrentExpense = (categoryKey: string, isMonthly: boolean, itemKey: string) => {
     if (isMonthly) {
       const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
@@ -45,6 +73,19 @@ export const Page3NonFood = ({
         produksiSendiri: 0
       };
     }
+  };
+
+  // Helper to calculate total from expense (handles entries)
+  const getExpenseTotal = (expense: any) => {
+    if (!expense) return 0;
+    
+    // Check if entries exist and sum from entries
+    if (expense.entries && expense.entries.length > 0) {
+      return expense.entries.reduce((sum: number, entry: any) => sum + (entry.nilai || 0), 0);
+    }
+    
+    // Fallback to direct values
+    return (expense.pembelian || 0) + (expense.produksiSendiri || 0);
   };
 
   // Hitung progress per kategori
@@ -62,7 +103,7 @@ export const Page3NonFood = ({
       // Check monthly items
       category.monthlyItems.forEach(item => {
         const expense = getCurrentExpense(categoryKey, true, item);
-        if (expense && (expense.pembelian > 0 || expense.produksiSendiri > 0)) {
+        if (expense && getExpenseTotal(expense) > 0) {
           completed++;
         }
       });
@@ -70,7 +111,7 @@ export const Page3NonFood = ({
       // Check yearly items
       category.yearlyItems.forEach(item => {
         const expense = getCurrentExpense(categoryKey, false, item);
-        if (expense && (expense.pembelian > 0 || expense.produksiSendiri > 0)) {
+        if (expense && getExpenseTotal(expense) > 0) {
           completed++;
         }
       });
@@ -85,7 +126,7 @@ export const Page3NonFood = ({
     return progress;
   }, [data]);
 
-  // Hitung total keseluruhan
+  // Hitung total keseluruhan - FIXED: Calculate from entries if available
   const overallTotal = useMemo(() => {
     let monthlyTotal = 0;
     let yearlyTotal = 0;
@@ -96,19 +137,13 @@ export const Page3NonFood = ({
       // Monthly items
       category.monthlyItems.forEach(item => {
         const expense = getCurrentExpense(categoryKey, true, item);
-        if (expense) {
-          monthlyTotal += expense.pembelian || 0;
-          monthlyTotal += expense.produksiSendiri || 0;
-        }
+        monthlyTotal += getExpenseTotal(expense);
       });
 
       // Yearly items
       category.yearlyItems.forEach(item => {
         const expense = getCurrentExpense(categoryKey, false, item);
-        if (expense) {
-          yearlyTotal += expense.pembelian || 0;
-          yearlyTotal += expense.produksiSendiri || 0;
-        }
+        yearlyTotal += getExpenseTotal(expense);
       });
     });
     
@@ -118,16 +153,13 @@ export const Page3NonFood = ({
     };
   }, [data]);
 
-  // Hitung progress keseluruhan
-  const overallProgress = useMemo(() => {
-    const allProgress = Object.values(categoryProgress);
-    if (allProgress.length === 0) return 0;
-    
-    const totalCompleted = allProgress.reduce((sum, p) => sum + p.completed, 0);
-    const totalItems = allProgress.reduce((sum, p) => sum + p.total, 0);
-    
-    return totalItems > 0 ? Math.round(totalCompleted / totalItems * 100) : 0;
+  // Hitung jumlah kategori yang terisi (minimal 1 item terisi)
+  const completedCategories = useMemo(() => {
+    return Object.values(categoryProgress).filter(p => p.completed > 0).length;
   }, [categoryProgress]);
+
+  // Total kategori target = 19 (sesuai permintaan)
+  const totalCategoriesTarget = 19;
 
   const updateCategoryExpense = (categoryKey: string, isMonthly: boolean, itemKey: string, expense: any) => {
     if (isMonthly) {
@@ -200,17 +232,13 @@ export const Page3NonFood = ({
     // Calculate monthly total
     category.monthlyItems.forEach(item => {
       const expense = getCurrentExpense(categoryKey, true, item);
-      if (expense) {
-        monthlyTotal += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
-      }
+      monthlyTotal += getExpenseTotal(expense);
     });
 
     // Calculate yearly total  
     category.yearlyItems.forEach(item => {
       const expense = getCurrentExpense(categoryKey, false, item);
-      if (expense) {
-        yearlyTotal += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
-      }
+      yearlyTotal += getExpenseTotal(expense);
     });
     
     return {
@@ -245,19 +273,21 @@ export const Page3NonFood = ({
     }
   };
 
-  // Helper untuk mendapatkan warna border berdasarkan index
-  const getBorderColorClass = (index: number) => {
-    const colors = [
-      'border-l-blue-300',
-      'border-l-green-300',
-      'border-l-amber-300',
-      'border-l-violet-300'
-    ];
-    return colors[index % colors.length];
+  // Helper untuk mendapatkan warna background berdasarkan index
+  const getMonthlyBgColor = (index: number) => {
+    return MONTHLY_COLORS[index % MONTHLY_COLORS.length];
+  };
+
+  const getYearlyBgColor = (index: number) => {
+    return YEARLY_COLORS[index % YEARLY_COLORS.length];
   };
 
   // Get all category keys
   const categoryKeys = Object.keys(NON_FOOD_DETAIL_CATEGORIES);
+
+  // Calculate progress bar percentage - cap at 100% if > 19
+  const progressBarPercentage = Math.min((completedCategories / totalCategoriesTarget) * 100, 100);
+  const isProgressComplete = completedCategories >= totalCategoriesTarget;
 
   return (
     <div className="max-w-none w-full space-y-4">
@@ -295,24 +325,31 @@ export const Page3NonFood = ({
         </div>
       </div>
 
-      {/* Overall Progress Bar - Minimalis */}
-      <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
-        <div className="flex-1">
-          <div className="flex justify-between text-xs mb-1">
-            <span className="font-medium">Progress Keseluruhan</span>
-            <span>{overallProgress}%</span>
+      {/* Overall Progress Bar with x/19 */}
+      <div className="flex flex-col gap-2 p-3 bg-purple-50 rounded-lg border border-purple-100">
+        <div className="flex items-center justify-between">
+          <div className="text-sm">
+            <span className="font-medium">Progress Keseluruhan: </span>
+            <span className={`font-bold ${isProgressComplete ? 'text-green-600' : 'text-purple-600'}`}>
+              {completedCategories}/{totalCategoriesTarget}
+            </span>
+            <span className="text-gray-500 text-xs ml-1">kategori terisi</span>
           </div>
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-purple-500 rounded-full transition-all duration-300"
-              style={{ width: `${overallProgress}%` }}
-            />
+          
+          <div className="text-right text-sm">
+            <div className="font-medium">Rp {formatNumber(overallTotal.monthlyTotal + overallTotal.yearlyTotal)}</div>
+            <div className="text-xs text-gray-500">Total</div>
           </div>
         </div>
         
-        <div className="text-right text-xs">
-          <div className="font-medium">Rp {formatNumber(overallTotal.monthlyTotal + overallTotal.yearlyTotal)}</div>
-          <div className="text-gray-500">Total</div>
+        {/* Progress Bar */}
+        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div 
+            className={`h-full rounded-full transition-all duration-300 ${
+              isProgressComplete ? 'bg-green-500' : 'bg-purple-500'
+            }`}
+            style={{ width: `${progressBarPercentage}%` }}
+          />
         </div>
       </div>
 
@@ -369,7 +406,6 @@ export const Page3NonFood = ({
           const category = NON_FOOD_DETAIL_CATEGORIES[categoryKey as keyof typeof NON_FOOD_DETAIL_CATEGORIES];
           const totals = getCategoryTotal(categoryKey);
           const progress = categoryProgress[categoryKey];
-          let itemIndex = 0; // Untuk tracking index warna border
           
           return (
             <TabsContent 
@@ -444,8 +480,7 @@ export const Page3NonFood = ({
                         </div>
                         
                         <div className="space-y-2">
-                          {category.monthlyItems.map(item => {
-                            itemIndex++;
+                          {category.monthlyItems.map((item, index) => {
                             const currentExpense = getCurrentExpense(categoryKey, true, item);
                             const itemKey = `${categoryKey}_monthly_${item}`;
                             const isIncomplete = isItemIncomplete(itemKey);
@@ -453,10 +488,10 @@ export const Page3NonFood = ({
                             return (
                               <div 
                                 key={item}
-                                className={`p-3 border rounded-lg ${getBorderColorClass(itemIndex)} ${
+                                className={`p-3 border rounded-lg ${getMonthlyBgColor(index)} ${
                                   isIncomplete
-                                    ? 'border-red-200 bg-red-50' 
-                                    : 'border-gray-200'
+                                    ? 'border-red-300' 
+                                    : 'border-blue-200'
                                 }`}
                               >
                                 <EnhancedExpenseInput
@@ -486,8 +521,7 @@ export const Page3NonFood = ({
                         </div>
                         
                         <div className="space-y-2">
-                          {category.yearlyItems.map(item => {
-                            itemIndex++;
+                          {category.yearlyItems.map((item, index) => {
                             const currentExpense = getCurrentExpense(categoryKey, false, item);
                             const itemKey = `${categoryKey}_yearly_${item}`;
                             const isIncomplete = isItemIncomplete(itemKey);
@@ -495,10 +529,10 @@ export const Page3NonFood = ({
                             return (
                               <div 
                                 key={item}
-                                className={`p-3 border rounded-lg ${getBorderColorClass(itemIndex)} ${
+                                className={`p-3 border rounded-lg ${getYearlyBgColor(index)} ${
                                   isIncomplete
-                                    ? 'border-red-200 bg-red-50' 
-                                    : 'border-gray-200'
+                                    ? 'border-red-300' 
+                                    : 'border-green-200'
                                 }`}
                               >
                                 <EnhancedExpenseInput
