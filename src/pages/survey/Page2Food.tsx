@@ -16,20 +16,20 @@ interface Page2FoodProps {
   updateData: (updates: Partial<SurveyData>) => void;
 }
 
-// Warna latar belakang yang berbeda untuk setiap item
+// Warna latar belakang yang kontras untuk setiap item
 const ITEM_COLORS = [
-  'bg-blue-50/70',
-  'bg-green-50/70',
-  'bg-amber-50/70',
-  'bg-purple-50/70',
-  'bg-rose-50/70',
-  'bg-cyan-50/70',
-  'bg-orange-50/70',
-  'bg-teal-50/70',
-  'bg-indigo-50/70',
-  'bg-pink-50/70',
-  'bg-lime-50/70',
-  'bg-sky-50/70',
+  'bg-blue-100/80',
+  'bg-green-100/80',
+  'bg-amber-100/80',
+  'bg-purple-100/80',
+  'bg-rose-100/80',
+  'bg-cyan-100/80',
+  'bg-orange-100/80',
+  'bg-teal-100/80',
+  'bg-indigo-100/80',
+  'bg-pink-100/80',
+  'bg-lime-100/80',
+  'bg-sky-100/80',
 ];
 
 export const Page2Food = ({
@@ -274,23 +274,23 @@ export const Page2Food = ({
       </div>
 
       {/* Progress Header - Desktop Layout */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3 bg-blue-100 rounded-lg border border-blue-200">
         <div className="flex-1">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="text-sm flex-1">
               <div className="font-medium">Halaman 2 - Bahan Makanan & Minuman</div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-gray-600">Progress:</span>
-                <span className={`font-bold ${isProgressComplete ? 'text-green-600' : 'text-blue-600'}`}>
+                <span className="text-gray-700">Progress:</span>
+                <span className={`font-bold ${isProgressComplete ? 'text-green-700' : 'text-blue-700'}`}>
                   {completedCategories}/{totalCategories}
                 </span>
-                <span className="text-gray-500 text-xs">kategori terisi</span>
+                <span className="text-gray-600 text-xs">kategori terisi</span>
               </div>
               {/* Progress Bar */}
-              <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="mt-2 h-2 bg-gray-300 rounded-full overflow-hidden">
                 <div 
                   className={`h-full rounded-full transition-all duration-300 ${
-                    isProgressComplete ? 'bg-green-500' : 'bg-blue-500'
+                    isProgressComplete ? 'bg-green-600' : 'bg-blue-600'
                   }`}
                   style={{ width: `${progressBarPercentage}%` }}
                 />
@@ -303,13 +303,13 @@ export const Page2Food = ({
                 size="sm" 
                 onClick={navigateToPrevTab}
                 disabled={activeTab === categoryKeys[0]}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 border-blue-300"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Sebelumnya
               </Button>
               
-              <div className="text-sm px-2 py-1 bg-white rounded border">
+              <div className="text-sm px-2 py-1 bg-white rounded border border-blue-300 text-blue-700 font-medium">
                 Kategori {activeTab}
               </div>
               
@@ -318,7 +318,7 @@ export const Page2Food = ({
                 size="sm" 
                 onClick={navigateToNextTab}
                 disabled={activeTab === categoryKeys[categoryKeys.length - 1]}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 border-blue-300"
               >
                 Selanjutnya
                 <ChevronRight className="h-4 w-4" />
@@ -328,10 +328,10 @@ export const Page2Food = ({
         </div>
         
         <div className="text-right">
-          <div className="text-sm font-medium">
+          <div className="text-sm font-medium text-blue-800">
             Total: Rp {formatNumber(overallTotal.totalPembelian + overallTotal.totalProduksiSendiri)}
           </div>
-          <div className="text-xs text-gray-500">Pembelian & Produksi Sendiri</div>
+          <div className="text-xs text-gray-600">Pembelian & Produksi Sendiri</div>
         </div>
       </div>
 
@@ -351,10 +351,10 @@ export const Page2Food = ({
               onClick={() => setActiveTab(key)}
               className={`text-xs px-3 py-1 h-8 ${
                 !isActive && isComplete 
-                  ? "border-green-400 text-green-700 bg-green-50 hover:bg-green-100" 
+                  ? "border-green-500 text-green-800 bg-green-100 hover:bg-green-200" 
                   : !isActive && hasData
-                  ? "border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100"
-                  : ""
+                  ? "border-yellow-500 text-yellow-800 bg-yellow-100 hover:bg-yellow-200"
+                  : "border-gray-300"
               }`}
             >
               {isComplete && <CheckCircle2 className="h-3 w-3 mr-1" />}
@@ -383,19 +383,19 @@ export const Page2Food = ({
               value={categoryKey} 
               className="space-y-4"
             >
-              <Card>
-                <CardHeader className="pb-3">
+              <Card className="border border-gray-300">
+                <CardHeader className="pb-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <CardTitle className="text-base">
-                          <span className="text-red-600">Kategori {categoryKey}:</span> {category.title}
+                        <CardTitle className="text-base text-gray-800">
+                          <span className="text-red-600 font-bold">Kategori {categoryKey}:</span> {category.title}
                         </CardTitle>
                         
                         {progress.percentage < 100 && (
                           <Badge 
                             variant="outline" 
-                            className="text-xs cursor-pointer hover:bg-gray-100"
+                            className="text-xs cursor-pointer hover:bg-gray-200 border-orange-400 text-orange-700"
                             onClick={() => skipCategory(categoryKey)}
                           >
                             <SkipForward className="h-3 w-3 mr-1" />
@@ -405,14 +405,14 @@ export const Page2Food = ({
                       </div>
                       
                       {/* Category Summary */}
-                      <div className="grid grid-cols-2 gap-2 p-2 bg-gray-50 rounded">
-                        <div className="text-center">
-                          <div className="text-xs text-gray-500">Total Pembelian</div>
-                          <div className="text-sm font-semibold">Rp {formatNumber(totals.totalPembelian)}</div>
+                      <div className="grid grid-cols-2 gap-3 p-3 bg-white rounded border border-gray-200 shadow-sm">
+                        <div className="text-center p-2 bg-blue-50 rounded border border-blue-100">
+                          <div className="text-xs text-blue-700 font-medium">Total Pembelian</div>
+                          <div className="text-sm font-bold text-blue-800">Rp {formatNumber(totals.totalPembelian)}</div>
                         </div>
-                        <div className="text-center">
-                          <div className="text-xs text-gray-500">Total Produksi Sendiri</div>
-                          <div className="text-sm font-semibold">Rp {formatNumber(totals.totalProduksiSendiri)}</div>
+                        <div className="text-center p-2 bg-green-50 rounded border border-green-100">
+                          <div className="text-xs text-green-700 font-medium">Total Produksi Sendiri</div>
+                          <div className="text-sm font-bold text-green-800">Rp {formatNumber(totals.totalProduksiSendiri)}</div>
                         </div>
                       </div>
                     </div>
@@ -422,7 +422,7 @@ export const Page2Food = ({
                       variant="outline" 
                       size="sm" 
                       onClick={() => resetCategory(categoryKey)}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 border-red-300 text-red-700 hover:bg-red-50"
                     >
                       <RotateCcw className="h-3 w-3" />
                       Reset Kategori
@@ -430,9 +430,9 @@ export const Page2Food = ({
                   </div>
                 </CardHeader>
                 
-                <CardContent>
+                <CardContent className="pt-4">
                   {category.items.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {category.items.map((item, index) => {
                         const itemKey = `${categoryKey}_${item}`;
                         const currentExpense = data.makananMinuman[itemKey] || {
@@ -444,11 +444,11 @@ export const Page2Food = ({
                         return (
                           <div 
                             key={itemKey} 
-                            className={`p-3 border rounded-lg ${getBackgroundColorClass(index)} ${
+                            className={`p-4 border-2 rounded-lg shadow-sm ${getBackgroundColorClass(index)} ${
                               isIncomplete 
-                                ? 'border-red-200' 
-                                : 'border-gray-200'
-                            }`}
+                                ? 'border-red-400 shadow-red-100' 
+                                : 'border-gray-300 shadow-gray-100'
+                            } hover:shadow-md transition-shadow duration-200`}
                           >
                             <EnhancedExpenseInput 
                               label={item}
@@ -474,20 +474,20 @@ export const Page2Food = ({
               </Card>
               
               {/* Navigation Footer */}
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-3 border-t">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-gray-300">
                 <Button 
                   variant="outline" 
                   onClick={navigateToPrevTab}
                   disabled={activeTab === categoryKeys[0]}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto border-gray-400 hover:bg-gray-100"
                 >
                   <ChevronLeft className="h-4 w-4 mr-2" />
                   Kategori Sebelumnya
                 </Button>
                 
-                <div className="text-xs text-center text-gray-500">
-                  <div>Kategori {categoryKey} • {progress.completed}/{progress.total} item terisi</div>
-                  <div className="font-medium text-sm">
+                <div className="text-sm text-center text-gray-700">
+                  <div className="font-medium">Kategori {categoryKey} • {progress.completed}/{progress.total} item terisi</div>
+                  <div className="font-bold text-base text-blue-800">
                     Total Kategori: Rp {formatNumber(totals.totalPembelian + totals.totalProduksiSendiri)}
                   </div>
                 </div>
@@ -496,7 +496,7 @@ export const Page2Food = ({
                   variant="outline" 
                   onClick={navigateToNextTab}
                   disabled={activeTab === categoryKeys[categoryKeys.length - 1]}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto border-gray-400 hover:bg-gray-100"
                 >
                   Kategori Selanjutnya
                   <ChevronRight className="h-4 w-4 ml-2" />
