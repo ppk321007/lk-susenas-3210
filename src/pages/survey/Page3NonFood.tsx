@@ -479,7 +479,7 @@ export const Page3NonFood = ({
                           </h4>
                         </div>
                         
-                        <div className="space-y-2">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                           {category.monthlyItems.map((item, index) => {
                             const currentExpense = getCurrentExpense(categoryKey, true, item);
                             const itemKey = `${categoryKey}_monthly_${item}`;
@@ -520,7 +520,7 @@ export const Page3NonFood = ({
                           </h4>
                         </div>
                         
-                        <div className="space-y-2">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                           {category.yearlyItems.map((item, index) => {
                             const currentExpense = getCurrentExpense(categoryKey, false, item);
                             const itemKey = `${categoryKey}_yearly_${item}`;
