@@ -135,8 +135,11 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         console.log(`✓ BLOK VB Rule 2: usahaImputasiNilaiProduksi += ${yearlyValue} = ${usahaImputasiNilaiProduksi}`);
       }
 
+      // Helper to check if kategori is a "Pemberian" type (handles both old and new category names)
+      const isPemberianKategori = (kat: string) => kat === 'Produksi Sendiri/Pemberian' || kat === 'Pemberian';
+
       // 3. BLOK VC - Imputasi Nilai Produksi Hasil Pertanian
-      if (entry.kategori === 'Produksi Sendiri/Pemberian' && entry.jenisDetail === 'Berasal dari Produksi Sendiri') {
+      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Berasal dari Produksi Sendiri') {
         hasilPertanianImputasi += yearlyValue;
         console.log(`✓ BLOK VC: hasilPertanianImputasi += ${yearlyValue} = ${hasilPertanianImputasi}`);
       }
@@ -152,31 +155,25 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         pemerintahBantuanImputasiBarang += yearlyValue;
         console.log(`✓ BLOK VE Pemerintah Barang Rule 1: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
       }
-      if (entry.kategori === 'Produksi Sendiri/Pemberian' && entry.jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
+      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
         pemerintahBantuanImputasiBarang += yearlyValue;
         console.log(`✓ BLOK VE Pemerintah Barang Rule 2: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
       }
-      
-      // NEW RULE 3: Kategori = Pemberian, Detail = Pemberian dari Pemerintah secara Gratis (for new categories structure)
-      if (entry.kategori === 'Pemberian' && entry.jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
-        pemerintahBantuanImputasiBarang += yearlyValue;
-        console.log(`✓ BLOK VE Pemerintah Barang Rule 3 (NEW): pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
-      }
 
       // 6. BLOK VE - Rumah Tangga Lain - Imputasi Transfer Diterima Barang
-      if (entry.kategori === 'Produksi Sendiri/Pemberian' && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
+      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
         rumahTanggaLainImputasiBarang += yearlyValue;
         console.log(`✓ BLOK VE Rumah Tangga Lain: rumahTanggaLainImputasiBarang += ${yearlyValue} = ${rumahTanggaLainImputasiBarang}`);
       }
 
       // 7. BLOK VE - Lembaga Nirlaba - Imputasi Transfer Diterima Barang
-      if (entry.kategori === 'Produksi Sendiri/Pemberian' && entry.jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
+      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
         lembagaNirlabaImputasiBarang += yearlyValue;
         console.log(`✓ BLOK VE Lembaga Nirlaba: lembagaNirlabaImputasiBarang += ${yearlyValue} = ${lembagaNirlabaImputasiBarang}`);
       }
 
       // 8. BLOK VE - Luar Negeri - Imputasi Transfer Diterima Barang
-      if (entry.kategori === 'Produksi Sendiri/Pemberian' && entry.jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
+      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
         luarNegeriImputasiBarang += yearlyValue;
         console.log(`✓ BLOK VE Luar Negeri: luarNegeriImputasiBarang += ${yearlyValue} = ${luarNegeriImputasiBarang}`);
       }
@@ -244,6 +241,9 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       }
     });
   }
+
+  // Helper to check if kategori is a "Pemberian" type (handles both old and new category names)
+  const isPemberianKategoriNonFood = (kat: string) => kat === 'Produksi Sendiri/Pemberian' || kat === 'Pemberian';
 
   // Function to process non-food entries based on mapping rules
   function processNonFoodEntry(kategori: string, jenisDetail: string, yearlyValue: number, itemKey: string, timePeriod: 'monthly' | 'yearly') {
@@ -340,7 +340,7 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     }
 
     // === BLOK VC - Imputasi Nilai Produksi Hasil Pertanian Rules ===
-    if (kategori === 'Pemberian' && jenisDetail === 'Berasal dari Produksi Sendiri') {
+    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Berasal dari Produksi Sendiri') {
       hasilPertanianImputasi += yearlyValue;
       console.log(`✓ Non-Food BLOK VC: hasilPertanianImputasi += ${yearlyValue} = ${hasilPertanianImputasi}`);
     }
@@ -358,23 +358,23 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       console.log(`✓ Non-Food BLOK VE Pemerintah Barang Rule 1: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
     }
 
-    if (kategori === 'Pemberian' && jenisDetail === 'Pemberian dari Pemerintah secara Gratis' && !itemKey.includes('Asuransi kesehatan')) {
+    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Pemerintah secara Gratis' && !itemKey.includes('Asuransi kesehatan')) {
       pemerintahBantuanImputasiBarang += yearlyValue;
       console.log(`✓ Non-Food BLOK VE Pemerintah Barang Rule 2: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
     }
 
     // === BLOK VE - Transfer Diterima Barang from Other Sources ===
-    if (kategori === 'Pemberian' && jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
+    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
       rumahTanggaLainImputasiBarang += yearlyValue;
       console.log(`✓ Non-Food BLOK VE Rumah Tangga Lain: rumahTanggaLainImputasiBarang += ${yearlyValue} = ${rumahTanggaLainImputasiBarang}`);
     }
 
-    if (kategori === 'Pemberian' && jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
+    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
       lembagaNirlabaImputasiBarang += yearlyValue;
       console.log(`✓ Non-Food BLOK VE Lembaga Nirlaba: lembagaNirlabaImputasiBarang += ${yearlyValue} = ${lembagaNirlabaImputasiBarang}`);
     }
 
-    if (kategori === 'Pemberian' && jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
+    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
       luarNegeriImputasiBarang += yearlyValue;
       console.log(`✓ Non-Food BLOK VE Luar Negeri: luarNegeriImputasiBarang += ${yearlyValue} = ${luarNegeriImputasiBarang}`);
     }
@@ -405,7 +405,7 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     // Rule 12: Removed - Bebas Sewa no longer automatically adds to Rumah Tangga Lain
 
     // Rule 13: Special handling for "Asuransi kesehatan" - Pemberian dari Pemerintah secara Gratis
-    if (itemKey.includes('Asuransi kesehatan') && kategori === 'Pemberian' && jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
+    if (itemKey.includes('Asuransi kesehatan') && isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
       // Add to Badan Usaha (Uang Pensiun, Asuransi, dll) instead of Bantuan Pemerintah
       badanUsahaBarangImputasi += yearlyValue;
       console.log(`✓ Non-Food Rule 13: asuransi kesehatan badanUsahaBarangImputasi += ${yearlyValue} = ${badanUsahaBarangImputasi}`);
