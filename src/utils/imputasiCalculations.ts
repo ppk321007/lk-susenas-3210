@@ -243,7 +243,9 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   }
 
   // Helper to check if kategori is a "Pemberian" type (handles both old and new category names)
-  const isPemberianKategoriNonFood = (kat: string) => kat === 'Produksi Sendiri/Pemberian' || kat === 'Pemberian';
+  function isPemberianKategoriNonFood(kat: string) {
+    return kat === 'Produksi Sendiri/Pemberian' || kat === 'Pemberian';
+  }
 
   // Function to process non-food entries based on mapping rules
   function processNonFoodEntry(kategori: string, jenisDetail: string, yearlyValue: number, itemKey: string, timePeriod: 'monthly' | 'yearly') {
