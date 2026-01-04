@@ -48,9 +48,9 @@ export const EnhancedExpenseInput = ({
     updateEntries(newEntries);
   };
 
-  const updateEntry = (index: number, field: keyof ExpenseEntry, value: any) => {
+  const updateEntry = (index: number, field: keyof ExpenseEntry, newValue: any) => {
     const newEntries = [...entries];
-    newEntries[index] = { ...newEntries[index], [field]: value };
+    newEntries[index] = { ...newEntries[index], [field]: newValue };
     updateEntries(newEntries);
   };
 
