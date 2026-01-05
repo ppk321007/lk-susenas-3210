@@ -360,7 +360,7 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       console.log(`✓ Non-Food BLOK VE Pemerintah Barang Rule 1: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
     }
 
-    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Pemerintah secara Gratis' && !itemKey.includes('Asuransi kesehatan')) {
+    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
       pemerintahBantuanImputasiBarang += yearlyValue;
       console.log(`✓ Non-Food BLOK VE Pemerintah Barang Rule 2: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
     }
@@ -406,12 +406,7 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
 
     // Rule 12: Removed - Bebas Sewa no longer automatically adds to Rumah Tangga Lain
 
-    // Rule 13: Special handling for "Asuransi kesehatan" - Pemberian dari Pemerintah secara Gratis
-    if (itemKey.includes('Asuransi kesehatan') && isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
-      // Add to Badan Usaha (Uang Pensiun, Asuransi, dll) instead of Bantuan Pemerintah
-      badanUsahaBarangImputasi += yearlyValue;
-      console.log(`✓ Non-Food Rule 13: asuransi kesehatan badanUsahaBarangImputasi += ${yearlyValue} = ${badanUsahaBarangImputasi}`);
-    }
+    // Rule 13: Removed - Asuransi kesehatan dengan Pemberian dari Pemerintah secara Gratis sekarang dicatat ke Bantuan Pemerintah (pemerintahBantuanImputasiBarang)
   }
 
   console.log("=== FINAL IMPUTASI CALCULATIONS ===");
