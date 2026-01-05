@@ -225,6 +225,15 @@ export const Page2Food = ({
     return new Intl.NumberFormat('id-ID').format(num);
   };
 
+  // Helper untuk mengubah teks menjadi Proper Case
+  const toProperCase = (text: string) => {
+    return text
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const getCompletionStatus = (percentage: number) => {
     if (percentage === 100) return "complete";
     if (percentage >= 50) return "partial";
@@ -343,6 +352,8 @@ export const Page2Food = ({
           const isComplete = progress.percentage === 100;
           const hasData = progress.percentage > 0;
           
+          const categoryTitle = FOOD_CATEGORIES[key as keyof typeof FOOD_CATEGORIES].title;
+          
           return (
             <Button
               key={key}
@@ -358,7 +369,7 @@ export const Page2Food = ({
               }`}
             >
               {isComplete && <CheckCircle2 className="h-3 w-3 mr-1" />}
-              Kategori {key}
+              {key}. {toProperCase(categoryTitle)}
             </Button>
           );
         })}
