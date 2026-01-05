@@ -140,15 +140,19 @@ export const applySurveyImputasiCalculations = (data: SurveyData): SurveyData =>
   const householdTransferAmount = calculateTransferFromHouseholds(data);
   console.log("💰 Household transfer amount:", householdTransferAmount);
 
-  // Update transfer berjalan with calculated amount
+  // Update transfer berjalan with calculated amount.
+  // IMPORTANT: start from imputasi-calculated transferBerjalan (if present), so we don't overwrite
+  // other imputasi fields (e.g. imputasiTransferDiterimaBarang from Page 2/3 "Pemberian").
+  const baseTransferBerjalan = imputasiUpdates.transferBerjalan ?? data.transferBerjalan;
+
   const updatedTransferBerjalan = {
-    ...data.transferBerjalan,
+    ...baseTransferBerjalan,
     rumahTanggaLain: {
-      ...data.transferBerjalan?.rumahTanggaLain,
+      ...baseTransferBerjalan?.rumahTanggaLain,
       imputasiTransferDiterimaUang: householdTransferAmount
     }
   };
-  
+
   const result = {
     ...data,
     ...imputasiUpdates,
