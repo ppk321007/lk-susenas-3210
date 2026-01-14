@@ -117,34 +117,8 @@ export const Page1Identity = ({
     fetchUserAssignments();
   }, []);
 
-  // Load existing survey data for a household
-  const loadExistingHouseholdData = useCallback(async (nks: string, noSampel: string) => {
-    if (!onHouseholdChange) return;
-
-    setIsLoadingData(true);
-    try {
-      const result = await onHouseholdChange(nks, noSampel);
-      
-      if (result?.success && result?.data) {
-        // Found existing data, merge it
-        const existingData = result.data;
-        updateData({
-          ...existingData,
-          // Make sure we keep the current identity selections
-          nks: nks,
-          noSampel: noSampel
-        });
-        toast({
-          title: "Data Ditemukan",
-          description: "Data survei yang sudah ada berhasil dimuat."
-        });
-      }
-    } catch (error) {
-      console.error('Error loading household data:', error);
-    } finally {
-      setIsLoadingData(false);
-    }
-  }, [onHouseholdChange, updateData, toast]);
+  // Note: loadExistingHouseholdData logic is now integrated into handleNoSampelChange
+  // to prevent race conditions where reset/save happens before load completes
 
   const handleNksChange = async (value: string) => {
     const index = parseInt(value);
@@ -192,29 +166,71 @@ export const Page1Identity = ({
         const newNoSampel = assignment.noSampelList[index];
         const newNamaKrt = assignment.namaKrtList[index] || '';
         
-        // If we have resetSurveyData, reset the survey data first
-        if (resetSurveyData) {
-          resetSurveyData({
-            namaPendata: data.namaPendata,
-            pencacah: data.pencacah,
-            pemeriksa: data.pemeriksa,
-            nks: assignment.nks,
-            kecamatan: assignment.kecamatan,
-            desa: assignment.desa,
-            sls: assignment.sls,
-            alamat: assignment.alamat,
-            noSampel: newNoSampel,
-            namaKepalaRumahTangga: newNamaKrt
-          });
-        } else {
+        setIsLoadingData(true);
+        
+        try {
+          // FIRST: Load existing data from spreadsheet BEFORE resetting
+          let loadedData: any = null;
+          if (onHouseholdChange) {
+            const result = await onHouseholdChange(assignment.nks, newNoSampel);
+            if (result?.success && result?.data) {
+              loadedData = result.data;
+            }
+          }
+          
+          // NOW: Apply data - either loaded data or fresh reset
+          if (loadedData) {
+            // We have existing data - use it
+            updateData({
+              ...loadedData,
+              // Ensure identity fields are correct
+              namaPendata: data.namaPendata,
+              pencacah: data.pencacah,
+              pemeriksa: data.pemeriksa,
+              nks: assignment.nks,
+              kecamatan: assignment.kecamatan,
+              desa: assignment.desa,
+              sls: assignment.sls,
+              alamat: assignment.alamat,
+              noSampel: newNoSampel,
+              namaKepalaRumahTangga: loadedData.namaKepalaRumahTangga || newNamaKrt
+            });
+            toast({
+              title: "Data Ditemukan",
+              description: "Data survei yang sudah ada berhasil dimuat."
+            });
+          } else {
+            // No existing data - reset to fresh state
+            if (resetSurveyData) {
+              resetSurveyData({
+                namaPendata: data.namaPendata,
+                pencacah: data.pencacah,
+                pemeriksa: data.pemeriksa,
+                nks: assignment.nks,
+                kecamatan: assignment.kecamatan,
+                desa: assignment.desa,
+                sls: assignment.sls,
+                alamat: assignment.alamat,
+                noSampel: newNoSampel,
+                namaKepalaRumahTangga: newNamaKrt
+              });
+            } else {
+              updateData({
+                noSampel: newNoSampel,
+                namaKepalaRumahTangga: newNamaKrt
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error loading household data:', error);
+          // On error, still update identity fields
           updateData({
             noSampel: newNoSampel,
             namaKepalaRumahTangga: newNamaKrt
           });
+        } finally {
+          setIsLoadingData(false);
         }
-        
-        // Try to load existing data for this household
-        await loadExistingHouseholdData(assignment.nks, newNoSampel);
       }
     }
   };
