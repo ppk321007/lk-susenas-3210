@@ -55,6 +55,7 @@ export const NON_FOOD_DETAIL_CATEGORIES = {
       "Obat yang dibeli dengan resep dari tenaga kesehatan (dokter, bidan, perawat)",
       "Obat modern yang dibeli tanpa resep dari tenaga kesehatan",
       "Obat tradisional/jamu untuk pengobatan",
+      "Biaya pembelian kacamata, kaki/tangan palsu (protese) dan kursi roda",
       "Periksa kehamilan",
       "Imunisasi",
       "Tes kesehatan/deteksi dini/Medical Check Up",
