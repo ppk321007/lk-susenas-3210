@@ -126,12 +126,37 @@ export const Page7 = ({
     }
   };
 
+  const getNormalizedExpenseTotals = (expense: any) => {
+    let pembelian = typeof expense?.pembelian === 'number' ? expense.pembelian : 0;
+    let produksiSendiri = typeof expense?.produksiSendiri === 'number' ? expense.produksiSendiri : 0;
+
+    // Banyak data (terutama hasil load dari Sheets) menyimpan rincian di `entries`
+    // dan tidak mengisi agregat `pembelian/produksiSendiri`.
+    // Untuk Ringkasan Survei, gunakan `entries` sebagai fallback agar angka tidak 0.
+    if ((pembelian === 0 && produksiSendiri === 0) && Array.isArray(expense?.entries)) {
+      for (const entry of expense.entries) {
+        const nilai = (entry?.nilai as number) || 0;
+        if (!nilai) continue;
+
+        if (entry?.kategori === 'Pembelian') {
+          pembelian += nilai;
+        } else {
+          // Produksi Sendiri/Pemberian atau Pemberian
+          produksiSendiri += nilai;
+        }
+      }
+    }
+
+    return { pembelian, produksiSendiri };
+  };
+
   const getTotalFoodExpenses = () => {
     let weeklyTotal = 0;
     if (data.makananMinuman) {
       Object.values(data.makananMinuman).forEach(expense => {
         if (expense && typeof expense === 'object') {
-          weeklyTotal += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+          const { pembelian, produksiSendiri } = getNormalizedExpenseTotals(expense);
+          weeklyTotal += pembelian + produksiSendiri;
         }
       });
     }
@@ -146,19 +171,23 @@ export const Page7 = ({
       if (monthlyData) {
         Object.values(monthlyData).forEach((expense: any) => {
           if (expense && typeof expense === 'object') {
-            monthlySum += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+            const { pembelian, produksiSendiri } = getNormalizedExpenseTotals(expense);
+            monthlySum += pembelian + produksiSendiri;
           }
         });
       }
     });
+
     let yearlySum = 0;
     if (data.komoditiSetahun) {
       Object.values(data.komoditiSetahun).forEach((expense: any) => {
         if (expense && typeof expense === 'object') {
-          yearlySum += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+          const { pembelian, produksiSendiri } = getNormalizedExpenseTotals(expense);
+          yearlySum += pembelian + produksiSendiri;
         }
       });
     }
+
     const annual = monthlySum * 12 + yearlySum;
     return Math.round(annual);
   };
@@ -283,7 +312,8 @@ export const Page7 = ({
     if (data.makananMinuman) {
       Object.values(data.makananMinuman).forEach(expense => {
         if (expense && typeof expense === 'object') {
-          const total = (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+          const { pembelian, produksiSendiri } = getNormalizedExpenseTotals(expense);
+          const total = pembelian + produksiSendiri;
           if (total > 0) count++;
         }
       });
@@ -298,20 +328,24 @@ export const Page7 = ({
       if (monthlyData) {
         Object.values(monthlyData).forEach((expense: any) => {
           if (expense && typeof expense === 'object') {
-            const total = (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+            const { pembelian, produksiSendiri } = getNormalizedExpenseTotals(expense);
+            const total = pembelian + produksiSendiri;
             if (total > 0) count++;
           }
         });
       }
     });
+
     if (data.komoditiSetahun) {
       Object.values(data.komoditiSetahun).forEach((expense: any) => {
         if (expense && typeof expense === 'object') {
-          const total = (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+          const { pembelian, produksiSendiri } = getNormalizedExpenseTotals(expense);
+          const total = pembelian + produksiSendiri;
           if (total > 0) count++;
         }
       });
     }
+
     return count;
   };
 
