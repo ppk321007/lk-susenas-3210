@@ -128,9 +128,13 @@ export const Page7 = ({
 
   const getTotalFoodExpenses = () => {
     let weeklyTotal = 0;
-    Object.values(data.makananMinuman).forEach(expense => {
-      weeklyTotal += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
-    });
+    if (data.makananMinuman) {
+      Object.values(data.makananMinuman).forEach(expense => {
+        if (expense && typeof expense === 'object') {
+          weeklyTotal += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+        }
+      });
+    }
     const annual = weeklyTotal * (30 / 7) * 12;
     return Math.round(annual);
   };
@@ -141,38 +145,65 @@ export const Page7 = ({
       const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
       if (monthlyData) {
         Object.values(monthlyData).forEach((expense: any) => {
-          if (expense) {
+          if (expense && typeof expense === 'object') {
             monthlySum += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
           }
         });
       }
     });
     let yearlySum = 0;
-    Object.values(data.komoditiSetahun).forEach((expense: any) => {
-      if (expense) {
-        yearlySum += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
-      }
-    });
+    if (data.komoditiSetahun) {
+      Object.values(data.komoditiSetahun).forEach((expense: any) => {
+        if (expense && typeof expense === 'object') {
+          yearlySum += (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+        }
+      });
+    }
     const annual = monthlySum * 12 + yearlySum;
     return Math.round(annual);
   };
 
   const getTotalIncome = () => {
     let total = 0;
-    data.pendapatanUpah.forEach(upah => {
-      total += upah.upahUang + upah.upahBarang + upah.lembur;
-    });
-    data.pendapatanUsaha.forEach(usaha => {
-      total += usaha.surplus;
-    });
-    total += data.produksiSendiri.perkiraanSewaRumah.surplus;
-    total += data.produksiSendiri.hasilPertanian.surplus;
-    Object.values(data.pendapatanKepemilikan).forEach(item => {
-      total += item.diterima;
-    });
-    Object.values(data.transferBerjalan).forEach(item => {
-      total += item.diterimaUang + item.diterimaBarang;
-    });
+    
+    // Pendapatan Upah
+    if (Array.isArray(data.pendapatanUpah)) {
+      data.pendapatanUpah.forEach(upah => {
+        total += (upah.upahUang || 0) + (upah.upahBarang || 0) + (upah.lembur || 0);
+      });
+    }
+    
+    // Pendapatan Usaha
+    if (Array.isArray(data.pendapatanUsaha)) {
+      data.pendapatanUsaha.forEach(usaha => {
+        total += usaha.surplus || 0;
+      });
+    }
+    
+    // Produksi Sendiri
+    if (data.produksiSendiri) {
+      total += data.produksiSendiri.perkiraanSewaRumah?.surplus || 0;
+      total += data.produksiSendiri.hasilPertanian?.surplus || 0;
+    }
+    
+    // Pendapatan Kepemilikan
+    if (data.pendapatanKepemilikan) {
+      Object.values(data.pendapatanKepemilikan).forEach(item => {
+        if (item && typeof item === 'object') {
+          total += (item as any).diterima || 0;
+        }
+      });
+    }
+    
+    // Transfer Berjalan
+    if (data.transferBerjalan) {
+      Object.values(data.transferBerjalan).forEach(item => {
+        if (item && typeof item === 'object') {
+          total += ((item as any).diterimaUang || 0) + ((item as any).diterimaBarang || 0);
+        }
+      });
+    }
+    
     return Math.round(total);
   };
 
@@ -190,11 +221,35 @@ export const Page7 = ({
   };
 
   const getIncomeBreakdown = () => {
-    const upahGaji = data.pendapatanUpah.reduce((sum, upah) => sum + upah.upahUang + upah.upahBarang + upah.lembur, 0);
-    const pendapatanUsaha = data.pendapatanUsaha.reduce((sum, usaha) => sum + usaha.surplus, 0);
-    const produksiSendiri = data.produksiSendiri.perkiraanSewaRumah.surplus + data.produksiSendiri.hasilPertanian.surplus;
-    const pendapatanKepemilikan = Object.values(data.pendapatanKepemilikan).reduce((sum, item) => sum + item.diterima, 0);
-    const transferBerjalan = Object.values(data.transferBerjalan).reduce((sum, item) => sum + item.diterimaUang + item.diterimaBarang, 0);
+    const upahGaji = Array.isArray(data.pendapatanUpah) 
+      ? data.pendapatanUpah.reduce((sum, upah) => sum + (upah.upahUang || 0) + (upah.upahBarang || 0) + (upah.lembur || 0), 0) 
+      : 0;
+    
+    const pendapatanUsaha = Array.isArray(data.pendapatanUsaha) 
+      ? data.pendapatanUsaha.reduce((sum, usaha) => sum + (usaha.surplus || 0), 0) 
+      : 0;
+    
+    const produksiSendiri = (data.produksiSendiri?.perkiraanSewaRumah?.surplus || 0) + 
+                            (data.produksiSendiri?.hasilPertanian?.surplus || 0);
+    
+    const pendapatanKepemilikan = data.pendapatanKepemilikan 
+      ? Object.values(data.pendapatanKepemilikan).reduce((sum, item) => {
+          if (item && typeof item === 'object') {
+            return sum + ((item as any).diterima || 0);
+          }
+          return sum;
+        }, 0) 
+      : 0;
+    
+    const transferBerjalan = data.transferBerjalan 
+      ? Object.values(data.transferBerjalan).reduce((sum, item) => {
+          if (item && typeof item === 'object') {
+            return sum + ((item as any).diterimaUang || 0) + ((item as any).diterimaBarang || 0);
+          }
+          return sum;
+        }, 0) 
+      : 0;
+    
     return {
       upahGaji: Math.round(upahGaji),
       pendapatanUsaha: Math.round(pendapatanUsaha),
@@ -206,23 +261,33 @@ export const Page7 = ({
 
   const getAssetSummary = () => {
     let totalAssetUsaha = 0;
-    Object.values(data.asetPerubahan.asetTetapUsaha).forEach(asset => {
-      totalAssetUsaha += asset.netto;
-    });
+    
+    if (data.asetPerubahan?.asetTetapUsaha) {
+      Object.values(data.asetPerubahan.asetTetapUsaha).forEach(asset => {
+        if (asset && typeof asset === 'object') {
+          totalAssetUsaha += (asset as any).netto || 0;
+        }
+      });
+    }
+    
     return {
       asetTetapUsaha: Math.round(totalAssetUsaha),
-      bangunanTinggal: Math.round(data.asetPerubahan.bangunanTinggal.netto),
-      lahanBarang: Math.round(data.asetPerubahan.lahanBarang.netto),
-      biayaPemindahan: Math.round(data.asetPerubahan.biayaPemindahan.netto)
+      bangunanTinggal: Math.round(data.asetPerubahan?.bangunanTinggal?.netto || 0),
+      lahanBarang: Math.round(data.asetPerubahan?.lahanBarang?.netto || 0),
+      biayaPemindahan: Math.round(data.asetPerubahan?.biayaPemindahan?.netto || 0)
     };
   };
 
   const getFoodItemCount = () => {
     let count = 0;
-    Object.values(data.makananMinuman).forEach(expense => {
-      const total = (expense.pembelian || 0) + (expense.produksiSendiri || 0);
-      if (total > 0) count++;
-    });
+    if (data.makananMinuman) {
+      Object.values(data.makananMinuman).forEach(expense => {
+        if (expense && typeof expense === 'object') {
+          const total = (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+          if (total > 0) count++;
+        }
+      });
+    }
     return count;
   };
 
@@ -232,19 +297,21 @@ export const Page7 = ({
       const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
       if (monthlyData) {
         Object.values(monthlyData).forEach((expense: any) => {
-          if (expense) {
+          if (expense && typeof expense === 'object') {
             const total = (expense.pembelian || 0) + (expense.produksiSendiri || 0);
             if (total > 0) count++;
           }
         });
       }
     });
-    Object.values(data.komoditiSetahun).forEach((expense: any) => {
-      if (expense) {
-        const total = (expense.pembelian || 0) + (expense.produksiSendiri || 0);
-        if (total > 0) count++;
-      }
-    });
+    if (data.komoditiSetahun) {
+      Object.values(data.komoditiSetahun).forEach((expense: any) => {
+        if (expense && typeof expense === 'object') {
+          const total = (expense.pembelian || 0) + (expense.produksiSendiri || 0);
+          if (total > 0) count++;
+        }
+      });
+    }
     return count;
   };
 
