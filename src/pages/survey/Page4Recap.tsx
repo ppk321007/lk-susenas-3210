@@ -5,6 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { useSurveyImputasi } from "@/hooks/useSurveyImputasi";
+import { 
+  getNormalizedExpenseTotals, 
+  getFoodCategoryTotals,
+  getNonFoodMonthlyTotal,
+  getNonFoodYearlyTotal
+} from "@/utils/expenseNormalizer";
+
 interface Page3RecapProps {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
@@ -19,62 +26,47 @@ export const Page4Recap = ({
   };
 
   // Table 1: Individual member food and tobacco expenses
+  // Use normalizer to handle both entries array and direct pembelian/produksiSendiri fields
   const getMemberExpenses = () => {
     return data.namaAnggotaRumahTangga.map((nama, index) => {
-      // Get expenses for makanan minuman jadi and rokok for this member
       const makananKey = `M_${index}`;
       const rokokKey = `N_${index}`;
-      const makananExpense = data.makananMinuman[makananKey] || {
-        pembelian: 0,
-        produksiSendiri: 0
-      };
-      const rokokExpense = data.makananMinuman[rokokKey] || {
-        pembelian: 0,
-        produksiSendiri: 0
-      };
+      const makananExpense = data.makananMinuman[makananKey];
+      const rokokExpense = data.makananMinuman[rokokKey];
+      
+      const makananNormalized = getNormalizedExpenseTotals(makananExpense);
+      const rokokNormalized = getNormalizedExpenseTotals(rokokExpense);
+      
       return {
         nama,
-        makananPembelian: makananExpense.pembelian,
-        makananProduksi: makananExpense.produksiSendiri,
-        rokokPembelian: rokokExpense.pembelian,
-        rokokProduksi: rokokExpense.produksiSendiri
+        makananPembelian: makananNormalized.pembelian,
+        makananProduksi: makananNormalized.produksiSendiri,
+        rokokPembelian: rokokNormalized.pembelian,
+        rokokProduksi: rokokNormalized.produksiSendiri
       };
     });
   };
 
-  // Table 2: Weekly food expenses summary
+  // Table 2: Weekly food expenses summary - use normalizer for correct totals
   const getCategoryTotals = () => {
     const categories = ["Padi-Padian", "Umbi-umbian", "Ikan/Udang/cumi/kerang", "Daging", "Telur dan Susu", "Sayur-sayuran", "Kacang-kacangan", "Buah-buahan", "Minyak dan kelapa", "Bahan Minuman", "Bumbu-bumbuan", "Bahan Makanan Lainnya", "Makanan dan Minuman Jadi", "Rokok dan Tembakau"];
+    
     return categories.map((categoryName, index) => {
       const categoryKey = String.fromCharCode(65 + index); // A, B, C, etc.
       const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
-      let totalPembelian = 0;
-      let totalProduksi = 0;
-      if (category && category.items.length > 0) {
-        category.items.forEach(item => {
-          const key = `${categoryKey}_${item}`;
-          const expense = data.makananMinuman[key];
-          if (expense) {
-            totalPembelian += expense.pembelian || 0;
-            totalProduksi += expense.produksiSendiri || 0;
-          }
-        });
-      } else {
-        // For M and N categories (per member)
-        data.namaAnggotaRumahTangga.forEach((_, memberIndex) => {
-          const key = `${categoryKey}_${memberIndex}`;
-          const expense = data.makananMinuman[key];
-          if (expense) {
-            totalPembelian += expense.pembelian || 0;
-            totalProduksi += expense.produksiSendiri || 0;
-          }
-        });
-      }
+      
+      const { totalPembelian, totalProduksiSendiri } = getFoodCategoryTotals(
+        categoryKey,
+        data.makananMinuman,
+        category?.items || [],
+        data.namaAnggotaRumahTangga
+      );
+      
       return {
         jenis: categoryName,
         pembelian: totalPembelian,
-        produksi: totalProduksi,
-        total: totalPembelian + totalProduksi
+        produksi: totalProduksiSendiri,
+        total: totalPembelian + totalProduksiSendiri
       };
     });
   };
@@ -234,31 +226,13 @@ export const Page4Recap = ({
               </thead>
               <tbody>
                 {Object.entries(NON_FOOD_CATEGORIES).map(([categoryKey, category], index) => {
-                // Calculate monthly total for this category
+                // Calculate monthly total using normalizer for correct entries handling
                 const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                let monthlyTotal = 0;
-                if (monthlyData && typeof monthlyData === 'object') {
-                  monthlyTotal = Object.values(monthlyData).reduce((sum, val) => {
-                    if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                      return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                    }
-                    return sum + (typeof val === 'number' ? val : 0);
-                  }, 0);
-                }
+                const monthlyTotal = getNonFoodMonthlyTotal(monthlyData);
 
-                // Calculate yearly total for this category
-                let yearlyTotal = 0;
-                if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                  yearlyTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                    if (value && typeof value === 'object') {
-                      const objValue = value as any;
-                      if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                        return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                      }
-                    }
-                    return sum + (typeof value === 'number' ? value : 0);
-                  }, 0);
-                }
+                // Calculate yearly total using normalizer
+                const yearlyTotal = getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
+                
                 return <tr key={categoryKey}>
                       <td className="border border-gray-300 p-2 text-center">{index + 1}</td>
                       <td className="border border-gray-300 p-2">{category.title}</td>
@@ -271,33 +245,12 @@ export const Page4Recap = ({
                   <td className="border border-gray-300 p-2 text-right">
                     Rp {formatNumber(Object.keys(NON_FOOD_CATEGORIES).reduce((total, categoryKey) => {
                     const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                    let monthlyDataTotal = 0;
-                    if (monthlyData && typeof monthlyData === 'object') {
-                      monthlyDataTotal = Object.values(monthlyData).reduce((sum, val) => {
-                        if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                          return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                        }
-                        return sum + (typeof val === 'number' ? val : 0);
-                      }, 0);
-                    }
-                    return total + monthlyDataTotal;
+                    return total + getNonFoodMonthlyTotal(monthlyData);
                   }, 0))}
                   </td>
                   <td className="border border-gray-300 p-2 text-right">
                     Rp {formatNumber(Object.keys(NON_FOOD_CATEGORIES).reduce((total, categoryKey) => {
-                    let yearlyDataTotal = 0;
-                    if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                      yearlyDataTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                        if (value && typeof value === 'object') {
-                          const objValue = value as any;
-                          if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                            return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                          }
-                        }
-                        return sum + (typeof value === 'number' ? value : 0);
-                      }, 0);
-                    }
-                    return total + yearlyDataTotal;
+                    return total + getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
                   }, 0))}
                   </td>
                 </tr>
@@ -308,30 +261,9 @@ export const Page4Recap = ({
                   <td className="border border-gray-300 p-2 text-right">
                     Rp {formatNumber(Math.round(Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
                     const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                    let monthlyDataTotal = 0;
-                    if (monthlyData && typeof monthlyData === 'object') {
-                      monthlyDataTotal = Object.values(monthlyData).reduce((sum, val) => {
-                        if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                          return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                        }
-                        return sum + (typeof val === 'number' ? val : 0);
-                      }, 0);
-                    }
-                    return totalMonthly + monthlyDataTotal;
+                    return totalMonthly + getNonFoodMonthlyTotal(monthlyData);
                   }, 0) + Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
-                    let yearlyDataTotal = 0;
-                    if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                      yearlyDataTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                        if (value && typeof value === 'object') {
-                          const objValue = value as any;
-                          if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                            return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                          }
-                        }
-                        return sum + (typeof value === 'number' ? value : 0);
-                      }, 0);
-                    }
-                    return totalYearly + yearlyDataTotal;
+                    return totalYearly + getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
                   }, 0) / 12))}
                   </td>
                   <td className="border border-gray-300 p-2"></td>
@@ -343,30 +275,9 @@ export const Page4Recap = ({
                   <td className="border border-gray-300 p-2 text-right">
                     Rp {formatNumber(Math.round(rataRataSebulan + Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
                     const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-                    let monthlyDataTotal = 0;
-                    if (monthlyData && typeof monthlyData === 'object') {
-                      monthlyDataTotal = Object.values(monthlyData).reduce((sum, val) => {
-                        if (val && typeof val === 'object' && 'pembelian' in val && 'produksiSendiri' in val) {
-                          return sum + (val.pembelian || 0) + (val.produksiSendiri || 0);
-                        }
-                        return sum + (typeof val === 'number' ? val : 0);
-                      }, 0);
-                    }
-                    return totalMonthly + monthlyDataTotal;
+                    return totalMonthly + getNonFoodMonthlyTotal(monthlyData);
                   }, 0) + Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
-                    let yearlyDataTotal = 0;
-                    if (data.komoditiSetahun && typeof data.komoditiSetahun === 'object') {
-                      yearlyDataTotal = Object.entries(data.komoditiSetahun).filter(([key]) => key.startsWith(`${categoryKey}_yearly_`)).reduce((sum, [, value]) => {
-                        if (value && typeof value === 'object') {
-                          const objValue = value as any;
-                          if ('pembelian' in objValue && 'produksiSendiri' in objValue) {
-                            return sum + (objValue.pembelian || 0) + (objValue.produksiSendiri || 0);
-                          }
-                        }
-                        return sum + (typeof value === 'number' ? value : 0);
-                      }, 0);
-                    }
-                    return totalYearly + yearlyDataTotal;
+                    return totalYearly + getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
                   }, 0) / 12))}
                   </td>
                   <td className="border border-gray-300 p-2"></td>

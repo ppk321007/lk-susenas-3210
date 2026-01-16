@@ -360,9 +360,15 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       console.log(`✓ Non-Food BLOK VE Pemerintah Barang Rule 1: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
     }
 
+    // SPECIAL CASE: Asuransi kesehatan with "Pemberian dari Pemerintah secara Gratis" goes to Badan Usaha (Rincian 2), NOT Bantuan Pemerintah
     if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
-      pemerintahBantuanImputasiBarang += yearlyValue;
-      console.log(`✓ Non-Food BLOK VE Pemerintah Barang Rule 2: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
+      if (itemKey.includes('Asuransi kesehatan')) {
+        badanUsahaBarangImputasi += yearlyValue;
+        console.log(`✓ Non-Food BPJS SPECIAL CASE: badanUsahaBarangImputasi += ${yearlyValue} = ${badanUsahaBarangImputasi}`);
+      } else {
+        pemerintahBantuanImputasiBarang += yearlyValue;
+        console.log(`✓ Non-Food BLOK VE Pemerintah Barang Rule 2: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
+      }
     }
 
     // === BLOK VE - Transfer Diterima Barang from Other Sources ===

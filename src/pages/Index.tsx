@@ -95,6 +95,7 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [surveyData, setSurveyData] = useState<SurveyData>(getInitialSurveyData);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingHousehold, setIsLoadingHousehold] = useState(false); // Flag to suspend auto-save
 
   const updateSurveyData = (updates: Partial<SurveyData>) => {
     setSurveyData(prev => ({ ...prev, ...updates }));
@@ -104,6 +105,12 @@ const Index = () => {
 
   // Auto-save to spreadsheet
   const saveToSpreadsheet = useCallback(async (showToast = false) => {
+    // CRITICAL: Don't save while loading household data - prevents overwriting with zeros
+    if (isLoadingHousehold) {
+      console.log('⏳ Auto-save suspended: household data is loading');
+      return;
+    }
+    
     // Only save if we have identity data
     if (!surveyData.nks || !surveyData.noSampel || !surveyData.namaKepalaRumahTangga) {
       return;
@@ -143,7 +150,7 @@ const Index = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [surveyData, toast]);
+  }, [surveyData, toast, isLoadingHousehold]);
 
   // Helper function to check for incomplete detail fields
   const checkIncompleteDetails = (data: any, checkPage2 = false) => {
@@ -288,6 +295,7 @@ const Index = () => {
   };
 
   // Function to load existing data when NKS/NoSampel changes
+  // This function sets isLoadingHousehold to suspend auto-save during loading
   const loadExistingData = useCallback(async (nks: string, noSampel: string) => {
     const stored = localStorage.getItem('userInfo') ?? sessionStorage.getItem('user');
     if (!stored) return null;
@@ -296,16 +304,27 @@ const Index = () => {
     const username = (parsed?.nama ?? "").toString().trim();
     if (!username) return null;
 
+    // Set flag to suspend auto-save during loading
+    setIsLoadingHousehold(true);
+    console.log('🔄 Starting household data load - auto-save suspended');
+
     try {
       const { data, error } = await supabase.functions.invoke('load-survey-data', {
         body: { username, nks, noSampel }
       });
 
       if (error) throw error;
+      console.log('✅ Household data loaded successfully');
       return data;
     } catch (error) {
       console.error('Error loading existing data:', error);
       return null;
+    } finally {
+      // Re-enable auto-save after loading completes (with slight delay to ensure state is updated)
+      setTimeout(() => {
+        setIsLoadingHousehold(false);
+        console.log('🔓 Auto-save re-enabled');
+      }, 500);
     }
   }, []);
 

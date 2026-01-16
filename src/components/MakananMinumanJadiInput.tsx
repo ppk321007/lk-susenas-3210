@@ -3,6 +3,7 @@ import { SurveyData, FoodExpense } from "@/types/survey";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSurveyImputasi } from "@/hooks/useSurveyImputasi";
 import { validatePage2Entries, IncompleteEntry } from "@/utils/validationUtils";
+import { getNormalizedExpenseTotals } from "@/utils/expenseNormalizer";
 
 interface MakananMinumanJadiInputProps {
   data: SurveyData;
@@ -34,6 +35,7 @@ export const MakananMinumanJadiInput = ({
     });
   };
 
+  // Use normalizer for correct totals from entries array
   const getCategoryTotal = () => {
     let totalPembelian = 0;
     let totalProduksiSendiri = 0;
@@ -41,10 +43,9 @@ export const MakananMinumanJadiInput = ({
     data.namaAnggotaRumahTangga.forEach((_, index) => {
       const key = `${categoryKey}_${index}`;
       const expense = data.makananMinuman[key];
-      if (expense) {
-        totalPembelian += expense.pembelian || 0;
-        totalProduksiSendiri += expense.produksiSendiri || 0;
-      }
+      const normalized = getNormalizedExpenseTotals(expense);
+      totalPembelian += normalized.pembelian;
+      totalProduksiSendiri += normalized.produksiSendiri;
     });
 
     return { totalPembelian, totalProduksiSendiri };

@@ -418,10 +418,11 @@ function flattenSurveyData(data: any, username: string): string[] {
   return values;
 }
 
-async function findExistingRow(accessToken: string, spreadsheetId: string, sheetName: string, username: string, namaKepalaRumahTangga: string): Promise<number | null> {
-  // Get all data from column B (username) to column L (namaKepalaRumahTangga)
-  // Column layout: B=username, C=namaPendata, D=pencacah, E=pemeriksa, F=nks, G=kecamatan, H=desa, I=sls, J=noSampel, K=alamat, L=namaKepalaRumahTangga
-  const range = `${sheetName}!B:L`;
+async function findExistingRow(accessToken: string, spreadsheetId: string, sheetName: string, username: string, nks: string, noSampel: string): Promise<number | null> {
+  // Get all data from column B (username) to column J (noSampel)
+  // Column layout: B=username, C=namaPendata, D=pencacah, E=pemeriksa, F=nks, G=kecamatan, H=desa, I=sls, J=noSampel
+  // USE username + nks + noSampel as unique key (NOT namaKepalaRumahTangga)
+  const range = `${sheetName}!B:J`;
   const response = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
     {
@@ -439,14 +440,20 @@ async function findExistingRow(accessToken: string, spreadsheetId: string, sheet
   const result = await response.json();
   const rows = result.values || [];
   
-  // Search for matching row (username in column B = index 0, namaKepalaRumahTangga in column L = index 10)
+  // Search for matching row (username in col B=index 0, nks in col F=index 4, noSampel in col J=index 8)
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    if (row[0] === username && row[10] === namaKepalaRumahTangga) {
+    const rowUsername = row[0] || '';
+    const rowNks = row[4] || '';
+    const rowNoSampel = row[8] || '';
+    
+    if (rowUsername === username && rowNks === nks && rowNoSampel === noSampel) {
+      console.log(`Found existing row at index ${i + 1} for username=${username}, nks=${nks}, noSampel=${noSampel}`);
       return i + 1; // Sheets uses 1-based indexing
     }
   }
   
+  console.log(`No existing row found for username=${username}, nks=${nks}, noSampel=${noSampel}`);
   return null;
 }
 
@@ -528,14 +535,15 @@ serve(async (req) => {
     const values = flattenSurveyData(surveyData, username);
     console.log(`Prepared ${values.length} values`);
     
-    // Check for existing row with same username and namaKepalaRumahTangga
-    console.log('Searching for existing row...');
+    // Check for existing row with same username + nks + noSampel (unique key)
+    console.log(`Searching for existing row with username=${username}, nks=${surveyData.nks}, noSampel=${surveyData.noSampel}...`);
     const existingRowIndex = await findExistingRow(
       accessToken, 
       spreadsheetId, 
       sheetName, 
       username, 
-      surveyData.namaKepalaRumahTangga
+      surveyData.nks,
+      surveyData.noSampel
     );
     
     let result;
