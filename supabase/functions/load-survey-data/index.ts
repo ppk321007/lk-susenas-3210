@@ -199,6 +199,66 @@ function parseExpenseCell(cellValue: string): { entries: Array<{ nilai: number; 
   return { entries };
 }
 
+// Fallback: scan entire row for Page 5 cells by pattern-matching cell content
+function findPage5CellsByScan(row: unknown[]): string[] | null {
+  const cells = row.map((v) => (v ?? '').toString());
+
+  const find = (pred: (v: string) => boolean) =>
+    cells.find((v) => v && pred(v));
+
+  // Upah: "1. xxx_xxx_xxx_UpahUang:..."
+  const upah = find(
+    (v) => /^\d+\.\s*/.test(v) && v.includes('_UpahUang:') && v.includes('_UpahBarang:')
+  );
+  // Usaha: "1. xxx_xxx_xxx_NilaiProduksi:..."
+  const usaha = find(
+    (v) =>
+      /^\d+\.\s*/.test(v) &&
+      v.includes('_NilaiProduksi:') &&
+      v.includes('_BiayaProduksi:') &&
+      v.includes('_ImputasiNilaiProduksi:')
+  );
+  // Produksi Sendiri
+  const produksi = find(
+    (v) =>
+      v.includes('PerkiraanSewaRumah_NilaiProduksi:') ||
+      v.includes('HasilPertanian_NilaiProduksi:')
+  );
+  // Kepemilikan
+  const kepemilikan = find(
+    (v) => v.includes('sewaLahan_Diterima:') && v.includes('bagi_hasil_Diterima:')
+  );
+  // Transfer Berjalan
+  const transferBerjalan = find(
+    (v) =>
+      v.includes('pemerintahUangPensiun_DiterimaUang:') ||
+      v.includes('pemerintahBantuan_DiterimaUang:') ||
+      v.includes('badanUsaha_DiterimaUang:')
+  );
+  // Transfer Modal
+  const transferModal = find(
+    (v) => v.includes('pemerintah_(') && v.includes('bangunanTinggal_D:')
+  );
+  // Aset Perubahan
+  const aset = find(
+    (v) => v.includes('AsetTetapUsaha_') && v.includes('_Pembelian:')
+  );
+
+  const anyFound =
+    upah || usaha || produksi || kepemilikan || transferBerjalan || transferModal || aset;
+  if (!anyFound) return null;
+
+  return [
+    upah ?? '0',
+    usaha ?? '0',
+    produksi ?? '0',
+    kepemilikan ?? '0',
+    transferBerjalan ?? '0',
+    transferModal ?? '0',
+    aset ?? '0'
+  ];
+}
+
 // Parse Page 5 data from cells
 function parsePage5Data(cells: string[]): Record<string, any> {
   const result: Record<string, any> = {};

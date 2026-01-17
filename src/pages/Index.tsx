@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { SurveyLayout } from "@/components/SurveyLayout";
 import { Page1Identity } from "@/pages/survey/Page1Identity";
 import { Page2Food } from "@/pages/survey/Page2Food";
@@ -315,17 +315,27 @@ const Index = () => {
 
       if (error) throw error;
       console.log('✅ Household data loaded successfully');
+      
+      // NOTE: isLoadingHousehold stays TRUE here.
+      // It will be set to FALSE by the caller (Page1Identity) AFTER data is applied to state.
+      // This prevents race condition where auto-save triggers before new data is in state.
       return data;
     } catch (error) {
       console.error('Error loading existing data:', error);
+      // On error, re-enable auto-save immediately
+      setIsLoadingHousehold(false);
+      console.log('🔓 Auto-save re-enabled (load error)');
       return null;
-    } finally {
-      // Re-enable auto-save after loading completes (with slight delay to ensure state is updated)
-      setTimeout(() => {
-        setIsLoadingHousehold(false);
-        console.log('🔓 Auto-save re-enabled');
-      }, 500);
     }
+  }, []);
+
+  // Function to signal that household data has been applied to state
+  const finishHouseholdLoad = useCallback(() => {
+    // Small delay to ensure React state update has propagated
+    setTimeout(() => {
+      setIsLoadingHousehold(false);
+      console.log('🔓 Auto-save re-enabled (data applied)');
+    }, 300);
   }, []);
 
   // Reset survey data but keep identity fields
@@ -363,6 +373,7 @@ const Index = () => {
             {...pageProps} 
             onHouseholdChange={loadExistingData}
             resetSurveyData={resetSurveyDataKeepIdentity}
+            onHouseholdLoadComplete={finishHouseholdLoad}
           />
         );
       case 2:
@@ -383,6 +394,7 @@ const Index = () => {
             {...pageProps}
             onHouseholdChange={loadExistingData}
             resetSurveyData={resetSurveyDataKeepIdentity}
+            onHouseholdLoadComplete={finishHouseholdLoad}
           />
         );
     }
