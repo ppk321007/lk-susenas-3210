@@ -202,53 +202,68 @@ function parseExpenseCell(cellValue: string): { entries: Array<{ nilai: number; 
 // Parse Page 5 data from cells
 function parsePage5Data(cells: string[]): Record<string, any> {
   const result: Record<string, any> = {};
-  
+  const toInt = (v: string) => parseInt((v ?? '0').replace(/[^0-9-]/g, ''), 10) || 0;
+
   // Cell 0: Pendapatan Upah
   const upahCell = cells[0] || '';
   if (upahCell && upahCell !== '0') {
     const upahEntries = upahCell.split(' | ').filter(Boolean);
-    result.pendapatanUpah = upahEntries.map(entry => {
-      const match = entry.match(/^\d+\.\s*(.+?)_(.+?)_(.+?)_UpahUang:(\d+)_UpahBarang:(\d+)_Lembur:(\d+)_ImputasiUpahGajiBarang:(\d+)/);
-      if (match) {
-        return {
-          uraianPekerjaan: match[1] || '',
-          kategoriLU: match[2] || '',
-          jenisPekerjaan: match[3] || '',
-          upahUang: parseInt(match[4]) || 0,
-          upahBarang: parseInt(match[5]) || 0,
-          lembur: parseInt(match[6]) || 0,
-          imputasiUpahGajiBarang: parseInt(match[7]) || 0
-        };
-      }
-      return null;
-    }).filter(Boolean);
+    result.pendapatanUpah = upahEntries
+      .map((entry, idx) => {
+        const match = entry.match(
+          /^\d+\.\s*(.+?)_(.+?)_(.+?)_UpahUang:(\d+)_UpahBarang:(\d+)_Lembur:(\d+)_ImputasiUpahGajiBarang:(\d+)/
+        );
+        if (match) {
+          return {
+            id: crypto.randomUUID(),
+            uraianPekerjaan: match[1] || '',
+            kategoriLU: match[2] || '',
+            jenisPekerjaan: match[3] || '',
+            upahUang: toInt(match[4]),
+            upahBarang: toInt(match[5]),
+            lembur: toInt(match[6]),
+            imputasiUpahGajiBarang: toInt(match[7])
+          };
+        }
+
+        console.log(`⚠️ Page5 upah parse failed at idx=${idx}:`, entry);
+        return null;
+      })
+      .filter(Boolean);
   } else {
     result.pendapatanUpah = [];
   }
-  
+
   // Cell 1: Pendapatan Usaha
   const usahaCell = cells[1] || '';
   if (usahaCell && usahaCell !== '0') {
     const usahaEntries = usahaCell.split(' | ').filter(Boolean);
-    result.pendapatanUsaha = usahaEntries.map(entry => {
-      const match = entry.match(/^\d+\.\s*(.+?)_(.+?)_(.+?)_NilaiProduksi:(\d+)_BiayaProduksi:(\d+)_Surplus:(-?\d+)_ImputasiNilaiProduksi:(\d+)/);
-      if (match) {
-        return {
-          uraianKegiatan: match[1] || '',
-          kategoriLU: match[2] || '',
-          jenisPekerjaan: match[3] || '',
-          nilaiProduksi: parseInt(match[4]) || 0,
-          biayaProduksi: parseInt(match[5]) || 0,
-          surplus: parseInt(match[6]) || 0,
-          imputasiNilaiProduksi: parseInt(match[7]) || 0
-        };
-      }
-      return null;
-    }).filter(Boolean);
+    result.pendapatanUsaha = usahaEntries
+      .map((entry, idx) => {
+        const match = entry.match(
+          /^\d+\.\s*(.+?)_(.+?)_(.+?)_NilaiProduksi:(\d+)_BiayaProduksi:(\d+)_Surplus:(-?\d+)_ImputasiNilaiProduksi:(\d+)/
+        );
+        if (match) {
+          return {
+            id: crypto.randomUUID(),
+            uraianKegiatan: match[1] || '',
+            kategoriLU: match[2] || '',
+            jenisPekerjaan: match[3] || '',
+            nilaiProduksi: toInt(match[4]),
+            biayaProduksi: toInt(match[5]),
+            surplus: toInt(match[6]),
+            imputasiNilaiProduksi: toInt(match[7])
+          };
+        }
+
+        console.log(`⚠️ Page5 usaha parse failed at idx=${idx}:`, entry);
+        return null;
+      })
+      .filter(Boolean);
   } else {
     result.pendapatanUsaha = [];
   }
-  
+
   // Cell 2: Produksi Sendiri
   const produksiCell = cells[2] || '';
   result.produksiSendiri = {
@@ -256,26 +271,30 @@ function parsePage5Data(cells: string[]): Record<string, any> {
     hasilPertanian: { nilaiProduksi: 0, biayaProduksi: 0, surplus: 0, imputasiNilaiProduksi: 0 }
   };
   if (produksiCell && produksiCell !== '0') {
-    const sewaMatch = produksiCell.match(/PerkiraanSewaRumah_NilaiProduksi:(\d+)_BiayaProduksi:(\d+)_Surplus:(-?\d+)_ImputasiNilaiProduksi:(\d+)/);
+    const sewaMatch = produksiCell.match(
+      /PerkiraanSewaRumah_NilaiProduksi:(\d+)_BiayaProduksi:(\d+)_Surplus:(-?\d+)_ImputasiNilaiProduksi:(\d+)/
+    );
     if (sewaMatch) {
       result.produksiSendiri.perkiraanSewaRumah = {
-        nilaiProduksi: parseInt(sewaMatch[1]) || 0,
-        biayaProduksi: parseInt(sewaMatch[2]) || 0,
-        surplus: parseInt(sewaMatch[3]) || 0,
-        imputasiNilaiProduksi: parseInt(sewaMatch[4]) || 0
+        nilaiProduksi: toInt(sewaMatch[1]),
+        biayaProduksi: toInt(sewaMatch[2]),
+        surplus: toInt(sewaMatch[3]),
+        imputasiNilaiProduksi: toInt(sewaMatch[4])
       };
     }
-    const hasilMatch = produksiCell.match(/HasilPertanian_NilaiProduksi:(\d+)_BiayaProduksi:(\d+)_Surplus:(-?\d+)_ImputasiNilaiProduksi:(\d+)/);
+    const hasilMatch = produksiCell.match(
+      /HasilPertanian_NilaiProduksi:(\d+)_BiayaProduksi:(\d+)_Surplus:(-?\d+)_ImputasiNilaiProduksi:(\d+)/
+    );
     if (hasilMatch) {
       result.produksiSendiri.hasilPertanian = {
-        nilaiProduksi: parseInt(hasilMatch[1]) || 0,
-        biayaProduksi: parseInt(hasilMatch[2]) || 0,
-        surplus: parseInt(hasilMatch[3]) || 0,
-        imputasiNilaiProduksi: parseInt(hasilMatch[4]) || 0
+        nilaiProduksi: toInt(hasilMatch[1]),
+        biayaProduksi: toInt(hasilMatch[2]),
+        surplus: toInt(hasilMatch[3]),
+        imputasiNilaiProduksi: toInt(hasilMatch[4])
       };
     }
   }
-  
+
   // Cell 3: Pendapatan Kepemilikan
   const kepemilikanCell = cells[3] || '';
   result.pendapatanKepemilikan = {
@@ -290,13 +309,13 @@ function parsePage5Data(cells: string[]): Record<string, any> {
       const match = item.match(/(\w+)_Diterima:(\d+)_Dibayar:(\d+)/);
       if (match && result.pendapatanKepemilikan[match[1]]) {
         result.pendapatanKepemilikan[match[1]] = {
-          diterima: parseInt(match[2]) || 0,
-          dibayar: parseInt(match[3]) || 0
+          diterima: toInt(match[2]),
+          dibayar: toInt(match[3])
         };
       }
     }
   }
-  
+
   // Cell 4: Transfer Berjalan
   const transferBerjalanCell = cells[4] || '';
   result.transferBerjalan = {
@@ -311,20 +330,22 @@ function parsePage5Data(cells: string[]): Record<string, any> {
   if (transferBerjalanCell && transferBerjalanCell !== '0') {
     const items = transferBerjalanCell.split(' | ');
     for (const item of items) {
-      const match = item.match(/(\w+)_DiterimaUang:(\d+)_DiterimaBarang:(\d+)_DibayarUang:(\d+)_DibayarBarang:(\d+)_ImputasiDiterimaUang:(\d+)_ImputasiDiterimaBarang:(\d+)/);
+      const match = item.match(
+        /(\w+)_DiterimaUang:(\d+)_DiterimaBarang:(\d+)_DibayarUang:(\d+)_DibayarBarang:(\d+)_ImputasiDiterimaUang:(\d+)_ImputasiDiterimaBarang:(\d+)/
+      );
       if (match && result.transferBerjalan[match[1]]) {
         result.transferBerjalan[match[1]] = {
-          diterimaUang: parseInt(match[2]) || 0,
-          diterimaBarang: parseInt(match[3]) || 0,
-          dibayarUang: parseInt(match[4]) || 0,
-          dibayarBarang: parseInt(match[5]) || 0,
-          imputasiTransferDiterimaUang: parseInt(match[6]) || 0,
-          imputasiTransferDiterimaBarang: parseInt(match[7]) || 0
+          diterimaUang: toInt(match[2]),
+          diterimaBarang: toInt(match[3]),
+          dibayarUang: toInt(match[4]),
+          dibayarBarang: toInt(match[5]),
+          imputasiTransferDiterimaUang: toInt(match[6]),
+          imputasiTransferDiterimaBarang: toInt(match[7])
         };
       }
     }
   }
-  
+
   // Cell 5: Transfer Modal
   const transferModalCell = cells[5] || '';
   const defaultAsetValue = { bangunanTinggal: 0, bangunanBukan: 0, alatProduksi: 0, tanamanHewan: 0, kendaraan: 0, lahan: 0 };
@@ -335,7 +356,25 @@ function parsePage5Data(cells: string[]): Record<string, any> {
     lembagaNirlaba: { diterima: { ...defaultAsetValue }, dibayar: { ...defaultAsetValue } },
     luarNegeri: { diterima: { ...defaultAsetValue }, dibayar: { ...defaultAsetValue } }
   };
-  
+  if (transferModalCell && transferModalCell !== '0') {
+    const sources = transferModalCell.split(' | ');
+    for (const source of sources) {
+      const match = source.match(/(\w+)_\((.+)\)/);
+      if (match && result.transferModal[match[1]]) {
+        const sourceName = match[1];
+        const assetPairs = match[2].split(';');
+        for (const pair of assetPairs) {
+          const assetMatch = pair.match(/(\w+)_D:(\d+)_B:(\d+)/);
+          if (assetMatch) {
+            const assetName = assetMatch[1];
+            result.transferModal[sourceName].diterima[assetName] = toInt(assetMatch[2]);
+            result.transferModal[sourceName].dibayar[assetName] = toInt(assetMatch[3]);
+          }
+        }
+      }
+    }
+  }
+
   // Cell 6: Perubahan Aset
   const asetCell = cells[6] || '';
   const defaultAsetPerubahan = { pembelian: 0, pemberian: 0, pembuatanSendiri: 0, penjualan: 0, pemberianKepada: 0, netto: 0, imputasiPenamabahanPemberian: 0, imputasiPenguranganPemberianKepada: 0 };
@@ -351,10 +390,12 @@ function parsePage5Data(cells: string[]): Record<string, any> {
     biayaPemindahan: { pembelian: 0, pemberian: 0, pembuatanSendiri: 0, penjualan: 0, pemberianKepada: 0, netto: 0 },
     lahanBarang: { ...defaultAsetPerubahan }
   };
-  
+  if (asetCell && asetCell !== '0') {
+    // existing parsing (below) handles this cell
+  }
+
   return result;
 }
-
 // Parse Page 6 data from cells
 function parsePage6Data(cells: string[]): Record<string, any> {
   const result: Record<string, any> = { transaksiKeuangan: {} };
@@ -556,11 +597,22 @@ serve(async (req) => {
     }
     
     // PAGE 5 data (7 cells)
-    const page5Cells = matchingRow.slice(colIndex, colIndex + 7);
-    const page5Data = parsePage5Data(page5Cells);
+    let page5Cells = matchingRow.slice(colIndex, colIndex + 7);
+    let page5Data = parsePage5Data(page5Cells);
+
+    // Fallback: if Page 5 comes back empty (common when sheet columns shift), scan the row
+    if ((page5Data.pendapatanUpah?.length ?? 0) === 0 && (page5Data.pendapatanUsaha?.length ?? 0) === 0) {
+      const scannedCells = findPage5CellsByScan(matchingRow);
+      if (scannedCells) {
+        console.log('⚠️ Page 5 cells empty at expected position; using scan fallback');
+        page5Cells = scannedCells;
+        page5Data = parsePage5Data(page5Cells);
+      }
+    }
+
     Object.assign(surveyData, page5Data);
     colIndex += 7;
-    
+
     // PAGE 6 data (2 cells)
     const page6Cells = matchingRow.slice(colIndex, colIndex + 2);
     const page6Data = parsePage6Data(page6Cells);
