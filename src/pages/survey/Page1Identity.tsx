@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Upload, Loader2, RefreshCw } from "lucide-react";
 import { SurveyData } from "@/types/survey";
 import { useToast } from "@/hooks/use-toast";
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
@@ -36,13 +36,15 @@ interface Page1IdentityProps {
   updateData: (updates: Partial<SurveyData>) => void;
   onHouseholdChange?: (nks: string, noSampel: string) => Promise<any>;
   resetSurveyData?: (identityData: Partial<SurveyData>) => void;
+  onHouseholdLoadComplete?: () => void;
 }
 
 export const Page1Identity = ({
   data,
   updateData,
   onHouseholdChange,
-  resetSurveyData
+  resetSurveyData,
+  onHouseholdLoadComplete
 }: Page1IdentityProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -221,6 +223,9 @@ export const Page1Identity = ({
               });
             }
           }
+          
+          // Signal that data has been applied to state - re-enables auto-save
+          onHouseholdLoadComplete?.();
         } catch (error) {
           console.error('Error loading household data:', error);
           // On error, still update identity fields
@@ -228,6 +233,8 @@ export const Page1Identity = ({
             noSampel: newNoSampel,
             namaKepalaRumahTangga: newNamaKrt
           });
+          // Also signal completion on error
+          onHouseholdLoadComplete?.();
         } finally {
           setIsLoadingData(false);
         }
