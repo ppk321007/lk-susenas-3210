@@ -2,7 +2,7 @@ import { SurveyData } from "@/types/survey";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, RefreshCw, User, Home, TrendingUp, PieChart, BarChart3, Wallet, Shield, CheckCircle2, AlertTriangle, CloudUpload, Loader2 } from "lucide-react";
+import { Download, Upload, RefreshCw, User, Home, TrendingUp, PieChart, BarChart3, Wallet, Shield, CheckCircle2, AlertTriangle, CloudUpload, Loader2, FileSpreadsheet, ArrowRightLeft, Calculator } from "lucide-react";
 import { useSurveyImputasi } from "@/hooks/useSurveyImputasi";
 import { useToast } from "@/hooks/use-toast";
 import { useRef, useState } from "react";
@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { FOOD_CATEGORIES } from "@/data/foodCategories";
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface Page7Props {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
@@ -306,6 +306,137 @@ export const Page7 = ({
       biayaPemindahan: Math.round(data.asetPerubahan?.biayaPemindahan?.netto || 0)
     };
   };
+
+  // Calculate Imputation Summary
+  const getImputasiSummary = () => {
+    // Transfer Berjalan Imputasi
+    const transferBerjalan = data.transferBerjalan || {} as any;
+    
+    const pemerintahImputasiUang = transferBerjalan.pemerintah?.imputasiTransferDiterimaUang || 0;
+    const pemerintahImputasiBarang = transferBerjalan.pemerintah?.imputasiTransferDiterimaBarang || 0;
+    const pemerintahUangPensiunImputasi = transferBerjalan.pemerintahUangPensiun?.imputasiTransferDiterimaUang || 0;
+    const pemerintahBantuanImputasiUang = transferBerjalan.pemerintahBantuan?.imputasiTransferDiterimaUang || 0;
+    const pemerintahBantuanImputasiBarang = transferBerjalan.pemerintahBantuan?.imputasiTransferDiterimaBarang || 0;
+    const badanUsahaImputasiBarang = transferBerjalan.badanUsaha?.imputasiTransferDiterimaBarang || 0;
+    const rumahTanggaLainImputasiBarang = transferBerjalan.rumahTanggaLain?.imputasiTransferDiterimaBarang || 0;
+    const lembagaNirlabaImputasiBarang = transferBerjalan.lembagaNirlaba?.imputasiTransferDiterimaBarang || 0;
+    const luarNegeriImputasiBarang = transferBerjalan.luarNegeri?.imputasiTransferDiterimaBarang || 0;
+
+    // Total Transfer Berjalan Imputasi
+    const totalTransferBerjalanImputasi = 
+      pemerintahImputasiUang + pemerintahImputasiBarang +
+      pemerintahUangPensiunImputasi +
+      pemerintahBantuanImputasiUang + pemerintahBantuanImputasiBarang +
+      badanUsahaImputasiBarang +
+      rumahTanggaLainImputasiBarang +
+      lembagaNirlabaImputasiBarang +
+      luarNegeriImputasiBarang;
+
+    // Transaksi Keuangan Imputasi
+    const transaksiKeuangan = data.transaksiKeuangan || {} as any;
+    const pengambilanUangTunaiImputasi = transaksiKeuangan.imputasiPenerimaanPengambilanUangTunai || 0;
+    const meminjamUangImputasi = transaksiKeuangan.imputasiPenerimaanMeminjamUang || 0;
+    const kreditBarangImputasi = transaksiKeuangan.imputasiPenerimaanKreditBarang || 0;
+    const lainnyaPenerimaanImputasi = transaksiKeuangan.imputasiPenerimaanLainnya || 0;
+    const menyimpanUangTunaiImputasi = transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai || 0;
+    const lainnyaPengeluaranImputasi = transaksiKeuangan.imputasiPengeluaranLainnya || 0;
+
+    const totalTransaksiKeuanganImputasi = 
+      pengambilanUangTunaiImputasi + meminjamUangImputasi + kreditBarangImputasi + lainnyaPenerimaanImputasi +
+      menyimpanUangTunaiImputasi + lainnyaPengeluaranImputasi;
+
+    // Pendapatan Imputasi (from upah and usaha)
+    let upahGajiImputasi = 0;
+    if (Array.isArray(data.pendapatanUpah)) {
+      data.pendapatanUpah.forEach(upah => {
+        upahGajiImputasi += upah.imputasiUpahGajiBarang || 0;
+      });
+    }
+
+    let usahaImputasi = 0;
+    if (Array.isArray(data.pendapatanUsaha)) {
+      data.pendapatanUsaha.forEach(usaha => {
+        usahaImputasi += usaha.imputasiNilaiProduksi || 0;
+      });
+    }
+
+    // Produksi Sendiri Imputasi
+    const perkiraanSewaRumahImputasi = data.produksiSendiri?.perkiraanSewaRumah?.imputasiNilaiProduksi || 0;
+    const hasilPertanianImputasi = data.produksiSendiri?.hasilPertanian?.imputasiNilaiProduksi || 0;
+
+    const totalPendapatanImputasi = upahGajiImputasi + usahaImputasi + perkiraanSewaRumahImputasi + hasilPertanianImputasi;
+
+    // Aset Perubahan Imputasi
+    const asetPerubahan = data.asetPerubahan || {} as any;
+    let totalAsetImputasiPenambahan = 0;
+    let totalAsetImputasiPengurangan = 0;
+
+    // Aset Tetap Usaha
+    if (asetPerubahan.asetTetapUsaha) {
+      Object.values(asetPerubahan.asetTetapUsaha).forEach((asset: any) => {
+        if (asset && typeof asset === 'object') {
+          totalAsetImputasiPenambahan += asset.imputasiPenamabahanPemberian || 0;
+          totalAsetImputasiPengurangan += asset.imputasiPenguranganPemberianKepada || 0;
+        }
+      });
+    }
+
+    // Bangunan Tinggal
+    totalAsetImputasiPenambahan += asetPerubahan.bangunanTinggal?.imputasiPenamabahanPemberian || 0;
+    totalAsetImputasiPengurangan += asetPerubahan.bangunanTinggal?.imputasiPenguranganPemberianKepada || 0;
+
+    // Lahan Barang
+    totalAsetImputasiPenambahan += asetPerubahan.lahanBarang?.imputasiPenamabahanPemberian || 0;
+    totalAsetImputasiPengurangan += asetPerubahan.lahanBarang?.imputasiPenguranganPemberianKepada || 0;
+
+    const totalAsetImputasi = totalAsetImputasiPenambahan + totalAsetImputasiPengurangan;
+
+    // Grand Total
+    const grandTotal = totalTransferBerjalanImputasi + totalTransaksiKeuanganImputasi + totalPendapatanImputasi + totalAsetImputasi;
+
+    return {
+      // Transfer Berjalan breakdown
+      transferBerjalan: {
+        pemerintahUang: pemerintahImputasiUang,
+        pemerintahBarang: pemerintahImputasiBarang,
+        pemerintahUangPensiun: pemerintahUangPensiunImputasi,
+        pemerintahBantuanUang: pemerintahBantuanImputasiUang,
+        pemerintahBantuanBarang: pemerintahBantuanImputasiBarang,
+        badanUsahaBarang: badanUsahaImputasiBarang,
+        rumahTanggaLainBarang: rumahTanggaLainImputasiBarang,
+        lembagaNirlabaBarang: lembagaNirlabaImputasiBarang,
+        luarNegeriBarang: luarNegeriImputasiBarang,
+        total: totalTransferBerjalanImputasi
+      },
+      // Transaksi Keuangan breakdown
+      transaksiKeuangan: {
+        pengambilanUangTunai: pengambilanUangTunaiImputasi,
+        meminjamUang: meminjamUangImputasi,
+        kreditBarang: kreditBarangImputasi,
+        lainnyaPenerimaan: lainnyaPenerimaanImputasi,
+        menyimpanUangTunai: menyimpanUangTunaiImputasi,
+        lainnyaPengeluaran: lainnyaPengeluaranImputasi,
+        total: totalTransaksiKeuanganImputasi
+      },
+      // Pendapatan breakdown
+      pendapatan: {
+        upahGaji: upahGajiImputasi,
+        usaha: usahaImputasi,
+        perkiraanSewaRumah: perkiraanSewaRumahImputasi,
+        hasilPertanian: hasilPertanianImputasi,
+        total: totalPendapatanImputasi
+      },
+      // Aset breakdown  
+      aset: {
+        penambahan: totalAsetImputasiPenambahan,
+        pengurangan: totalAsetImputasiPengurangan,
+        total: totalAsetImputasi
+      },
+      grandTotal
+    };
+  };
+
+  const imputasiSummary = getImputasiSummary();
 
   const getFoodItemCount = () => {
     let count = 0;
@@ -762,6 +893,223 @@ export const Page7 = ({
             </Card>
           </div>
         </div>
+
+        {/* Ringkasan Imputasi - Full Width */}
+        <Card className="shadow-lg border-slate-200">
+          <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 border-b">
+            <CardTitle className="flex items-center gap-3 text-indigo-800">
+              <Calculator className="h-5 w-5" />
+              RINGKASAN IMPUTASI
+              <Badge variant={imputasiSummary.grandTotal > 0 ? "default" : "secondary"} className="ml-auto">
+                Total: Rp {formatNumber(imputasiSummary.grandTotal)}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <Tabs defaultValue="transfer" className="w-full">
+              <TabsList className="grid w-full grid-cols-4 mb-6">
+                <TabsTrigger value="transfer" className="text-xs">
+                  <ArrowRightLeft className="h-3 w-3 mr-1" />
+                  Transfer Berjalan
+                </TabsTrigger>
+                <TabsTrigger value="pendapatan" className="text-xs">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  Pendapatan
+                </TabsTrigger>
+                <TabsTrigger value="keuangan" className="text-xs">
+                  <Wallet className="h-3 w-3 mr-1" />
+                  Transaksi Keuangan
+                </TabsTrigger>
+                <TabsTrigger value="aset" className="text-xs">
+                  <Home className="h-3 w-3 mr-1" />
+                  Aset
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Transfer Berjalan Tab */}
+              <TabsContent value="transfer" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-slate-700 border-b pb-2">Transfer Diterima (dari) Uang</h4>
+                    {[
+                      { label: "1. Pemerintah", value: imputasiSummary.transferBerjalan.pemerintahUang },
+                      { label: "1.a. Uang Pensiun", value: imputasiSummary.transferBerjalan.pemerintahUangPensiun },
+                      { label: "1.b. Bantuan Pemerintah", value: imputasiSummary.transferBerjalan.pemerintahBantuanUang },
+                    ].map((item, index) => (
+                      <div key={index} className="flex justify-between items-center py-1 text-sm">
+                        <span className="text-slate-600">{item.label}</span>
+                        <span className={`font-medium ${item.value > 0 ? 'text-indigo-600' : 'text-slate-400'}`}>
+                          Rp {formatNumber(item.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-slate-700 border-b pb-2">Transfer Diterima (dari) Barang</h4>
+                    {[
+                      { label: "1. Pemerintah", value: imputasiSummary.transferBerjalan.pemerintahBarang },
+                      { label: "1.b. Bantuan Pemerintah (BPJS, BLT, dll)", value: imputasiSummary.transferBerjalan.pemerintahBantuanBarang },
+                      { label: "2. Badan Usaha (Pensiun, Asuransi)", value: imputasiSummary.transferBerjalan.badanUsahaBarang },
+                      { label: "3. Rumah Tangga Lain", value: imputasiSummary.transferBerjalan.rumahTanggaLainBarang },
+                      { label: "4. Lembaga Nirlaba", value: imputasiSummary.transferBerjalan.lembagaNirlabaBarang },
+                      { label: "5. Luar Negeri", value: imputasiSummary.transferBerjalan.luarNegeriBarang },
+                    ].map((item, index) => (
+                      <div key={index} className="flex justify-between items-center py-1 text-sm">
+                        <span className="text-slate-600">{item.label}</span>
+                        <span className={`font-medium ${item.value > 0 ? 'text-indigo-600' : 'text-slate-400'}`}>
+                          Rp {formatNumber(item.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center pt-2">
+                  <span className="font-bold text-slate-800">TOTAL IMPUTASI TRANSFER BERJALAN</span>
+                  <span className="text-lg font-bold text-indigo-700">Rp {formatNumber(imputasiSummary.transferBerjalan.total)}</span>
+                </div>
+              </TabsContent>
+
+              {/* Pendapatan Tab */}
+              <TabsContent value="pendapatan" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-slate-700 border-b pb-2">Imputasi Upah/Gaji</h4>
+                    <div className="flex justify-between items-center py-1 text-sm">
+                      <span className="text-slate-600">Upah/Gaji Barang</span>
+                      <span className={`font-medium ${imputasiSummary.pendapatan.upahGaji > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                        Rp {formatNumber(imputasiSummary.pendapatan.upahGaji)}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-semibold text-slate-700 border-b pb-2 mt-4">Imputasi Usaha</h4>
+                    <div className="flex justify-between items-center py-1 text-sm">
+                      <span className="text-slate-600">Nilai Produksi</span>
+                      <span className={`font-medium ${imputasiSummary.pendapatan.usaha > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                        Rp {formatNumber(imputasiSummary.pendapatan.usaha)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-slate-700 border-b pb-2">Imputasi Produksi Sendiri</h4>
+                    {[
+                      { label: "Perkiraan Sewa Rumah", value: imputasiSummary.pendapatan.perkiraanSewaRumah },
+                      { label: "Hasil Pertanian", value: imputasiSummary.pendapatan.hasilPertanian },
+                    ].map((item, index) => (
+                      <div key={index} className="flex justify-between items-center py-1 text-sm">
+                        <span className="text-slate-600">{item.label}</span>
+                        <span className={`font-medium ${item.value > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                          Rp {formatNumber(item.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center pt-2">
+                  <span className="font-bold text-slate-800">TOTAL IMPUTASI PENDAPATAN</span>
+                  <span className="text-lg font-bold text-green-700">Rp {formatNumber(imputasiSummary.pendapatan.total)}</span>
+                </div>
+              </TabsContent>
+
+              {/* Transaksi Keuangan Tab */}
+              <TabsContent value="keuangan" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-slate-700 border-b pb-2">Imputasi Penerimaan</h4>
+                    {[
+                      { label: "Pengambilan Uang Tunai", value: imputasiSummary.transaksiKeuangan.pengambilanUangTunai },
+                      { label: "Meminjam Uang", value: imputasiSummary.transaksiKeuangan.meminjamUang },
+                      { label: "Kredit Barang", value: imputasiSummary.transaksiKeuangan.kreditBarang },
+                      { label: "Penerimaan Lainnya", value: imputasiSummary.transaksiKeuangan.lainnyaPenerimaan },
+                    ].map((item, index) => (
+                      <div key={index} className="flex justify-between items-center py-1 text-sm">
+                        <span className="text-slate-600">{item.label}</span>
+                        <span className={`font-medium ${item.value > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                          Rp {formatNumber(item.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-slate-700 border-b pb-2">Imputasi Pengeluaran</h4>
+                    {[
+                      { label: "Menyimpan Uang Tunai", value: imputasiSummary.transaksiKeuangan.menyimpanUangTunai },
+                      { label: "Pengeluaran Lainnya", value: imputasiSummary.transaksiKeuangan.lainnyaPengeluaran },
+                    ].map((item, index) => (
+                      <div key={index} className="flex justify-between items-center py-1 text-sm">
+                        <span className="text-slate-600">{item.label}</span>
+                        <span className={`font-medium ${item.value > 0 ? 'text-orange-600' : 'text-slate-400'}`}>
+                          Rp {formatNumber(item.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center pt-2">
+                  <span className="font-bold text-slate-800">TOTAL IMPUTASI TRANSAKSI KEUANGAN</span>
+                  <span className="text-lg font-bold text-blue-700">Rp {formatNumber(imputasiSummary.transaksiKeuangan.total)}</span>
+                </div>
+              </TabsContent>
+
+              {/* Aset Tab */}
+              <TabsContent value="aset" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-slate-700 border-b pb-2">Imputasi Penambahan (Pemberian)</h4>
+                    <div className="flex justify-between items-center py-1 text-sm">
+                      <span className="text-slate-600">Total Penambahan dari Pemberian</span>
+                      <span className={`font-medium ${imputasiSummary.aset.penambahan > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                        Rp {formatNumber(imputasiSummary.aset.penambahan)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-slate-700 border-b pb-2">Imputasi Pengurangan (Pemberian Kepada)</h4>
+                    <div className="flex justify-between items-center py-1 text-sm">
+                      <span className="text-slate-600">Total Pengurangan Pemberian Kepada</span>
+                      <span className={`font-medium ${imputasiSummary.aset.pengurangan > 0 ? 'text-red-600' : 'text-slate-400'}`}>
+                        Rp {formatNumber(imputasiSummary.aset.pengurangan)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center pt-2">
+                  <span className="font-bold text-slate-800">TOTAL IMPUTASI ASET</span>
+                  <span className="text-lg font-bold text-amber-700">Rp {formatNumber(imputasiSummary.aset.total)}</span>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* Grand Total Summary */}
+            <div className="mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-4">
+                <div>
+                  <div className="text-xs text-slate-600">Transfer Berjalan</div>
+                  <div className="text-sm font-bold text-indigo-600">Rp {formatNumber(imputasiSummary.transferBerjalan.total)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-600">Pendapatan</div>
+                  <div className="text-sm font-bold text-green-600">Rp {formatNumber(imputasiSummary.pendapatan.total)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-600">Transaksi Keuangan</div>
+                  <div className="text-sm font-bold text-blue-600">Rp {formatNumber(imputasiSummary.transaksiKeuangan.total)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-600">Aset</div>
+                  <div className="text-sm font-bold text-amber-600">Rp {formatNumber(imputasiSummary.aset.total)}</div>
+                </div>
+              </div>
+              <Separator className="my-3" />
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-lg text-slate-800">GRAND TOTAL IMPUTASI</span>
+                <span className="text-xl font-bold text-indigo-800">Rp {formatNumber(imputasiSummary.grandTotal)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Footer */}
         <div className="text-center space-y-3 border-t border-slate-200 pt-8">
