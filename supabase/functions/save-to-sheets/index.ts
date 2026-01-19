@@ -367,18 +367,44 @@ function flattenSurveyData(data: any, username: string): string[] {
   
   // PAGE 2: Food items - each commodity in ONE cell
   for (const [categoryKey, category] of Object.entries(FOOD_CATEGORIES)) {
-    // For category M and N (special handling)
+    // For category M and N (per-member, combined into 1 cell)
     if (categoryKey === 'M') {
-      // Makanan Minuman Jadi - check for special key
-      const expense = data.makananMinuman?.['Makanan_Minuman_Jadi'] || { pembelian: 0, produksiSendiri: 0 };
-      values.push(formatExpenseEntry('Makanan Minuman Jadi', expense, categoryKey));
+      // Makanan Minuman Jadi - per-member entries combined with member name
+      const memberNames = data.namaAnggotaRumahTangga || [];
+      const memberEntries: string[] = [];
+      
+      for (let i = 0; i < memberNames.length; i++) {
+        const memberKey = `M_${i}`;
+        const expense = data.makananMinuman?.[memberKey];
+        if (expense && (expense.entries?.length > 0 || expense.pembelian > 0 || expense.produksiSendiri > 0)) {
+          const memberName = memberNames[i] || `Anggota${i+1}`;
+          const formatted = formatExpenseEntry(`ART${i}_${memberName}`, expense, categoryKey);
+          if (formatted !== '0') {
+            memberEntries.push(formatted);
+          }
+        }
+      }
+      values.push(memberEntries.length > 0 ? memberEntries.join(' || ') : '0');
       continue;
     }
     
     if (categoryKey === 'N') {
-      // Rokok Tembakau
-      const expense = data.makananMinuman?.['Rokok_Tembakau'] || { pembelian: 0, produksiSendiri: 0 };
-      values.push(formatExpenseEntry('Rokok dan Tembakau', expense, categoryKey));
+      // Rokok Tembakau - per-member entries combined with member name
+      const memberNames = data.namaAnggotaRumahTangga || [];
+      const memberEntries: string[] = [];
+      
+      for (let i = 0; i < memberNames.length; i++) {
+        const memberKey = `N_${i}`;
+        const expense = data.makananMinuman?.[memberKey];
+        if (expense && (expense.entries?.length > 0 || expense.pembelian > 0 || expense.produksiSendiri > 0)) {
+          const memberName = memberNames[i] || `Anggota${i+1}`;
+          const formatted = formatExpenseEntry(`ART${i}_${memberName}`, expense, categoryKey);
+          if (formatted !== '0') {
+            memberEntries.push(formatted);
+          }
+        }
+      }
+      values.push(memberEntries.length > 0 ? memberEntries.join(' || ') : '0');
       continue;
     }
     
