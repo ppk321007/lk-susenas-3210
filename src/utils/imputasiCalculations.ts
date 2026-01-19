@@ -360,12 +360,26 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       console.log(`✓ Non-Food BLOK VE Pemerintah Barang Rule 1: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
     }
 
-    // SPECIAL CASE: Asuransi kesehatan with "Pemberian dari Pemerintah secara Gratis" goes to Badan Usaha (Rincian 2), NOT Bantuan Pemerintah
+    // SPECIAL CASE for "Pemberian dari Pemerintah secara Gratis":
+    // - Asuransi kesehatan -> pemerintahBantuanImputasiBarang (Row 1.b - Bantuan Pemerintah BPJS PBI, BLT, PKH, BOS, dll.)
+    // - Healthcare facilities (Rumah sakit, Puskesmas, etc.) -> badanUsahaBarangImputasi (Row 2 - Badan Usaha)
     if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
-      if (itemKey.includes('Asuransi kesehatan')) {
+      // Check if it's a healthcare facility (not insurance)
+      const isHealthcareFacility = itemKey.includes('Rumah sakit') || 
+                                    itemKey.includes('Puskesmas') || 
+                                    itemKey.includes('pustu') || 
+                                    itemKey.includes('polindes') || 
+                                    itemKey.includes('posyandu') || 
+                                    itemKey.includes('Praktik dokter') || 
+                                    itemKey.includes('poliklinik') || 
+                                    itemKey.includes('Praktik petugas kesehatan');
+      
+      if (isHealthcareFacility) {
+        // Healthcare facilities go to Badan Usaha (Row 2)
         badanUsahaBarangImputasi += yearlyValue;
-        console.log(`✓ Non-Food BPJS SPECIAL CASE: badanUsahaBarangImputasi += ${yearlyValue} = ${badanUsahaBarangImputasi}`);
+        console.log(`✓ Non-Food HEALTHCARE FACILITY: badanUsahaBarangImputasi += ${yearlyValue} = ${badanUsahaBarangImputasi}`);
       } else {
+        // Everything else including "Asuransi kesehatan" goes to Bantuan Pemerintah (Row 1.b)
         pemerintahBantuanImputasiBarang += yearlyValue;
         console.log(`✓ Non-Food BLOK VE Pemerintah Barang Rule 2: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
       }
