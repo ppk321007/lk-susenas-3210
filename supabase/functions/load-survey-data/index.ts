@@ -199,6 +199,60 @@ function parseExpenseCell(cellValue: string): { entries: Array<{ nilai: number; 
   return { entries };
 }
 
+// Parse per-member expense cell format for M and N categories
+// Format: ART0_MemberName_Value_Category_Detail... || ART1_MemberName_Value_Category_Detail...
+function parsePerMemberExpenseCell(cellValue: string, categoryKey: string): Record<string, { entries: Array<{ nilai: number; kategori: string; jenisDetail: string }> }> {
+  const result: Record<string, { entries: Array<{ nilai: number; kategori: string; jenisDetail: string }> }> = {};
+  
+  if (!cellValue || cellValue === '0') {
+    return result;
+  }
+
+  // Split by || to separate different members
+  const memberGroups = cellValue.split(' || ').filter(Boolean);
+
+  for (const memberGroup of memberGroups) {
+    // Split by | for Pembelian vs Pemberian within same member
+    const categoryGroups = memberGroup.split(' | ').filter(Boolean);
+    
+    for (const categoryGroup of categoryGroups) {
+      // Split by ; for multiple entries
+      const items = categoryGroup.split('; ').filter(Boolean);
+      
+      for (const item of items) {
+        // Format: ART{index}_MemberName_Value_Category_Detail
+        // First extract the ART index
+        const artMatch = item.match(/^ART(\d+)_(.+)$/);
+        if (artMatch) {
+          const memberIndex = parseInt(artMatch[1]);
+          const restOfItem = artMatch[2]; // MemberName_Value_Category_Detail
+          
+          // Now parse the rest: split by underscore
+          const parts = restOfItem.split('_');
+          // parts[0] = MemberName, parts[1] = Value, parts[2] = Category, parts[3] = Detail
+          if (parts.length >= 4) {
+            const nilai = parseFloat(parts[1]) || 0;
+            const kategori = parts[2] || '';
+            const jenisDetail = parts[3] || '';
+            
+            if (nilai > 0) {
+              // Use the categoryKey passed from caller (M or N)
+              const memberKey = `${categoryKey}_${memberIndex}`;
+              
+              if (!result[memberKey]) {
+                result[memberKey] = { entries: [] };
+              }
+              result[memberKey].entries.push({ nilai, kategori, jenisDetail });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 // Fallback: scan entire row for Page 5 cells by pattern-matching cell content
 function findPage5CellsByScan(row: unknown[]): string[] | null {
   const cells = row.map((v) => (v ?? '').toString());
@@ -606,17 +660,23 @@ serve(async (req) => {
     
     for (const [categoryKey, category] of Object.entries(FOOD_CATEGORIES)) {
       if (categoryKey === 'M') {
-        // Makanan Minuman Jadi
+        // Makanan Minuman Jadi - per-member entries
         const cellValue = matchingRow[colIndex] || '0';
-        surveyData.makananMinuman['Makanan_Minuman_Jadi'] = parseExpenseCell(cellValue);
+        const parsedPerMember = parsePerMemberExpenseCell(cellValue, 'M');
+        for (const [memberKey, expense] of Object.entries(parsedPerMember)) {
+          surveyData.makananMinuman[memberKey] = expense;
+        }
         colIndex++;
         continue;
       }
       
       if (categoryKey === 'N') {
-        // Rokok Tembakau
+        // Rokok Tembakau - per-member entries
         const cellValue = matchingRow[colIndex] || '0';
-        surveyData.makananMinuman['Rokok_Tembakau'] = parseExpenseCell(cellValue);
+        const parsedPerMember = parsePerMemberExpenseCell(cellValue, 'N');
+        for (const [memberKey, expense] of Object.entries(parsedPerMember)) {
+          surveyData.makananMinuman[memberKey] = expense;
+        }
         colIndex++;
         continue;
       }
