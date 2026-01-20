@@ -34,6 +34,7 @@ export const Page6 = ({
 
   // Calculate comprehensive imputasi values from food consumption data
   const imputasiCalculations = calculateImputasiFromFood(data);
+  
   // Initialize financial transactions with calculated imputasi values
   const transaksiKeuangan = {
     ...{
@@ -52,12 +53,15 @@ export const Page6 = ({
       imputasiPenerimaanKreditBarang: 0,
       imputasiPenerimaanLainnya: 0,
       imputasiPengeluaranMenyimpanUangTunai: 0,
-      imputasiPengeluaranLainnya: 0
+      imputasiPengeluaranLainnya: 0,
+      kontrolMengambil: {},
+      kontrolMenyimpan: {}
     },
     ...data.transaksiKeuangan,
     // Override with calculated imputasi values from food data
     ...(imputasiCalculations.transaksiKeuangan || {})
   };
+  
   const updateTransaksiKeuangan = (field: keyof TransaksiKeuanganEntry, value: number) => {
     updateData({
       transaksiKeuangan: {
@@ -66,6 +70,10 @@ export const Page6 = ({
       }
     });
   };
+
+  // Get kontrol data for display
+  const kontrolMengambil = (transaksiKeuangan as any).kontrolMengambil || {};
+  const kontrolMenyimpan = (transaksiKeuangan as any).kontrolMenyimpan || {};
 
   // Calculate income values
   const calculateUpahGaji = () => {
@@ -190,6 +198,9 @@ export const Page6 = ({
   const totalPengeluaranKeuangan = transaksiKeuangan.menyimpanUangTunai + transaksiKeuangan.membayarHutang + transaksiKeuangan.memberikanKreditBarang + transaksiKeuangan.membayarKreditBarang + transaksiKeuangan.lainnyaPengeluaran;
   const selisihTransaksiKeuangan = totalPengeluaranKeuangan - totalPenerimaanKeuangan;
 
+  // Calculate final imputasi for Pengambilan Uang (add konsumsi to base imputasi)
+  const imputasiPengambilanUangFinal = konsumsiRT + (kontrolMengambil.total1 || 0) - (kontrolMengambil.total2 || 0);
+
   // Calculate discrepancy
   const diskrepansi = selisihPenerimaanPengeluaran - selisihTransaksiKeuangan;
   return <div className="max-w-none w-full space-y-6">
@@ -306,7 +317,7 @@ export const Page6 = ({
                   }} />
                   </td>
                   <td className="border border-gray-300 p-2">
-                     <Input type="text" value={formatNumber(transaksiKeuangan.imputasiPenerimaanPengambilanUangTunai || 0)} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
+                     <Input type="text" value={formatNumber(imputasiPengambilanUangFinal)} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
                    </td>
                   <td className="border border-gray-300 p-2">1. Menyimpan Uang Tunai dan Menabung</td>
                   <td className="border border-gray-300 p-2">
@@ -383,7 +394,7 @@ export const Page6 = ({
                 <tr className="bg-muted font-semibold">
                   <td className="border border-gray-300 p-2">JUMLAH</td>
                   <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(totalPenerimaanKeuangan)}</td>
-                  <td className="border border-gray-300 p-2 text-right">Rp {formatNumber((transaksiKeuangan.imputasiPenerimaanPengambilanUangTunai || 0) + (transaksiKeuangan.imputasiPenerimaanMeminjamUang || 0) + (transaksiKeuangan.imputasiPenerimaanKreditBarang || 0) + (transaksiKeuangan.imputasiPenerimaanLainnya || 0))}</td>
+                  <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(imputasiPengambilanUangFinal + (transaksiKeuangan.imputasiPenerimaanMeminjamUang || 0) + (transaksiKeuangan.imputasiPenerimaanKreditBarang || 0) + (transaksiKeuangan.imputasiPenerimaanLainnya || 0))}</td>
                   <td className="border border-gray-300 p-2">JUMLAH</td>
                   <td className="border border-gray-300 p-2 text-right">Rp {formatNumber(totalPengeluaranKeuangan)}</td>
                   <td className="border border-gray-300 p-2 text-right">Rp {formatNumber((transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai || 0) + (transaksiKeuangan.imputasiPengeluaranLainnya || 0))}</td>
@@ -396,6 +407,140 @@ export const Page6 = ({
                 </tr>
               </tbody>
             </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Kontrol Tables */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg text-green-700">
+            KONTROL TRANSAKSI KEUANGAN
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Kontrol Mengambil Uang dan Tabungan */}
+            <div>
+              <h4 className="font-semibold mb-3 text-center bg-muted p-2 rounded">Kontrol Mengambil Uang dan Tabungan</h4>
+              <table className="w-full border-collapse border border-gray-300 text-sm">
+                <tbody>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Konsumsi</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(konsumsiRT)}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Biaya Produksi</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.biayaProduksi || 0)}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Transfer Keluar</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.transferKeluar || 0)}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Pendapatan Kepemilikan yang Dibayar (Blok D)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.pendapatanKepemilikanDibayar || 0)}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Penambahan Aset (Blok G)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.penambahanAset || 0)}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Transaksi Keuangan Keluar (Blok VII keluar)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.transaksiKeuanganKeluar || 0)}</td>
+                  </tr>
+                  <tr className="bg-muted font-semibold">
+                    <td className="border border-gray-300 p-2">Total 1</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(konsumsiRT + (kontrolMengambil.total1 || 0))}</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 p-2">Upah Gaji dalam Bentuk Barang</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.upahGajiBarang || 0)}</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 p-2">Nilai Produksi digunakan Sendiri (Blok C kol 2)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.nilaiProduksiSendiri || 0)}</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 p-2">Transfer Masuk Barang/Jasa (Blok VE kol 3)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.transferMasukBarang || 0)}</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 p-2">Transfer Masuk Modal (Blok F)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.transferMasukModal || 0)}</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 p-2">Membeli Barang Kredit</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.membeliBarangKredit || 0)}</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 p-2">Non Transaksi (listrik nyantol, pajak gak bayar, dll)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.nonTransaksi || 0)}</td>
+                  </tr>
+                  <tr className="bg-muted font-semibold">
+                    <td className="border border-gray-300 p-2">Total 2</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMengambil.total2 || 0)}</td>
+                  </tr>
+                  <tr className="bg-primary/20 font-bold">
+                    <td className="border border-gray-300 p-2">Mengambil Uang dan Tabungan (Total1-Total2)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(imputasiPengambilanUangFinal)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Kontrol Menyimpan Uang dan Menabung */}
+            <div>
+              <h4 className="font-semibold mb-3 text-center bg-muted p-2 rounded">Kontrol Menyimpan Uang dan Menabung</h4>
+              <table className="w-full border-collapse border border-gray-300 text-sm">
+                <tbody>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Upah/Gaji Dalam Bentuk Uang (kol 8+9)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMenyimpan.upahGajiUang || 0)}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Nilai Produksi Usaha</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMenyimpan.nilaiProduksiUsaha || 0)}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Transfer Masuk Uang (VE kol 2)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMenyimpan.transferMasukUang || 0)}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Pendapatan Kepemilikan yang Diterima (Blok D kol 2)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMenyimpan.pendapatanKepemilikanDiterima || 0)}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Pengurangan Aset</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMenyimpan.penguranganAset || 0)}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 p-2">Transaksi Keuangan Diterima (VII Masuk)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMenyimpan.transaksiKeuanganDiterima || 0)}</td>
+                  </tr>
+                  <tr className="bg-muted font-semibold">
+                    <td className="border border-gray-300 p-2">Total 1</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMenyimpan.total1 || 0)}</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 p-2">Transfer Modal Keluar (Blok F)</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMenyimpan.transferModalKeluar || 0)}</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="border border-gray-300 p-2">Hasil Produksi Belum Terjual</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMenyimpan.hasilProduksiBelumTerjual || 0)}</td>
+                  </tr>
+                  <tr className="bg-muted font-semibold">
+                    <td className="border border-gray-300 p-2">Total 2</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(kontrolMenyimpan.total2 || 0)}</td>
+                  </tr>
+                  <tr className="bg-primary/20 font-bold">
+                    <td className="border border-gray-300 p-2">Menyimpan Uang dan Menabung</td>
+                    <td className="border border-gray-300 p-2 text-right">{formatNumber(transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai || 0)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </CardContent>
       </Card>

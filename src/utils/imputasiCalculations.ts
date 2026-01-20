@@ -693,64 +693,225 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     })(),
 
     // BLOK VII - Transaksi Keuangan
-    transaksiKeuangan: {
-      ...data.transaksiKeuangan,
-      pengambilanUangTunai: data.transaksiKeuangan?.pengambilanUangTunai || 0,
-      meminjamUang: data.transaksiKeuangan?.meminjamUang || 0,
-      menerimaPembayaranKredit: data.transaksiKeuangan?.menerimaPembayaranKredit || 0,
-      kreditBarang: data.transaksiKeuangan?.kreditBarang || 0,
-      lainnyaPenerimaan: data.transaksiKeuangan?.lainnyaPenerimaan || 0,
-      menyimpanUangTunai: data.transaksiKeuangan?.menyimpanUangTunai || 0,
-      membayarHutang: data.transaksiKeuangan?.membayarHutang || 0,
-      memberikanKreditBarang: data.transaksiKeuangan?.memberikanKreditBarang || 0,
-      membayarKreditBarang: data.transaksiKeuangan?.membayarKreditBarang || 0,
-      lainnyaPengeluaran: data.transaksiKeuangan?.lainnyaPengeluaran || 0,
-      imputasiPenerimaanPengambilanUangTunai: pengambilanUangTunaiImputasi,
-      imputasiPenerimaanMeminjamUang: meminjamUangImputasi,
-      imputasiPenerimaanKreditBarang: kreditBarangImputasi,
-      imputasiPenerimaanLainnya: data.transaksiKeuangan?.imputasiPenerimaanLainnya || 0,
-      imputasiPengeluaranMenyimpanUangTunai: (() => {
-        // BLOK VII - Menyimpan Uang Tunai dan Menabung Imputasi calculation
-        console.log("=== CALCULATING BLOK VII MENYIMPAN UANG TUNAI ===");
-        
-        // Sum all income and transfer values for savings calculation
-        const vaUpahUangJumlah = (data.pendapatanUpah || []).reduce((sum, entry) => sum + (entry.upahUang || 0), 0);
-        const vaLemburJumlah = (data.pendapatanUpah || []).reduce((sum, entry) => sum + (entry.lembur || 0), 0);
-        const vbSurplusJumlah = (data.pendapatanUsaha || []).reduce((sum, entry) => sum + (entry.surplus || 0), 0);
-        const vdDiterimaJumlah = Object.values(data.pendapatanKepemilikan || {}).reduce((sum, entry) => sum + (entry?.diterima || 0), 0);
-        const veTransferDiterimaUangJumlah = Object.values(data.transferBerjalan || {}).reduce((sum, entity) => {
-          return sum + (entity?.diterimaUang || 0);
-        }, 0);
-        const vgPenguranganPenjualanTotal = Object.values(data.asetPerubahan?.asetTetapUsaha || {}).reduce((sum, category) => {
-          return sum + (category?.penjualan || 0);
-        }, 0) + (data.asetPerubahan?.bangunanTinggal?.penjualan || 0) + 
-             (data.asetPerubahan?.lahanBarang?.penjualan || 0);
-        
-        // Current BLOK VII values (rows 2, 3, 5)
-        const vii2MeminjamUang = data.transaksiKeuangan?.meminjamUang || 0; // Row 2 (Meminjam Uang)
-        const vii3KreditBarang = data.transaksiKeuangan?.menerimaPembayaranKredit || 0; // Row 3 (Menerima Pembayaran Kredit)
-        const vii5Lainnya = data.transaksiKeuangan?.lainnyaPenerimaan || 0; // Row 5 (Lainnya Penerimaan)
-        
-        const menyimpanUangTunaiImputasi = vaUpahUangJumlah + vaLemburJumlah + vbSurplusJumlah + 
-          vdDiterimaJumlah + veTransferDiterimaUangJumlah + vgPenguranganPenjualanTotal + 
-          vii2MeminjamUang + vii3KreditBarang + vii5Lainnya;
+    transaksiKeuangan: (() => {
+      console.log("=== CALCULATING BLOK VII IMPUTASI ===");
 
-        console.log(`BLOK VII Savings calculation:
-          VA Upah Uang: ${vaUpahUangJumlah}
-          VA Lembur: ${vaLemburJumlah}
-          VB Surplus: ${vbSurplusJumlah}
-          VD Diterima: ${vdDiterimaJumlah}
-          VE Transfer Diterima Uang: ${veTransferDiterimaUangJumlah}
-          VG Pengurangan Penjualan: ${vgPenguranganPenjualanTotal}
-          VII.2 Meminjam Uang: ${vii2MeminjamUang}
-          VII.3 Kredit Barang: ${vii3KreditBarang}
-          VII.5 Lainnya: ${vii5Lainnya}
-          Total Menyimpan Uang Tunai Imputasi: ${menyimpanUangTunaiImputasi}`);
+      // ========================================
+      // KONTROL MENGAMBIL UANG DAN TABUNGAN
+      // ========================================
+      
+      // --- Total 1 (Pengeluaran) ---
+      // 1. Konsumsi (dari Blok IV.3.3 - calculated in Page6)
+      // For imputasi, we don't include konsumsi directly here as it's calculated dynamically in Page6
+      
+      // 2. Biaya Produksi (Blok VB - biayaProduksi)
+      const biayaProduksi = (data.pendapatanUsaha || []).reduce((sum, entry) => sum + (entry.biayaProduksi || 0), 0);
+      
+      // 3. Transfer Keluar (Blok VE dibayar secara uang)
+      const transferKeluar = Object.values(data.transferBerjalan || {}).reduce((sum, entity) => {
+        return sum + (entity?.dibayarUang || 0);
+      }, 0);
+      
+      // 4. Pendapatan Kepemilikan yang Dibayar (Blok VD)
+      const pendapatanKepemilikanDibayar = Object.values(data.pendapatanKepemilikan || {}).reduce((sum, entry) => 
+        sum + (entry?.dibayar || 0), 0);
+      
+      // 5. Penambahan Aset (Blok VG - pembelian)
+      const penambahanAset = Object.values(data.asetPerubahan?.asetTetapUsaha || {}).reduce((sum, category) => {
+        return sum + (category?.pembelian || 0);
+      }, 0) + (data.asetPerubahan?.bangunanTinggal?.pembelian || 0) + 
+           (data.asetPerubahan?.lahanBarang?.pembelian || 0) +
+           (data.asetPerubahan?.biayaPemindahan?.pembelian || 0);
+      
+      // 6. Transaksi Keuangan Keluar (Blok VII pengeluaran rows 2-5)
+      const transaksiKeuanganKeluar = (data.transaksiKeuangan?.membayarHutang || 0) +
+        (data.transaksiKeuangan?.memberikanKreditBarang || 0) +
+        (data.transaksiKeuangan?.membayarKreditBarang || 0) +
+        (data.transaksiKeuangan?.lainnyaPengeluaran || 0);
+      
+      // --- Total 2 (Non-tunai/deduction) ---
+      // 1. Upah Gaji dalam Bentuk Barang (Blok VA - upahBarang)
+      const upahGajiBarang = (data.pendapatanUpah || []).reduce((sum, entry) => sum + (entry.upahBarang || 0), 0);
+      
+      // 2. Nilai Produksi digunakan Sendiri (Blok VC kolom 2 - nilaiProduksi)
+      const nilaiProduksiSendiri = (data.produksiSendiri?.perkiraanSewaRumah?.nilaiProduksi || 0) +
+        (data.produksiSendiri?.hasilPertanian?.nilaiProduksi || 0);
+      
+      // 3. Transfer Masuk Barang/Jasa (Blok VE kolom 3 - diterimaBarang + imputasi)
+      const transferMasukBarang = Object.values(data.transferBerjalan || {}).reduce((sum, entity) => {
+        return sum + (entity?.diterimaBarang || 0) + (entity?.imputasiTransferDiterimaBarang || 0);
+      }, 0);
+      
+      // 4. Transfer Masuk Modal (Blok VF - diterima)
+      let transferMasukModal = 0;
+      const transferEntities = ['pemerintah', 'badanUsaha', 'rumahTangga', 'lembagaNirlaba', 'luarNegeri'];
+      transferEntities.forEach(entity => {
+        const entityData = data.transferModal?.[entity as keyof typeof data.transferModal];
+        if (entityData?.diterima) {
+          transferMasukModal += (entityData.diterima.bangunanTinggal || 0) +
+            (entityData.diterima.bangunanBukan || 0) +
+            (entityData.diterima.alatProduksi || 0) +
+            (entityData.diterima.tanamanHewan || 0) +
+            (entityData.diterima.kendaraan || 0) +
+            (entityData.diterima.lahan || 0);
+        }
+      });
+      
+      // 5. Membeli Barang Kredit (Blok VII - kreditBarang penerimaan)
+      const membeliBarangKredit = data.transaksiKeuangan?.kreditBarang || 0;
+      
+      // 6. Non Transaksi (listrik nyantol, pajak gak bayar, dll) - stored separately if needed
+      const nonTransaksi = 0; // This would need a separate field if required
+      
+      // Calculate Total 1 and Total 2 for Pengambilan Uang
+      // Note: Konsumsi is calculated dynamically in Page6, so we pass it as 0 here
+      // The actual formula will be completed in Page6.tsx
+      const total1Pengambilan = biayaProduksi + transferKeluar + pendapatanKepemilikanDibayar + 
+        penambahanAset + transaksiKeuanganKeluar;
+      const total2Pengambilan = upahGajiBarang + nilaiProduksiSendiri + transferMasukBarang + 
+        transferMasukModal + membeliBarangKredit + nonTransaksi;
+      
+      // Pengambilan Uang = Total1 - Total2 (konsumsi is added in Page6)
+      // This base value is partial - Page6 adds konsumsi to get final imputasi
+      const pengambilanUangTunaiImputasiBase = total1Pengambilan - total2Pengambilan;
 
-        return menyimpanUangTunaiImputasi;
-      })(),
-      imputasiPengeluaranLainnya: data.transaksiKeuangan?.imputasiPengeluaranLainnya || 0
-    }
+      // ========================================
+      // KONTROL MENYIMPAN UANG DAN MENABUNG
+      // ========================================
+      
+      // --- Total 1 (Penerimaan) ---
+      // 1. Upah/Gaji Dalam Bentuk Uang (Blok VA kolom 8+9 = upahUang + lembur)
+      const upahGajiUang = (data.pendapatanUpah || []).reduce((sum, entry) => 
+        sum + (entry.upahUang || 0) + (entry.lembur || 0), 0);
+      
+      // 2. Nilai Produksi Usaha (Blok VB - surplus)
+      const nilaiProduksiUsaha = (data.pendapatanUsaha || []).reduce((sum, entry) => 
+        sum + (entry.surplus || 0), 0);
+      
+      // 3. Transfer Masuk Uang (Blok VE kolom 2 - diterimaUang)
+      const transferMasukUang = Object.values(data.transferBerjalan || {}).reduce((sum, entity) => {
+        return sum + (entity?.diterimaUang || 0);
+      }, 0);
+      
+      // 4. Pendapatan Kepemilikan yang Diterima (Blok VD kolom 2)
+      const pendapatanKepemilikanDiterima = Object.values(data.pendapatanKepemilikan || {}).reduce((sum, entry) => 
+        sum + (entry?.diterima || 0), 0);
+      
+      // 5. Pengurangan Aset (Blok VG - penjualan)
+      const penguranganAset = Object.values(data.asetPerubahan?.asetTetapUsaha || {}).reduce((sum, category) => {
+        return sum + (category?.penjualan || 0);
+      }, 0) + (data.asetPerubahan?.bangunanTinggal?.penjualan || 0) + 
+           (data.asetPerubahan?.lahanBarang?.penjualan || 0);
+      
+      // 6. Transaksi Keuangan Diterima (Blok VII masuk rows 2-5)
+      const transaksiKeuanganDiterima = (data.transaksiKeuangan?.meminjamUang || 0) +
+        (data.transaksiKeuangan?.menerimaPembayaranKredit || 0) +
+        (data.transaksiKeuangan?.lainnyaPenerimaan || 0);
+      
+      // --- Total 2 (for Menyimpan) ---
+      // 1. Transfer Modal Keluar (Blok VF - dibayar)
+      let transferModalKeluar = 0;
+      transferEntities.forEach(entity => {
+        const entityData = data.transferModal?.[entity as keyof typeof data.transferModal];
+        if (entityData?.dibayar) {
+          transferModalKeluar += (entityData.dibayar.bangunanTinggal || 0) +
+            (entityData.dibayar.bangunanBukan || 0) +
+            (entityData.dibayar.alatProduksi || 0) +
+            (entityData.dibayar.tanamanHewan || 0) +
+            (entityData.dibayar.kendaraan || 0) +
+            (entityData.dibayar.lahan || 0);
+        }
+      });
+      
+      // 2. Hasil Produksi Belum Terjual - not currently tracked
+      const hasilProduksiBelumTerjual = 0;
+      
+      // Menyimpan Uang = Total1 - Total2
+      const total1Menyimpan = upahGajiUang + nilaiProduksiUsaha + transferMasukUang + 
+        pendapatanKepemilikanDiterima + penguranganAset + transaksiKeuanganDiterima;
+      const total2Menyimpan = transferModalKeluar + hasilProduksiBelumTerjual;
+      const menyimpanUangTunaiImputasi = total1Menyimpan - total2Menyimpan;
+
+      console.log(`BLOK VII Kontrol Mengambil Uang:
+        Biaya Produksi: ${biayaProduksi}
+        Transfer Keluar: ${transferKeluar}
+        Pendapatan Kepemilikan Dibayar: ${pendapatanKepemilikanDibayar}
+        Penambahan Aset: ${penambahanAset}
+        Transaksi Keuangan Keluar: ${transaksiKeuanganKeluar}
+        Total 1 (tanpa konsumsi): ${total1Pengambilan}
+        ---
+        Upah Gaji Barang: ${upahGajiBarang}
+        Nilai Produksi Sendiri: ${nilaiProduksiSendiri}
+        Transfer Masuk Barang: ${transferMasukBarang}
+        Transfer Masuk Modal: ${transferMasukModal}
+        Membeli Barang Kredit: ${membeliBarangKredit}
+        Total 2: ${total2Pengambilan}
+        ---
+        Pengambilan Uang Base (Total1-Total2): ${pengambilanUangTunaiImputasiBase}`);
+
+      console.log(`BLOK VII Kontrol Menyimpan Uang:
+        Upah Gaji Uang: ${upahGajiUang}
+        Nilai Produksi Usaha: ${nilaiProduksiUsaha}
+        Transfer Masuk Uang: ${transferMasukUang}
+        Pendapatan Kepemilikan Diterima: ${pendapatanKepemilikanDiterima}
+        Pengurangan Aset: ${penguranganAset}
+        Transaksi Keuangan Diterima: ${transaksiKeuanganDiterima}
+        Total 1: ${total1Menyimpan}
+        ---
+        Transfer Modal Keluar: ${transferModalKeluar}
+        Hasil Produksi Belum Terjual: ${hasilProduksiBelumTerjual}
+        Total 2: ${total2Menyimpan}
+        ---
+        Menyimpan Uang Imputasi: ${menyimpanUangTunaiImputasi}`);
+
+      return {
+        ...data.transaksiKeuangan,
+        pengambilanUangTunai: data.transaksiKeuangan?.pengambilanUangTunai || 0,
+        meminjamUang: data.transaksiKeuangan?.meminjamUang || 0,
+        menerimaPembayaranKredit: data.transaksiKeuangan?.menerimaPembayaranKredit || 0,
+        kreditBarang: data.transaksiKeuangan?.kreditBarang || 0,
+        lainnyaPenerimaan: data.transaksiKeuangan?.lainnyaPenerimaan || 0,
+        menyimpanUangTunai: data.transaksiKeuangan?.menyimpanUangTunai || 0,
+        membayarHutang: data.transaksiKeuangan?.membayarHutang || 0,
+        memberikanKreditBarang: data.transaksiKeuangan?.memberikanKreditBarang || 0,
+        membayarKreditBarang: data.transaksiKeuangan?.membayarKreditBarang || 0,
+        lainnyaPengeluaran: data.transaksiKeuangan?.lainnyaPengeluaran || 0,
+        imputasiPenerimaanPengambilanUangTunai: pengambilanUangTunaiImputasiBase,
+        imputasiPenerimaanMeminjamUang: meminjamUangImputasi,
+        imputasiPenerimaanKreditBarang: kreditBarangImputasi,
+        imputasiPenerimaanLainnya: data.transaksiKeuangan?.imputasiPenerimaanLainnya || 0,
+        imputasiPengeluaranMenyimpanUangTunai: menyimpanUangTunaiImputasi,
+        imputasiPengeluaranLainnya: data.transaksiKeuangan?.imputasiPengeluaranLainnya || 0,
+        // Store control values for display in Page6
+        kontrolMengambil: {
+          biayaProduksi,
+          transferKeluar,
+          pendapatanKepemilikanDibayar,
+          penambahanAset,
+          transaksiKeuanganKeluar,
+          total1: total1Pengambilan,
+          upahGajiBarang,
+          nilaiProduksiSendiri,
+          transferMasukBarang,
+          transferMasukModal,
+          membeliBarangKredit,
+          nonTransaksi,
+          total2: total2Pengambilan
+        },
+        kontrolMenyimpan: {
+          upahGajiUang,
+          nilaiProduksiUsaha,
+          transferMasukUang,
+          pendapatanKepemilikanDiterima,
+          penguranganAset,
+          transaksiKeuanganDiterima,
+          total1: total1Menyimpan,
+          transferModalKeluar,
+          hasilProduksiBelumTerjual,
+          total2: total2Menyimpan
+        }
+      };
+    })()
   };
 };
 
