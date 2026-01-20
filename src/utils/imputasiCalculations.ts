@@ -27,7 +27,8 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   let autoVbIndex = 0;
 
   // Function to convert weekly to yearly value (nilai * 30/7 * 12)
-  const weeklyToYearly = (weeklyValue: number) => weeklyValue * 30 / 7 * 12;
+  // Use Math.round to prevent floating point precision errors
+  const weeklyToYearly = (weeklyValue: number) => Math.round(weeklyValue * 30 / 7 * 12);
 
   console.log("=== IMPUTASI CALCULATION START ===");
   console.log("Food data:", data.makananMinuman);
@@ -784,9 +785,9 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       const upahGajiUang = (data.pendapatanUpah || []).reduce((sum, entry) => 
         sum + (entry.upahUang || 0) + (entry.lembur || 0), 0);
       
-      // 2. Nilai Produksi Usaha (Blok VB - surplus)
+      // 2. Nilai Produksi Usaha (Blok VB - nilaiProduksi, NOT surplus)
       const nilaiProduksiUsaha = (data.pendapatanUsaha || []).reduce((sum, entry) => 
-        sum + (entry.surplus || 0), 0);
+        sum + (entry.nilaiProduksi || 0), 0);
       
       // 3. Transfer Masuk Uang (Blok VE kolom 2 - diterimaUang)
       const transferMasukUang = Object.values(data.transferBerjalan || {}).reduce((sum, entity) => {
