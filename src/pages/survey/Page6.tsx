@@ -18,6 +18,7 @@ interface Page6Props {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
 }
+
 export const Page6 = ({
   data,
   updateData
@@ -25,9 +26,11 @@ export const Page6 = ({
   const {
     recalculateImputasi
   } = useSurveyImputasi(data, updateData);
+  
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('id-ID').format(Math.round(num));
   };
+  
   const parseNumber = (str: string) => {
     return parseInt(str.replace(/\D/g, '')) || 0;
   };
@@ -77,56 +80,102 @@ export const Page6 = ({
 
   // Calculate income values
   const calculateUpahGaji = () => {
-    return data.pendapatanUpah?.reduce((sum, entry) => sum + (entry.upahUang || 0) + (entry.upahBarang || 0) + (entry.lembur || 0), 0) || 0;
+    return data.pendapatanUpah?.reduce((sum, entry) => 
+      sum + (entry.upahUang || 0) + (entry.upahBarang || 0) + (entry.lembur || 0), 0) || 0;
   };
+  
   const calculateUsahaSurplus = () => {
     return data.pendapatanUsaha?.reduce((sum, entry) => sum + (entry.surplus || 0), 0) || 0;
   };
+  
   const calculateProduksiSendiri = () => {
     const perkiraanSewa = data.produksiSendiri?.perkiraanSewaRumah?.surplus || 0;
     const hasilPertanian = data.produksiSendiri?.hasilPertanian?.surplus || 0;
     return perkiraanSewa + hasilPertanian;
   };
+  
   const calculateKepemilikanDiterima = () => {
     if (!data.pendapatanKepemilikan) return 0;
-    return (data.pendapatanKepemilikan.sewaLahan?.diterima || 0) + (data.pendapatanKepemilikan.bagi_hasil?.diterima || 0) + (data.pendapatanKepemilikan.deviden?.diterima || 0) + (data.pendapatanKepemilikan.bunga?.diterima || 0);
+    return (data.pendapatanKepemilikan.sewaLahan?.diterima || 0) + 
+           (data.pendapatanKepemilikan.bagi_hasil?.diterima || 0) + 
+           (data.pendapatanKepemilikan.deviden?.diterima || 0) + 
+           (data.pendapatanKepemilikan.bunga?.diterima || 0);
   };
+  
   const calculateKepemilikanDibayar = () => {
     if (!data.pendapatanKepemilikan) return 0;
-    return (data.pendapatanKepemilikan.sewaLahan?.dibayar || 0) + (data.pendapatanKepemilikan.bagi_hasil?.dibayar || 0) + (data.pendapatanKepemilikan.deviden?.dibayar || 0) + (data.pendapatanKepemilikan.bunga?.dibayar || 0);
+    return (data.pendapatanKepemilikan.sewaLahan?.dibayar || 0) + 
+           (data.pendapatanKepemilikan.bagi_hasil?.dibayar || 0) + 
+           (data.pendapatanKepemilikan.deviden?.dibayar || 0) + 
+           (data.pendapatanKepemilikan.bunga?.dibayar || 0);
   };
+  
   const calculateTransferBerjalanDiterima = () => {
     if (!data.transferBerjalan) return 0;
-    // Use child entries for pemerintah (pemerintahUangPensiun + pemerintahBantuan) + other entities
-    return (data.transferBerjalan.pemerintahUangPensiun?.diterimaUang || 0) + (data.transferBerjalan.pemerintahUangPensiun?.diterimaBarang || 0) + (data.transferBerjalan.pemerintahBantuan?.diterimaUang || 0) + (data.transferBerjalan.pemerintahBantuan?.diterimaBarang || 0) + (data.transferBerjalan.badanUsaha?.diterimaUang || 0) + (data.transferBerjalan.badanUsaha?.diterimaBarang || 0) + (data.transferBerjalan.rumahTanggaLain?.diterimaUang || 0) + (data.transferBerjalan.rumahTanggaLain?.diterimaBarang || 0) + (data.transferBerjalan.lembagaNirlaba?.diterimaUang || 0) + (data.transferBerjalan.lembagaNirlaba?.diterimaBarang || 0) + (data.transferBerjalan.luarNegeri?.diterimaUang || 0) + (data.transferBerjalan.luarNegeri?.diterimaBarang || 0);
+    return (data.transferBerjalan.pemerintahUangPensiun?.diterimaUang || 0) + 
+           (data.transferBerjalan.pemerintahUangPensiun?.diterimaBarang || 0) + 
+           (data.transferBerjalan.pemerintahBantuan?.diterimaUang || 0) + 
+           (data.transferBerjalan.pemerintahBantuan?.diterimaBarang || 0) + 
+           (data.transferBerjalan.badanUsaha?.diterimaUang || 0) + 
+           (data.transferBerjalan.badanUsaha?.diterimaBarang || 0) + 
+           (data.transferBerjalan.rumahTanggaLain?.diterimaUang || 0) + 
+           (data.transferBerjalan.rumahTanggaLain?.diterimaBarang || 0) + 
+           (data.transferBerjalan.lembagaNirlaba?.diterimaUang || 0) + 
+           (data.transferBerjalan.lembagaNirlaba?.diterimaBarang || 0) + 
+           (data.transferBerjalan.luarNegeri?.diterimaUang || 0) + 
+           (data.transferBerjalan.luarNegeri?.diterimaBarang || 0);
   };
+  
   const calculateTransferBerjalanDibayar = () => {
     if (!data.transferBerjalan) return 0;
-    // Use child entries for pemerintah (pemerintahUangPensiun + pemerintahBantuan) + other entities
-    return (data.transferBerjalan.pemerintahUangPensiun?.dibayarUang || 0) + (data.transferBerjalan.pemerintahUangPensiun?.dibayarBarang || 0) + (data.transferBerjalan.pemerintahBantuan?.dibayarUang || 0) + (data.transferBerjalan.pemerintahBantuan?.dibayarBarang || 0) + (data.transferBerjalan.badanUsaha?.dibayarUang || 0) + (data.transferBerjalan.badanUsaha?.dibayarBarang || 0) + (data.transferBerjalan.rumahTanggaLain?.dibayarUang || 0) + (data.transferBerjalan.rumahTanggaLain?.dibayarBarang || 0) + (data.transferBerjalan.lembagaNirlaba?.dibayarUang || 0) + (data.transferBerjalan.lembagaNirlaba?.dibayarBarang || 0) + (data.transferBerjalan.luarNegeri?.dibayarUang || 0) + (data.transferBerjalan.luarNegeri?.dibayarBarang || 0);
+    return (data.transferBerjalan.pemerintahUangPensiun?.dibayarUang || 0) + 
+           (data.transferBerjalan.pemerintahUangPensiun?.dibayarBarang || 0) + 
+           (data.transferBerjalan.pemerintahBantuan?.dibayarUang || 0) + 
+           (data.transferBerjalan.pemerintahBantuan?.dibayarBarang || 0) + 
+           (data.transferBerjalan.badanUsaha?.dibayarUang || 0) + 
+           (data.transferBerjalan.badanUsaha?.dibayarBarang || 0) + 
+           (data.transferBerjalan.rumahTanggaLain?.dibayarUang || 0) + 
+           (data.transferBerjalan.rumahTanggaLain?.dibayarBarang || 0) + 
+           (data.transferBerjalan.lembagaNirlaba?.dibayarUang || 0) + 
+           (data.transferBerjalan.lembagaNirlaba?.dibayarBarang || 0) + 
+           (data.transferBerjalan.luarNegeri?.dibayarUang || 0) + 
+           (data.transferBerjalan.luarNegeri?.dibayarBarang || 0);
   };
+  
   const calculateTransferModalDiterima = () => {
     if (!data.transferModal) return 0;
     let total = 0;
     ['pemerintah', 'badanUsaha', 'rumahTangga', 'lembagaNirlaba', 'luarNegeri'].forEach(source => {
       const sourceData = (data.transferModal as any)[source]?.diterima;
       if (sourceData) {
-        total += (sourceData.bangunanTinggal || 0) + (sourceData.bangunanBukan || 0) + (sourceData.alatProduksi || 0) + (sourceData.tanamanHewan || 0) + (sourceData.kendaraan || 0) + (sourceData.lahan || 0);
+        total += (sourceData.bangunanTinggal || 0) + 
+                 (sourceData.bangunanBukan || 0) + 
+                 (sourceData.alatProduksi || 0) + 
+                 (sourceData.tanamanHewan || 0) + 
+                 (sourceData.kendaraan || 0) + 
+                 (sourceData.lahan || 0);
       }
     });
     return total;
   };
+  
   const calculateTransferModalDibayar = () => {
     if (!data.transferModal) return 0;
     let total = 0;
     ['pemerintah', 'badanUsaha', 'rumahTangga', 'lembagaNirlaba', 'luarNegeri'].forEach(source => {
       const sourceData = (data.transferModal as any)[source]?.dibayar;
       if (sourceData) {
-        total += (sourceData.bangunanTinggal || 0) + (sourceData.bangunanBukan || 0) + (sourceData.alatProduksi || 0) + (sourceData.tanamanHewan || 0) + (sourceData.kendaraan || 0) + (sourceData.lahan || 0);
+        total += (sourceData.bangunanTinggal || 0) + 
+                 (sourceData.bangunanBukan || 0) + 
+                 (sourceData.alatProduksi || 0) + 
+                 (sourceData.tanamanHewan || 0) + 
+                 (sourceData.kendaraan || 0) + 
+                 (sourceData.lahan || 0);
       }
     });
     return total;
   };
+  
   const calculateAsetNeto = () => {
     if (!data.asetPerubahan) return 0;
     let total = 0;
@@ -148,9 +197,9 @@ export const Page6 = ({
     return total;
   };
 
-  // Calculate consumption expenses from BLOK IV.3.3 - use exact same calculation as Page4Recap
+  // Calculate consumption expenses from BLOK IV.3.3 - PERBAIKAN: Data tahunan TIDAK dikonversi lagi
   const calculateKonsumsiRT = () => {
-    // Calculate food subtotal using normalizer (weekly)
+    // 1. Calculate food subtotal using normalizer (weekly data)
     const foodSubtotal = Object.keys(FOOD_CATEGORIES).reduce((total, categoryKey) => {
       const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
       const { totalPembelian, totalProduksiSendiri } = getFoodCategoryTotals(
@@ -162,19 +211,27 @@ export const Page6 = ({
       return total + totalPembelian + totalProduksiSendiri;
     }, 0);
 
-    // Food monthly average
-    const rataRataSebulan = foodSubtotal * 30 / 7;
+    // 2. Food: Weekly → Monthly → Yearly
+    // Weekly to Monthly: * 30/7
+    // Monthly to Yearly: * 12
+    // Total: foodSubtotal * (30/7) * 12
+    const foodYearly = foodSubtotal * (30/7) * 12;
 
-    // Calculate RATA-RATA PENGELUARAN RUMAH TANGGA SEBULAN using normalizer
-    const rataRataRumahTanggaSebulan = Math.round(rataRataSebulan + Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
+    // 3. Non-food MONTHLY data → Yearly
+    const nonFoodMonthlyYearly = Object.keys(NON_FOOD_CATEGORIES).reduce((total, categoryKey) => {
       const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-      return totalMonthly + getNonFoodMonthlyTotal(monthlyData);
-    }, 0) + Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
-      return totalYearly + getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
-    }, 0) / 12);
+      return total + getNonFoodMonthlyTotal(monthlyData);
+    }, 0) * 12; // Monthly → Yearly: * 12
 
-    // Return yearly consumption
-    return rataRataRumahTanggaSebulan * 12;
+    // 4. Non-food YEARLY data → Use DIRECTLY (NO conversion!)
+    const nonFoodYearlyDirect = Object.keys(NON_FOOD_CATEGORIES).reduce((total, categoryKey) => {
+      return total + getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
+    }, 0); // TIDAK DIBAGI 12! Sudah tahunan
+
+    // 5. Total yearly consumption
+    const totalYearlyConsumption = foodYearly + nonFoodMonthlyYearly + nonFoodYearlyDirect;
+    
+    return Math.round(totalYearlyConsumption);
   };
 
   // Calculate totals
@@ -189,13 +246,26 @@ export const Page6 = ({
   const transferModalDibayar = calculateTransferModalDibayar();
   const asetNeto = calculateAsetNeto();
   const konsumsiRT = calculateKonsumsiRT();
-  const totalPenerimaan = upahGaji + usahaSurplus + produksiSendiri + kepemilikanDiterima + transferBerjalanDiterima + transferModalDiterima;
-  const totalPengeluaran = konsumsiRT + kepemilikanDibayar + transferBerjalanDibayar + transferModalDibayar + asetNeto;
+  
+  const totalPenerimaan = upahGaji + usahaSurplus + produksiSendiri + kepemilikanDiterima + 
+                         transferBerjalanDiterima + transferModalDiterima;
+  const totalPengeluaran = konsumsiRT + kepemilikanDibayar + transferBerjalanDibayar + 
+                          transferModalDibayar + asetNeto;
   const selisihPenerimaanPengeluaran = totalPenerimaan - totalPengeluaran;
 
   // Financial transaction calculations
-  const totalPenerimaanKeuangan = transaksiKeuangan.pengambilanUangTunai + transaksiKeuangan.meminjamUang + transaksiKeuangan.menerimaPembayaranKredit + transaksiKeuangan.kreditBarang + transaksiKeuangan.lainnyaPenerimaan;
-  const totalPengeluaranKeuangan = transaksiKeuangan.menyimpanUangTunai + transaksiKeuangan.membayarHutang + transaksiKeuangan.memberikanKreditBarang + transaksiKeuangan.membayarKreditBarang + transaksiKeuangan.lainnyaPengeluaran;
+  const totalPenerimaanKeuangan = transaksiKeuangan.pengambilanUangTunai + 
+                                 transaksiKeuangan.meminjamUang + 
+                                 transaksiKeuangan.menerimaPembayaranKredit + 
+                                 transaksiKeuangan.kreditBarang + 
+                                 transaksiKeuangan.lainnyaPenerimaan;
+  
+  const totalPengeluaranKeuangan = transaksiKeuangan.menyimpanUangTunai + 
+                                  transaksiKeuangan.membayarHutang + 
+                                  transaksiKeuangan.memberikanKreditBarang + 
+                                  transaksiKeuangan.membayarKreditBarang + 
+                                  transaksiKeuangan.lainnyaPengeluaran;
+  
   const selisihTransaksiKeuangan = totalPengeluaranKeuangan - totalPenerimaanKeuangan;
 
   // Calculate final imputasi for Pengambilan Uang (add konsumsi to base imputasi)
@@ -203,7 +273,9 @@ export const Page6 = ({
 
   // Calculate discrepancy
   const diskrepansi = selisihPenerimaanPengeluaran - selisihTransaksiKeuangan;
-  return <div className="max-w-none w-full space-y-6">
+  
+  return (
+    <div className="max-w-none w-full space-y-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-professional-navy">
           HALAMAN 6 - REKAPITULASI PENERIMAAN DAN PENGELUARAN
@@ -297,98 +369,215 @@ export const Page6 = ({
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse border border-gray-300">
-                <thead>
-                 <tr className="bg-professional-table-header text-professional-table-header-foreground">
-                   <th className="border border-gray-300 p-2">Rincian Penerimaan</th>
-                   <th className="border border-gray-300 p-2">Nilai</th>
-                   <th className="border border-gray-300 p-2 bg-amber-600">Imputasi Rincian Penerimaan</th>
-                   <th className="border border-gray-300 p-2">Rincian Pengeluaran</th>
-                   <th className="border border-gray-300 p-2">Nilai</th>
-                   <th className="border border-gray-300 p-2 bg-amber-600">Imputasi Rincian Pengeluaran</th>
-                 </tr>
-               </thead>
+              <thead>
+                <tr className="bg-professional-table-header text-professional-table-header-foreground">
+                  <th className="border border-gray-300 p-2">Rincian Penerimaan</th>
+                  <th className="border border-gray-300 p-2">Nilai</th>
+                  <th className="border border-gray-300 p-2 bg-amber-600">Imputasi Rincian Penerimaan</th>
+                  <th className="border border-gray-300 p-2">Rincian Pengeluaran</th>
+                  <th className="border border-gray-300 p-2">Nilai</th>
+                  <th className="border border-gray-300 p-2 bg-amber-600">Imputasi Rincian Pengeluaran</th>
+                </tr>
+              </thead>
               <tbody>
                 <tr>
                   <td className="border border-gray-300 p-2">1. Pengambilan Uang Tunai dan Tabungan</td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.pengambilanUangTunai ? formatNumber(transaksiKeuangan.pengambilanUangTunai) : ''} onChange={e => updateTransaksiKeuangan('pengambilanUangTunai', parseNumber(e.target.value))} className="w-full text-right" style={{
-                    MozAppearance: 'textfield',
-                    WebkitAppearance: 'none'
-                  }} />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.pengambilanUangTunai ? formatNumber(transaksiKeuangan.pengambilanUangTunai) : ''} 
+                      onChange={e => updateTransaksiKeuangan('pengambilanUangTunai', parseNumber(e.target.value))} 
+                      className="w-full text-right" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">
-                     <Input type="text" value={formatNumber(imputasiPengambilanUangFinal)} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
-                   </td>
+                    <Input 
+                      type="text" 
+                      value={formatNumber(imputasiPengambilanUangFinal)} 
+                      readOnly 
+                      disabled 
+                      placeholder="0" 
+                      className="w-full text-right bg-gray-100 text-foreground" 
+                    />
+                  </td>
                   <td className="border border-gray-300 p-2">1. Menyimpan Uang Tunai dan Menabung</td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.menyimpanUangTunai ? formatNumber(transaksiKeuangan.menyimpanUangTunai) : ''} onChange={e => updateTransaksiKeuangan('menyimpanUangTunai', parseNumber(e.target.value))} className="w-full text-right" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.menyimpanUangTunai ? formatNumber(transaksiKeuangan.menyimpanUangTunai) : ''} 
+                      onChange={e => updateTransaksiKeuangan('menyimpanUangTunai', parseNumber(e.target.value))} 
+                      className="w-full text-right" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai ? formatNumber(transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai) : '0'} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai ? formatNumber(transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai) : '0'} 
+                      readOnly 
+                      disabled 
+                      placeholder="0" 
+                      className="w-full text-right bg-gray-100 text-foreground" 
+                    />
                   </td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 p-2">2. Meminjam Uang</td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.meminjamUang ? formatNumber(transaksiKeuangan.meminjamUang) : ''} onChange={e => updateTransaksiKeuangan('meminjamUang', parseNumber(e.target.value))} className="w-full text-right" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.meminjamUang ? formatNumber(transaksiKeuangan.meminjamUang) : ''} 
+                      onChange={e => updateTransaksiKeuangan('meminjamUang', parseNumber(e.target.value))} 
+                      className="w-full text-right" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.imputasiPenerimaanMeminjamUang ? formatNumber(transaksiKeuangan.imputasiPenerimaanMeminjamUang) : '0'} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.imputasiPenerimaanMeminjamUang ? formatNumber(transaksiKeuangan.imputasiPenerimaanMeminjamUang) : '0'} 
+                      readOnly 
+                      disabled 
+                      placeholder="0" 
+                      className="w-full text-right bg-gray-100 text-foreground" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">2. Membayar Hutang</td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.membayarHutang ? formatNumber(transaksiKeuangan.membayarHutang) : ''} onChange={e => updateTransaksiKeuangan('membayarHutang', parseNumber(e.target.value))} className="w-full text-right" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.membayarHutang ? formatNumber(transaksiKeuangan.membayarHutang) : ''} 
+                      onChange={e => updateTransaksiKeuangan('membayarHutang', parseNumber(e.target.value))} 
+                      className="w-full text-right" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value="0" readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
+                    <Input 
+                      type="text" 
+                      value="0" 
+                      readOnly 
+                      disabled 
+                      placeholder="0" 
+                      className="w-full text-right bg-gray-100 text-foreground" 
+                    />
                   </td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 p-2">3. Menerima Pembayaran Kredit Barang (Usaha Rumah Tangga)</td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.menerimaPembayaranKredit ? formatNumber(transaksiKeuangan.menerimaPembayaranKredit) : ''} onChange={e => updateTransaksiKeuangan('menerimaPembayaranKredit', parseNumber(e.target.value))} className="w-full text-right" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.menerimaPembayaranKredit ? formatNumber(transaksiKeuangan.menerimaPembayaranKredit) : ''} 
+                      onChange={e => updateTransaksiKeuangan('menerimaPembayaranKredit', parseNumber(e.target.value))} 
+                      className="w-full text-right" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value="0" readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
+                    <Input 
+                      type="text" 
+                      value="0" 
+                      readOnly 
+                      disabled 
+                      placeholder="0" 
+                      className="w-full text-right bg-gray-100 text-foreground" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">3. Memberikan Kredit Barang (Usaha Rumah Tangga)</td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.memberikanKreditBarang ? formatNumber(transaksiKeuangan.memberikanKreditBarang) : ''} onChange={e => updateTransaksiKeuangan('memberikanKreditBarang', parseNumber(e.target.value))} className="w-full text-right" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.memberikanKreditBarang ? formatNumber(transaksiKeuangan.memberikanKreditBarang) : ''} 
+                      onChange={e => updateTransaksiKeuangan('memberikanKreditBarang', parseNumber(e.target.value))} 
+                      className="w-full text-right" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value="0" readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
+                    <Input 
+                      type="text" 
+                      value="0" 
+                      readOnly 
+                      disabled 
+                      placeholder="0" 
+                      className="w-full text-right bg-gray-100 text-foreground" 
+                    />
                   </td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 p-2">4. Kredit Barang</td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.kreditBarang ? formatNumber(transaksiKeuangan.kreditBarang) : ''} onChange={e => updateTransaksiKeuangan('kreditBarang', parseNumber(e.target.value))} className="w-full text-right" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.kreditBarang ? formatNumber(transaksiKeuangan.kreditBarang) : ''} 
+                      onChange={e => updateTransaksiKeuangan('kreditBarang', parseNumber(e.target.value))} 
+                      className="w-full text-right" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.imputasiPenerimaanKreditBarang ? formatNumber(transaksiKeuangan.imputasiPenerimaanKreditBarang) : '0'} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.imputasiPenerimaanKreditBarang ? formatNumber(transaksiKeuangan.imputasiPenerimaanKreditBarang) : '0'} 
+                      readOnly 
+                      disabled 
+                      placeholder="0" 
+                      className="w-full text-right bg-gray-100 text-foreground" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">4. Membayar Kredit Barang</td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.membayarKreditBarang ? formatNumber(transaksiKeuangan.membayarKreditBarang) : ''} onChange={e => updateTransaksiKeuangan('membayarKreditBarang', parseNumber(e.target.value))} className="w-full text-right" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.membayarKreditBarang ? formatNumber(transaksiKeuangan.membayarKreditBarang) : ''} 
+                      onChange={e => updateTransaksiKeuangan('membayarKreditBarang', parseNumber(e.target.value))} 
+                      className="w-full text-right" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value="0" readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
+                    <Input 
+                      type="text" 
+                      value="0" 
+                      readOnly 
+                      disabled 
+                      placeholder="0" 
+                      className="w-full text-right bg-gray-100 text-foreground" 
+                    />
                   </td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 p-2">5. Lainnya (Pengembalian Piutang, Menggadaikan Barang, Mendapat Arisan, Klaim Asuransi Jiwa/Pendidikan, dll.)</td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.lainnyaPenerimaan ? formatNumber(transaksiKeuangan.lainnyaPenerimaan) : ''} onChange={e => updateTransaksiKeuangan('lainnyaPenerimaan', parseNumber(e.target.value))} className="w-full text-right" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.lainnyaPenerimaan ? formatNumber(transaksiKeuangan.lainnyaPenerimaan) : ''} 
+                      onChange={e => updateTransaksiKeuangan('lainnyaPenerimaan', parseNumber(e.target.value))} 
+                      className="w-full text-right" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.imputasiPenerimaanLainnya ? formatNumber(transaksiKeuangan.imputasiPenerimaanLainnya) : '0'} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.imputasiPenerimaanLainnya ? formatNumber(transaksiKeuangan.imputasiPenerimaanLainnya) : '0'} 
+                      readOnly 
+                      disabled 
+                      placeholder="0" 
+                      className="w-full text-right bg-gray-100 text-foreground" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">5. Lainnya (Meminjamkan Uang, Menebus Barang, Gadaian, Membayar Arisan, Premi Asuransi Jiwa/Pendidikan, dll.)</td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.lainnyaPengeluaran ? formatNumber(transaksiKeuangan.lainnyaPengeluaran) : ''} onChange={e => updateTransaksiKeuangan('lainnyaPengeluaran', parseNumber(e.target.value))} className="w-full text-right" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.lainnyaPengeluaran ? formatNumber(transaksiKeuangan.lainnyaPengeluaran) : ''} 
+                      onChange={e => updateTransaksiKeuangan('lainnyaPengeluaran', parseNumber(e.target.value))} 
+                      className="w-full text-right" 
+                    />
                   </td>
                   <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.imputasiPengeluaranLainnya ? formatNumber(transaksiKeuangan.imputasiPengeluaranLainnya) : '0'} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
+                    <Input 
+                      type="text" 
+                      value={transaksiKeuangan.imputasiPengeluaranLainnya ? formatNumber(transaksiKeuangan.imputasiPengeluaranLainnya) : '0'} 
+                      readOnly 
+                      disabled 
+                      placeholder="0" 
+                      className="w-full text-right bg-gray-100 text-foreground" 
+                    />
                   </td>
                 </tr>
                 <tr className="bg-muted font-semibold">
@@ -571,21 +760,26 @@ export const Page6 = ({
               <p className="text-xl font-bold text-primary">Rp {formatNumber(diskrepansi)}</p>
             </div>
 
-            {diskrepansi !== 0 && <Alert>
+            {diskrepansi !== 0 && (
+              <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
                   <strong>Peringatan:</strong> Nilai diskrepansi idealnya = 0. 
                   Silakan periksa kembali data penerimaan, pengeluaran, dan transaksi keuangan yang telah diinput.
                 </AlertDescription>
-              </Alert>}
+              </Alert>
+            )}
 
-            {diskrepansi === 0 && <Alert className="border-green-200 bg-green-50">
+            {diskrepansi === 0 && (
+              <Alert className="border-green-200 bg-green-50">
                 <AlertDescription className="text-green-800">
                   ✅ <strong>Seimbang:</strong> Nilai diskrepansi = 0. Data sudah balance dan konsisten.
                 </AlertDescription>
-              </Alert>}
+              </Alert>
+            )}
           </div>
         </CardContent>
       </Card>
-    </div>;
+    </div>
+  );
 };
