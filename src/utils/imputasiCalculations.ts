@@ -483,9 +483,14 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   // For auto-generated entries that have been edited by users, preserve their user-entered values
   // Use lenient matching - only check ID pattern, not field values
   // This ensures entries persist even if optional fields aren't filled by user
+  // Also auto-fill empty kategoriLU and jenisPekerjaan with 'belum terdefinisikan'
   const editedAutoUpah = (data.pendapatanUpah || []).filter(
     (e) => e && e.id && e.id.startsWith('auto-imputasi-va-')
-  );
+  ).map(e => ({
+    ...e,
+    kategoriLU: e.kategoriLU || 'belum terdefinisikan',
+    jenisPekerjaan: e.jenisPekerjaan || 'belum terdefinisikan'
+  }));
   
   // Merge auto-generated with existing user values, prioritizing user edits
   const mergedAutoUpah = autoUpahEntries.map(autoEntry => {
@@ -503,7 +508,11 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   });
   
   // Always include regenerated auto entries - they're the source of truth for imputasi
-  const finalUpah = [...existingUpah, ...mergedAutoUpah];
+  const finalUpah = [...existingUpah, ...mergedAutoUpah].map(e => ({
+    ...e,
+    kategoriLU: e.kategoriLU || 'belum terdefinisikan',
+    jenisPekerjaan: e.jenisPekerjaan || 'belum terdefinisikan'
+  }));
 
   const existingUsaha = (data.pendapatanUsaha || []).filter(
     (e) => e && e.id && !e.id.startsWith('auto-imputasi-vb-') && e.id !== 'auto-generated-usaha'
@@ -512,9 +521,14 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   // For auto-generated entries that have been edited by users, preserve their user-entered values
   // Use lenient matching - only check ID pattern, not field values  
   // This ensures entries persist even if optional fields aren't filled by user
+  // Also auto-fill empty kategoriLU and jenisPekerjaan with 'belum terdefinisikan'
   const editedAutoUsaha = (data.pendapatanUsaha || []).filter(
     (e) => e && e.id && e.id.startsWith('auto-imputasi-vb-')
-  );
+  ).map(e => ({
+    ...e,
+    kategoriLU: e.kategoriLU || 'belum terdefinisikan',
+    jenisPekerjaan: e.jenisPekerjaan || 'belum terdefinisikan'
+  }));
   
   // Merge auto-generated with existing user values, prioritizing user edits
   const mergedAutoUsaha = autoUsahaEntries.map(autoEntry => {
@@ -533,7 +547,11 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   });
   
   // Always include regenerated auto entries - they're the source of truth for imputasi
-  const finalUsaha = [...existingUsaha, ...mergedAutoUsaha];
+  const finalUsaha = [...existingUsaha, ...mergedAutoUsaha].map(e => ({
+    ...e,
+    kategoriLU: e.kategoriLU || 'belum terdefinisikan',
+    jenisPekerjaan: e.jenisPekerjaan || 'belum terdefinisikan'
+  }));
 
   // Return the calculated imputasi values
   return {

@@ -137,8 +137,9 @@ export const getNonFoodMonthlyTotal = (
         } else if (periode === 'bulan' || periode === 'monthly') {
           monthlyValue = nilai;
         } else if (periode === 'tahun' || periode === 'yearly') {
-          // If already yearly, divide by 12 to get monthly (don't round yet to avoid precision loss)
-          monthlyValue = nilai / 12;
+          // If yearly input in monthly section, use value directly as monthly equivalent
+          // (User will input yearly amount, we treat it as given amount)
+          monthlyValue = nilai;
         } else {
           // Default to weekly
           monthlyValue = Math.round(nilai * 30 / 7);

@@ -162,27 +162,27 @@ export const Page6 = ({
       return total + totalPembelian + totalProduksiSendiri;
     }, 0);
 
-    // Food is in weekly period - convert to monthly (30/7), don't round yet
-    const rataRataSebulanFood = foodSubtotal * 30 / 7;
+    // Food is in weekly period - convert to yearly (30/7 * 12), don't round yet
+    const foodYearlyTotal = foodSubtotal * 30 / 7 * 12;
 
-    // Calculate non-food monthly total (already handles period conversion internally)
-    const nonFoodMonthlyTotal = Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
+    // Calculate non-food monthly total and convert to yearly (multiply by 12)
+    const nonFoodMonthlyYearlyTotal = Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
       const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-      return totalMonthly + getNonFoodMonthlyTotal(monthlyData);
+      return totalYearly + (getNonFoodMonthlyTotal(monthlyData) * 12); // Convert monthly to yearly
     }, 0);
 
-    // For yearly non-food data, convert to monthly (divide by 12), don't round yet to avoid precision loss
-    const nonFoodYearlyMonthlyTotal = Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
+    // For yearly non-food data, use directly (no conversion needed)
+    const nonFoodYearlyTotal = Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
       const yearlyTotal = getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
-      return totalMonthly + (yearlyTotal / 12); // Don't round individual items
+      return totalYearly + yearlyTotal; // Use yearly value directly, no /12 conversion
     }, 0);
 
-    // RATA-RATA PENGELUARAN RUMAH TANGGA SEBULAN (in monthly period)
-    // Round only the final monthly total, not individual components
-    const rataRataRumahTanggaSebulan = Math.round(rataRataSebulanFood + nonFoodMonthlyTotal + nonFoodYearlyMonthlyTotal);
+    // TOTAL PENGELUARAN KONSUMSI RUMAH TANGGA SETAHUN (in yearly period)
+    // Round only the final yearly total, not individual components
+    const totalYearly = Math.round(foodYearlyTotal + nonFoodMonthlyYearlyTotal + nonFoodYearlyTotal);
 
-    // Return yearly consumption (monthly * 12)
-    return rataRataRumahTanggaSebulan * 12;
+    // Return yearly consumption
+    return totalYearly;
   };
 
   // Calculate totals
