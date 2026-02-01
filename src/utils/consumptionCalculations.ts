@@ -135,9 +135,18 @@ export const applySurveyImputasiCalculations = (data: SurveyData): SurveyData =>
     }
   };
 
+  // IMPORTANT: When merging imputasiUpdates, we must carefully preserve user input fields
+  // imputasiUpdates.transaksiKeuangan only contains imputasi fields, not user input fields
+  // So we need to merge them carefully
+  const mergedTransaksiKeuangan = {
+    ...data.transaksiKeuangan,  // Keep all user input fields first
+    ...imputasiUpdates.transaksiKeuangan  // Then apply only imputasi fields
+  };
+
   const result = {
     ...data,
     ...imputasiUpdates,
+    transaksiKeuangan: mergedTransaksiKeuangan,  // Override with merged version
     transferBerjalan: updatedTransferBerjalan
   };
   
