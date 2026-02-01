@@ -512,7 +512,27 @@ function parsePage5Data(cells: string[]): Record<string, any> {
 }
 // Parse Page 6 data from cells
 function parsePage6Data(cells: string[]): Record<string, any> {
-  const result: Record<string, any> = { transaksiKeuangan: {} };
+  const result: Record<string, any> = { 
+    transaksiKeuangan: {
+      // Initialize all fields with 0 to prevent undefined/missing data
+      pengambilanUangTunai: 0,
+      meminjamUang: 0,
+      menerimaPembayaranKredit: 0,
+      kreditBarang: 0,
+      lainnyaPenerimaan: 0,
+      menyimpanUangTunai: 0,
+      membayarHutang: 0,
+      memberikanKreditBarang: 0,
+      membayarKreditBarang: 0,
+      lainnyaPengeluaran: 0,
+      imputasiPenerimaanPengambilanUangTunai: 0,
+      imputasiPenerimaanMeminjamUang: 0,
+      imputasiPenerimaanKreditBarang: 0,
+      imputasiPenerimaanLainnya: 0,
+      imputasiPengeluaranMenyimpanUangTunai: 0,
+      imputasiPengeluaranLainnya: 0
+    }
+  };
   
   // Cell 0: Penerimaan
   const penerimaanCell = cells[0] || '';

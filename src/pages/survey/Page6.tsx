@@ -36,29 +36,30 @@ export const Page6 = ({
   const imputasiCalculations = calculateImputasiFromFood(data);
   
   // Initialize financial transactions with calculated imputasi values
+  // Ensure all transaction fields have default 0 to prevent losing data on reload
   const transaksiKeuangan = {
-    ...{
-      pengambilanUangTunai: 0,
-      meminjamUang: 0,
-      menerimaPembayaranKredit: 0,
-      kreditBarang: 0,
-      lainnyaPenerimaan: 0,
-      menyimpanUangTunai: 0,
-      membayarHutang: 0,
-      memberikanKreditBarang: 0,
-      membayarKreditBarang: 0,
-      lainnyaPengeluaran: 0,
-      imputasiPenerimaanPengambilanUangTunai: 0,
-      imputasiPenerimaanMeminjamUang: 0,
-      imputasiPenerimaanKreditBarang: 0,
-      imputasiPenerimaanLainnya: 0,
-      imputasiPengeluaranMenyimpanUangTunai: 0,
-      imputasiPengeluaranLainnya: 0,
-      kontrolMengambil: {},
-      kontrolMenyimpan: {}
-    },
+    // Default empty values for all transaction fields
+    pengambilanUangTunai: 0,
+    meminjamUang: 0,
+    menerimaPembayaranKredit: 0,
+    kreditBarang: 0,
+    lainnyaPenerimaan: 0,
+    menyimpanUangTunai: 0,
+    membayarHutang: 0,
+    memberikanKreditBarang: 0,
+    membayarKreditBarang: 0,
+    lainnyaPengeluaran: 0,
+    imputasiPenerimaanPengambilanUangTunai: 0,
+    imputasiPenerimaanMeminjamUang: 0,
+    imputasiPenerimaanKreditBarang: 0,
+    imputasiPenerimaanLainnya: 0,
+    imputasiPengeluaranMenyimpanUangTunai: 0,
+    imputasiPengeluaranLainnya: 0,
+    kontrolMengambil: {},
+    kontrolMenyimpan: {},
+    // Merge with user data (which may override the defaults)
     ...data.transaksiKeuangan,
-    // Override with calculated imputasi values from food data
+    // Always apply calculated imputasi values (they take precedence)
     ...(imputasiCalculations.transaksiKeuangan || {})
   };
   
