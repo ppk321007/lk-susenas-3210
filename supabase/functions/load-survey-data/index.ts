@@ -512,6 +512,8 @@ function parsePage5Data(cells: string[]): Record<string, any> {
 }
 // Parse Page 6 data from cells
 function parsePage6Data(cells: string[]): Record<string, any> {
+  console.log("🔍 parsePage6Data called with cells:", JSON.stringify(cells));
+  
   const result: Record<string, any> = { 
     transaksiKeuangan: {
       // Initialize all fields with 0 to prevent undefined/missing data
@@ -536,6 +538,7 @@ function parsePage6Data(cells: string[]): Record<string, any> {
   
   // Cell 0: Penerimaan
   const penerimaanCell = cells[0] || '';
+  console.log("📥 Penerimaan cell:", penerimaanCell);
   if (penerimaanCell && penerimaanCell !== '0') {
     const items = penerimaanCell.split(' | ');
     const keyMap: Record<string, string> = {
@@ -552,6 +555,7 @@ function parsePage6Data(cells: string[]): Record<string, any> {
         if (key) {
           result.transaksiKeuangan[key] = parseInt(match[2]) || 0;
           result.transaksiKeuangan[`imputasiPenerimaan${key.charAt(0).toUpperCase() + key.slice(1)}`] = parseInt(match[3]) || 0;
+          console.log(`✅ Penerimaan parsed: ${match[1]} = ${match[2]} (imputasi: ${match[3]})`);
         }
       }
     }
@@ -559,6 +563,7 @@ function parsePage6Data(cells: string[]): Record<string, any> {
   
   // Cell 1: Pengeluaran
   const pengeluaranCell = cells[1] || '';
+  console.log("📤 Pengeluaran cell:", pengeluaranCell);
   if (pengeluaranCell && pengeluaranCell !== '0') {
     const items = pengeluaranCell.split(' | ');
     const keyMap: Record<string, string> = {
@@ -575,10 +580,13 @@ function parsePage6Data(cells: string[]): Record<string, any> {
         if (key) {
           result.transaksiKeuangan[key] = parseInt(match[2]) || 0;
           result.transaksiKeuangan[`imputasiPengeluaran${key.charAt(0).toUpperCase() + key.slice(1)}`] = parseInt(match[3]) || 0;
+          console.log(`✅ Pengeluaran parsed: ${match[1]} = ${match[2]} (imputasi: ${match[3]})`);
         }
       }
     }
   }
+  
+  console.log("✅ Final parsed transaksiKeuangan:", JSON.stringify(result.transaksiKeuangan));
   
   return result;
 }
