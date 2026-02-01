@@ -489,7 +489,9 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   
   // Merge auto-generated with existing user values, prioritizing user edits
   const mergedAutoUpah = autoUpahEntries.map(autoEntry => {
-    const existingEdit = editedAutoUpah.find(edited => edited.jenisPekerjaan === autoEntry.jenisPekerjaan);
+    // Match by ID instead of jenisPekerjaan - this is more reliable
+    // User data will have the same ID as auto-generated (auto-imputasi-va-X)
+    const existingEdit = editedAutoUpah.find(edited => edited.id === autoEntry.id);
     if (existingEdit) {
       return {
         ...autoEntry,
@@ -516,7 +518,9 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   
   // Merge auto-generated with existing user values, prioritizing user edits
   const mergedAutoUsaha = autoUsahaEntries.map(autoEntry => {
-    const existingEdit = editedAutoUsaha.find(edited => edited.jenisPekerjaan === autoEntry.jenisPekerjaan);
+    // Match by ID instead of jenisPekerjaan - this is more reliable
+    // User data will have the same ID as auto-generated (auto-imputasi-vb-X)
+    const existingEdit = editedAutoUsaha.find(edited => edited.id === autoEntry.id);
     if (existingEdit) {
       return {
         ...autoEntry,
