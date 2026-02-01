@@ -306,6 +306,8 @@ function formatPage6Data(data: any): string[] {
   const values: string[] = [];
   const transaksiKeuangan = data.transaksiKeuangan || {};
   
+  console.log("💾 formatPage6Data - transaksiKeuangan:", JSON.stringify(transaksiKeuangan));
+  
   // Rincian Penerimaan (1 cell, rows separated by |)
   const penerimaanItems = [
     { key: 'pengambilanUangTunai', label: 'Pengambilan Uang Tunai' },
@@ -322,6 +324,8 @@ function formatPage6Data(data: any): string[] {
   }).join(' | ');
   values.push(penerimaanFormatted);
   
+  console.log("📥 Penerimaan formatted:", penerimaanFormatted);
+  
   // Rincian Pengeluaran (1 cell, rows separated by |)
   const pengeluaranItems = [
     { key: 'menyimpanUangTunai', label: 'Menyimpan Uang Tunai' },
@@ -337,6 +341,9 @@ function formatPage6Data(data: any): string[] {
     return `${item.label}_Nilai:${nilai}_Imputasi:${imputasi}`;
   }).join(' | ');
   values.push(pengeluaranFormatted);
+  
+  console.log("📤 Pengeluaran formatted:", pengeluaranFormatted);
+  console.log("✅ formatPage6Data returning:", JSON.stringify(values));
   
   return values;
 }
