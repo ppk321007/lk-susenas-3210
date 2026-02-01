@@ -575,67 +575,30 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     },
 
     // BLOK VE - Transfer Berjalan
+    // Only return imputasi-calculated fields, not user input fields
+    // User input fields should be preserved from data.transferBerjalan
     transferBerjalan: {
-      ...data.transferBerjalan,
-      // Regular pemerintah section (not bantuan)
       pemerintah: {
-        ...data.transferBerjalan?.pemerintah,
-        diterimaUang: data.transferBerjalan?.pemerintah?.diterimaUang || 0,
-        diterimaBarang: data.transferBerjalan?.pemerintah?.diterimaBarang || 0,
-        dibayarUang: data.transferBerjalan?.pemerintah?.dibayarUang || 0,
-        dibayarBarang: data.transferBerjalan?.pemerintah?.dibayarBarang || 0,
         imputasiTransferDiterimaUang: data.transferBerjalan?.pemerintah?.imputasiTransferDiterimaUang || 0,
         imputasiTransferDiterimaBarang: data.transferBerjalan?.pemerintah?.imputasiTransferDiterimaBarang || 0
       },
-      // Point 4 & 5: Map BPNT to Uang and Subsidi+Gratis to Barang in "Bantuan Pemerintah" section
       pemerintahBantuan: {
-        ...data.transferBerjalan?.pemerintahBantuan,
-        diterimaUang: data.transferBerjalan?.pemerintahBantuan?.diterimaUang || 0,
-        diterimaBarang: data.transferBerjalan?.pemerintahBantuan?.diterimaBarang || 0,
-        dibayarUang: data.transferBerjalan?.pemerintahBantuan?.dibayarUang || 0,
-        dibayarBarang: data.transferBerjalan?.pemerintahBantuan?.dibayarBarang || 0,
-        imputasiTransferDiterimaUang: pemerintahBantuanImputasiUang, // Point 4: BPNT goes to Uang in Bantuan Pemerintah
-        imputasiTransferDiterimaBarang: pemerintahBantuanImputasiBarang // Point 5: Subsidi + Gratis to Barang in Bantuan Pemerintah
+        imputasiTransferDiterimaUang: pemerintahBantuanImputasiUang,
+        imputasiTransferDiterimaBarang: pemerintahBantuanImputasiBarang
       },
       pemerintahUangPensiun: {
-        ...data.transferBerjalan?.pemerintahUangPensiun,
-        diterimaUang: data.transferBerjalan?.pemerintahUangPensiun?.diterimaUang || 0,
-        diterimaBarang: data.transferBerjalan?.pemerintahUangPensiun?.diterimaBarang || 0,
-        dibayarUang: data.transferBerjalan?.pemerintahUangPensiun?.dibayarUang || 0,
-        dibayarBarang: data.transferBerjalan?.pemerintahUangPensiun?.dibayarBarang || 0,
         imputasiTransferDiterimaUang: data.transferBerjalan?.pemerintahUangPensiun?.imputasiTransferDiterimaUang || 0
       },
       badanUsaha: {
-        ...data.transferBerjalan?.badanUsaha,
-        diterimaUang: data.transferBerjalan?.badanUsaha?.diterimaUang || 0,
-        diterimaBarang: data.transferBerjalan?.badanUsaha?.diterimaBarang || 0,
-        dibayarUang: data.transferBerjalan?.badanUsaha?.dibayarUang || 0,
-        dibayarBarang: data.transferBerjalan?.badanUsaha?.dibayarBarang || 0,
-        imputasiTransferDiterimaBarang: badanUsahaBarangImputasi // Only use calculated value, not add to existing
+        imputasiTransferDiterimaBarang: badanUsahaBarangImputasi
       },
-      // Point 6: Map "Pemberian dari Rumah Tangga Lain" to Rumah Tangga Lain
       rumahTanggaLain: {
-        ...data.transferBerjalan?.rumahTanggaLain,
-        diterimaUang: data.transferBerjalan?.rumahTanggaLain?.diterimaUang || 0,
-        diterimaBarang: data.transferBerjalan?.rumahTanggaLain?.diterimaBarang || 0,
-        dibayarUang: data.transferBerjalan?.rumahTanggaLain?.dibayarUang || 0,
-        dibayarBarang: data.transferBerjalan?.rumahTanggaLain?.dibayarBarang || 0,
         imputasiTransferDiterimaBarang: rumahTanggaLainImputasiBarang
       },
       lembagaNirlaba: {
-        ...data.transferBerjalan?.lembagaNirlaba,
-        diterimaUang: data.transferBerjalan?.lembagaNirlaba?.diterimaUang || 0,
-        diterimaBarang: data.transferBerjalan?.lembagaNirlaba?.diterimaBarang || 0,
-        dibayarUang: data.transferBerjalan?.lembagaNirlaba?.dibayarUang || 0,
-        dibayarBarang: data.transferBerjalan?.lembagaNirlaba?.dibayarBarang || 0,
         imputasiTransferDiterimaBarang: lembagaNirlabaImputasiBarang
       },
       luarNegeri: {
-        ...data.transferBerjalan?.luarNegeri,
-        diterimaUang: data.transferBerjalan?.luarNegeri?.diterimaUang || 0,
-        diterimaBarang: data.transferBerjalan?.luarNegeri?.diterimaBarang || 0,
-        dibayarUang: data.transferBerjalan?.luarNegeri?.dibayarUang || 0,
-        dibayarBarang: data.transferBerjalan?.luarNegeri?.dibayarBarang || 0,
         imputasiTransferDiterimaBarang: luarNegeriImputasiBarang
       }
     },
@@ -911,17 +874,6 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         Menyimpan Uang Imputasi: ${menyimpanUangTunaiImputasi}`);
 
       return {
-        ...data.transaksiKeuangan,
-        pengambilanUangTunai: data.transaksiKeuangan?.pengambilanUangTunai || 0,
-        meminjamUang: data.transaksiKeuangan?.meminjamUang || 0,
-        menerimaPembayaranKredit: data.transaksiKeuangan?.menerimaPembayaranKredit || 0,
-        kreditBarang: data.transaksiKeuangan?.kreditBarang || 0,
-        lainnyaPenerimaan: data.transaksiKeuangan?.lainnyaPenerimaan || 0,
-        menyimpanUangTunai: data.transaksiKeuangan?.menyimpanUangTunai || 0,
-        membayarHutang: data.transaksiKeuangan?.membayarHutang || 0,
-        memberikanKreditBarang: data.transaksiKeuangan?.memberikanKreditBarang || 0,
-        membayarKreditBarang: data.transaksiKeuangan?.membayarKreditBarang || 0,
-        lainnyaPengeluaran: data.transaksiKeuangan?.lainnyaPengeluaran || 0,
         imputasiPenerimaanPengambilanUangTunai: pengambilanUangTunaiImputasiBase,
         imputasiPenerimaanMeminjamUang: meminjamUangImputasi,
         imputasiPenerimaanKreditBarang: kreditBarangImputasi,

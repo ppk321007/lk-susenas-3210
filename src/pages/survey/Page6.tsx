@@ -57,10 +57,17 @@ export const Page6 = ({
     imputasiPengeluaranLainnya: 0,
     kontrolMengambil: {},
     kontrolMenyimpan: {},
-    // Merge with user data (which may override the defaults)
-    ...data.transaksiKeuangan,
-    // Always apply calculated imputasi values (they take precedence)
-    ...(imputasiCalculations.transaksiKeuangan || {})
+    // Merge with user data (user values take priority for transaction amounts)
+    ...(data.transaksiKeuangan || {}),
+    // Only apply imputasi-calculated fields, never override user transaction amounts
+    imputasiPenerimaanPengambilanUangTunai: imputasiCalculations.transaksiKeuangan?.imputasiPenerimaanPengambilanUangTunai || 0,
+    imputasiPenerimaanMeminjamUang: imputasiCalculations.transaksiKeuangan?.imputasiPenerimaanMeminjamUang || 0,
+    imputasiPenerimaanKreditBarang: imputasiCalculations.transaksiKeuangan?.imputasiPenerimaanKreditBarang || 0,
+    imputasiPenerimaanLainnya: imputasiCalculations.transaksiKeuangan?.imputasiPenerimaanLainnya || 0,
+    imputasiPengeluaranMenyimpanUangTunai: imputasiCalculations.transaksiKeuangan?.imputasiPengeluaranMenyimpanUangTunai || 0,
+    imputasiPengeluaranLainnya: imputasiCalculations.transaksiKeuangan?.imputasiPengeluaranLainnya || 0,
+    kontrolMengambil: imputasiCalculations.transaksiKeuangan?.kontrolMengambil || {},
+    kontrolMenyimpan: imputasiCalculations.transaksiKeuangan?.kontrolMenyimpan || {}
   };
   
   const updateTransaksiKeuangan = (field: keyof TransaksiKeuanganEntry, value: number) => {
