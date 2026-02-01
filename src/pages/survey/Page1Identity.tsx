@@ -74,31 +74,35 @@ export const Page1Identity = ({
       setLoadError(null);
 
       try {
+        console.log('Attempting to fetch assignments for username:', nama);
         const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
           body: { username: nama }
         });
 
         if (error) {
           console.error('Supabase function error:', error);
-          throw new Error(`Error: ${error.message || 'Gagal memuat data penugasan'}`);
+          const errorDetails = error.context?.status ? ` (Status: ${error.context.status})` : '';
+          throw new Error(`Supabase Function Error: ${error.message || 'Unknown error'}${errorDetails}`);
         }
 
+        console.log('Response from get-user-assignments:', response);
+
         if (!response) {
-          throw new Error('Respons kosong dari server');
+          throw new Error('Respons kosong dari server - periksa apakah Supabase function sudah ter-deploy');
         }
 
         if (!response.success) {
-          const errorMsg = response.error || 'Gagal memuat data penugasan';
+          const errorMsg = response.error || response.message || 'Gagal memuat data penugasan';
           console.error('Response error:', errorMsg);
           throw new Error(errorMsg);
         }
 
         if (!response.data) {
-          throw new Error('Data penugasan tidak tersedia');
+          throw new Error('Data penugasan tidak tersedia - silakan hubungi administrator');
         }
 
         if (!Array.isArray(response.data.assignments) || response.data.assignments.length === 0) {
-          const errorMsg = 'Tidak ada penugasan yang ditemukan untuk petugas ini';
+          const errorMsg = 'Tidak ada penugasan yang ditemukan untuk petugas: ' + nama;
           console.warn('No assignments found:', response.data);
           setLoadError(errorMsg);
           setIsLoading(false);
@@ -137,9 +141,10 @@ export const Page1Identity = ({
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat memuat data';
         console.error('Error fetching user assignments:', error);
+        console.error('Full error object:', error);
         setLoadError(errorMessage);
         toast({
-          title: "Gagal Memuat Data",
+          title: "Gagal Memuat Data Penugasan",
           description: errorMessage,
           variant: "destructive"
         });
@@ -391,8 +396,18 @@ export const Page1Identity = ({
             <div className="space-y-2">
               <Label htmlFor="nks">NKS</Label>
               {loadError && (
-                <div className="text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200 mb-2">
-                  {loadError}
+                <div className="text-sm text-red-700 bg-red-50 p-3 rounded border border-red-200 mb-2 space-y-1">
+                  <div className="font-semibold">⚠️ Gagal Memuat Data Penugasan</div>
+                  <div>{loadError}</div>
+                  <div className="text-xs text-red-600 mt-2">
+                    Solusi: 
+                    <ul className="list-disc ml-4 mt-1">
+                      <li>Periksa koneksi internet</li>
+                      <li>Pastikan username/nama sudah benar</li>
+                      <li>Silakan refresh halaman</li>
+                      <li>Hubungi administrator jika masalah berlanjut</li>
+                    </ul>
+                  </div>
                 </div>
               )}
               {isLoading && (
@@ -406,7 +421,7 @@ export const Page1Identity = ({
                 value={selectedNksIndex !== null ? selectedNksIndex.toString() : undefined}
               >
                 <SelectTrigger disabled={isLoading || !userAssignments || !userAssignments.assignments || userAssignments.assignments.length === 0}>
-                  <SelectValue placeholder={isLoading ? "Memuat..." : !userAssignments ? "Memuat..." : userAssignments.assignments?.length === 0 ? "Tidak ada penugasan" : "Pilih NKS"} />
+                  <SelectValue placeholder={isLoading ? "Memuat..." : !userAssignments ? "Gagal memuat" : userAssignments.assignments?.length === 0 ? "Tidak ada penugasan" : "Pilih NKS"} />
                 </SelectTrigger>
                 <SelectContent>
                   {userAssignments?.assignments && userAssignments.assignments.length > 0 ? (

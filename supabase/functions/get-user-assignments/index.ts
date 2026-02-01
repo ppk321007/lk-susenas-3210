@@ -86,10 +86,18 @@ serve(async (req) => {
 
     const serviceAccountJson = Deno.env.get('GOOGLE_SERVICE_ACCOUNT');
     if (!serviceAccountJson) {
-      throw new Error('GOOGLE_SERVICE_ACCOUNT not configured');
+      console.error('GOOGLE_SERVICE_ACCOUNT environment variable not configured');
+      throw new Error('GOOGLE_SERVICE_ACCOUNT environment variable not configured. Please contact administrator.');
     }
 
-    const credentials: ServiceAccountCredentials = JSON.parse(serviceAccountJson);
+    let credentials: ServiceAccountCredentials;
+    try {
+      credentials = JSON.parse(serviceAccountJson);
+    } catch (e) {
+      console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT:', e);
+      throw new Error('Invalid GOOGLE_SERVICE_ACCOUNT configuration. Please contact administrator.');
+    }
+
     const accessToken = await getAccessToken(credentials);
 
     // Spreadsheet for user assignments - using PETUGAS sheet
@@ -105,7 +113,14 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Google Sheets API error: ${errorText}`);
+      console.error(`Google Sheets API error: ${response.status} - ${errorText}`);
+      if (response.status === 401) {
+        throw new Error('Google Sheets API authentication failed. Service account may be invalid.');
+      } else if (response.status === 403) {
+        throw new Error('Access denied to Google Sheets. Service account may lack permissions.');
+      } else if (response.status === 404) {
+        throw new Error('Google Sheets spreadsheet not found. Check spreadsheet ID.');
+      }
       throw new Error(`Google Sheets API error: ${response.status}`);
     }
 
@@ -119,8 +134,12 @@ serve(async (req) => {
 
     if (!userRow) {
       console.log(`No assignment found for user: ${username}`);
+      console.log(`Available users: ${rows.map((r: string[]) => r[0]).join(', ')}`);
       return new Response(
-        JSON.stringify({ success: false, message: 'No assignment found for this user' }),
+        JSON.stringify({ 
+          success: false, 
+          error: `User "${username}" not found in PETUGAS sheet. Check spelling and capitalization.`
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -183,7 +202,11 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error fetching user assignments:', error);
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ 
+        success: false, 
+        error: errorMessage,
+        message: errorMessage 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
