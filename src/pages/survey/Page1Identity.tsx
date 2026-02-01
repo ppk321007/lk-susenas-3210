@@ -539,7 +539,6 @@ export const Page1Identity = ({
             </div>
           </div>
         </>
-      )}
     </div>
   );
 };
