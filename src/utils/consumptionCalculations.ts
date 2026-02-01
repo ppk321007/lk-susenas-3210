@@ -98,16 +98,40 @@ export const applySurveyImputasiCalculations = (data: SurveyData): SurveyData =>
   const householdTransferAmount = calculateTransferFromHouseholds(data);
   console.log("💰 Household transfer amount:", householdTransferAmount);
 
-  // Update transfer berjalan with calculated amount.
-  // IMPORTANT: start from imputasi-calculated transferBerjalan (if present), so we don't overwrite
-  // other imputasi fields (e.g. imputasiTransferDiterimaBarang from Page 2/3 "Pemberian").
-  const baseTransferBerjalan = imputasiUpdates.transferBerjalan ?? data.transferBerjalan;
-
+  // Update transfer berjalan with calculated amount
+  // IMPORTANT: Preserve all user input fields from data.transferBerjalan, only apply imputasi fields
   const updatedTransferBerjalan = {
-    ...baseTransferBerjalan,
+    ...data.transferBerjalan,
+    // Merge in the imputasi-calculated fields (only imputasi, not user inputs)
+    pemerintah: {
+      ...data.transferBerjalan?.pemerintah,
+      imputasiTransferDiterimaUang: imputasiUpdates.transferBerjalan?.pemerintah?.imputasiTransferDiterimaUang,
+      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.pemerintah?.imputasiTransferDiterimaBarang
+    },
+    pemerintahBantuan: {
+      ...data.transferBerjalan?.pemerintahBantuan,
+      imputasiTransferDiterimaUang: imputasiUpdates.transferBerjalan?.pemerintahBantuan?.imputasiTransferDiterimaUang,
+      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.pemerintahBantuan?.imputasiTransferDiterimaBarang
+    },
+    pemerintahUangPensiun: {
+      ...data.transferBerjalan?.pemerintahUangPensiun,
+      imputasiTransferDiterimaUang: imputasiUpdates.transferBerjalan?.pemerintahUangPensiun?.imputasiTransferDiterimaUang
+    },
+    badanUsaha: {
+      ...data.transferBerjalan?.badanUsaha,
+      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.badanUsaha?.imputasiTransferDiterimaBarang
+    },
     rumahTanggaLain: {
-      ...baseTransferBerjalan?.rumahTanggaLain,
-      imputasiTransferDiterimaUang: householdTransferAmount
+      ...data.transferBerjalan?.rumahTanggaLain,
+      imputasiTransferDiterimaBarang: householdTransferAmount
+    },
+    lembagaNirlaba: {
+      ...data.transferBerjalan?.lembagaNirlaba,
+      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.lembagaNirlaba?.imputasiTransferDiterimaBarang
+    },
+    luarNegeri: {
+      ...data.transferBerjalan?.luarNegeri,
+      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.luarNegeri?.imputasiTransferDiterimaBarang
     }
   };
 
