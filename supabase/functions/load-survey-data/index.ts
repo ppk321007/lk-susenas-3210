@@ -549,7 +549,7 @@ function parsePage6Data(cells: string[]): Record<string, any> {
       'Lainnya Penerimaan': 'lainnyaPenerimaan'
     };
     for (const item of items) {
-      const match = item.match(/(.+?)_Nilai:(\d+)_Imputasi:(\d+)/);
+      const match = item.match(/(.+?)_Nilai:(-?\d+)_Imputasi:(-?\d+)/);
       if (match) {
         const key = keyMap[match[1]];
         if (key) {
@@ -574,7 +574,7 @@ function parsePage6Data(cells: string[]): Record<string, any> {
       'Lainnya Pengeluaran': 'lainnyaPengeluaran'
     };
     for (const item of items) {
-      const match = item.match(/(.+?)_Nilai:(\d+)_Imputasi:(\d+)/);
+      const match = item.match(/(.+?)_Nilai:(-?\d+)_Imputasi:(-?\d+)/);
       if (match) {
         const key = keyMap[match[1]];
         if (key) {
