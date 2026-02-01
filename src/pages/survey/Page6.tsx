@@ -150,7 +150,7 @@ export const Page6 = ({
 
   // Calculate consumption expenses from BLOK IV.3.3 - use exact same calculation as Page4Recap
   const calculateKonsumsiRT = () => {
-    // Calculate food subtotal using normalizer (weekly)
+    // Calculate food subtotal using normalizer (returns weekly values)
     const foodSubtotal = Object.keys(FOOD_CATEGORIES).reduce((total, categoryKey) => {
       const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
       const { totalPembelian, totalProduksiSendiri } = getFoodCategoryTotals(
@@ -162,18 +162,25 @@ export const Page6 = ({
       return total + totalPembelian + totalProduksiSendiri;
     }, 0);
 
-    // Food monthly average
-    const rataRataSebulan = foodSubtotal * 30 / 7;
+    // Food is in weekly period - convert to monthly (30/7)
+    const rataRataSebulanFood = foodSubtotal * 30 / 7;
 
-    // Calculate RATA-RATA PENGELUARAN RUMAH TANGGA SEBULAN using normalizer
-    const rataRataRumahTanggaSebulan = Math.round(rataRataSebulan + Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
+    // Calculate non-food monthly total (already handles period conversion internally)
+    const nonFoodMonthlyTotal = Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
       const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
       return totalMonthly + getNonFoodMonthlyTotal(monthlyData);
-    }, 0) + Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
-      return totalYearly + getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
-    }, 0) / 12);
+    }, 0);
 
-    // Return yearly consumption
+    // For yearly non-food data, need to convert to monthly (divide by 12)
+    const nonFoodYearlyMonthlyTotal = Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
+      const yearlyTotal = getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
+      return totalMonthly + Math.round(yearlyTotal / 12);
+    }, 0);
+
+    // RATA-RATA PENGELUARAN RUMAH TANGGA SEBULAN (in monthly period)
+    const rataRataRumahTanggaSebulan = Math.round(rataRataSebulanFood + nonFoodMonthlyTotal + nonFoodYearlyMonthlyTotal);
+
+    // Return yearly consumption (monthly * 12)
     return rataRataRumahTanggaSebulan * 12;
   };
 

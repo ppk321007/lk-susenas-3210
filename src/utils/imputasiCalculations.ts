@@ -48,6 +48,8 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
 
   console.log("=== IMPUTASI CALCULATION START ===");
   console.log("Food data:", data.makananMinuman);
+  console.log("Non-food monthly data:", Object.keys(data).filter(k => k.includes('Sebulan')));
+  console.log("Non-food yearly data:", data.komoditiSetahun);
 
   if (!data.makananMinuman) {
     console.log("No food data found!");
@@ -466,6 +468,12 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   // Convert Maps to Arrays for final preparation
   const autoUpahEntries = Array.from(autoUpahEntriesMap.values());
   const autoUsahaEntries = Array.from(autoUsahaEntriesMap.values());
+
+  console.log("=== AUTO GENERATED ENTRIES ===");
+  console.log("autoUpahEntriesMap size:", autoUpahEntriesMap.size);
+  console.log("autoUpahEntries:", autoUpahEntries);
+  console.log("autoUsahaEntriesMap size:", autoUsahaEntriesMap.size);
+  console.log("autoUsahaEntries:", autoUsahaEntries);
 
   // Prepare final arrays: merge user-edited values with auto-generated entries
   const existingUpah = (data.pendapatanUpah || []).filter(

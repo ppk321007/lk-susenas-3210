@@ -46,6 +46,8 @@ export const getNormalizedExpenseTotals = (expense: FoodExpense | NonFoodExpense
 
 /**
  * Calculate totals for a food category (A-N) from survey data
+ * NOTE: Food data is expected to be in weekly period by default
+ * Returns totals in their raw period (weekly), conversion to monthly/yearly happens elsewhere
  */
 export const getFoodCategoryTotals = (
   categoryKey: string,
@@ -61,18 +63,46 @@ export const getFoodCategoryTotals = (
     categoryItems.forEach(item => {
       const key = `${categoryKey}_${item}`;
       const expense = makananMinuman[key];
-      const normalized = getNormalizedExpenseTotals(expense);
-      totalPembelian += normalized.pembelian;
-      totalProduksiSendiri += normalized.produksiSendiri;
+      
+      if (expense && expense.entries && Array.isArray(expense.entries)) {
+        // Process entries and keep them in their original period
+        expense.entries.forEach((entry: any) => {
+          const nilai = entry.nilai || 0;
+          if (entry.kategori === 'Pembelian') {
+            totalPembelian += nilai;
+          } else if (entry.kategori === 'Produksi Sendiri/Pemberian' || entry.kategori === 'Pemberian') {
+            totalProduksiSendiri += nilai;
+          }
+        });
+      } else {
+        // Fallback to direct fields
+        const normalized = getNormalizedExpenseTotals(expense);
+        totalPembelian += normalized.pembelian;
+        totalProduksiSendiri += normalized.produksiSendiri;
+      }
     });
   } else {
     // Per-member categories (M, N)
     namaAnggotaRumahTangga.forEach((_, index) => {
       const key = `${categoryKey}_${index}`;
       const expense = makananMinuman[key];
-      const normalized = getNormalizedExpenseTotals(expense);
-      totalPembelian += normalized.pembelian;
-      totalProduksiSendiri += normalized.produksiSendiri;
+      
+      if (expense && expense.entries && Array.isArray(expense.entries)) {
+        // Process entries and keep them in their original period
+        expense.entries.forEach((entry: any) => {
+          const nilai = entry.nilai || 0;
+          if (entry.kategori === 'Pembelian') {
+            totalPembelian += nilai;
+          } else if (entry.kategori === 'Produksi Sendiri/Pemberian' || entry.kategori === 'Pemberian') {
+            totalProduksiSendiri += nilai;
+          }
+        });
+      } else {
+        // Fallback to direct fields
+        const normalized = getNormalizedExpenseTotals(expense);
+        totalPembelian += normalized.pembelian;
+        totalProduksiSendiri += normalized.produksiSendiri;
+      }
     });
   }
 
@@ -81,6 +111,8 @@ export const getFoodCategoryTotals = (
 
 /**
  * Calculate totals for a non-food category from monthly data
+ * NOTE: This function expects data that's already normalized to monthly period
+ * If entries have periode field set to 'tahun', they need conversion to monthly first
  */
 export const getNonFoodMonthlyTotal = (
   monthlyData: Record<string, any> | undefined
@@ -90,6 +122,32 @@ export const getNonFoodMonthlyTotal = (
   }
 
   return Object.values(monthlyData).reduce((sum, expense) => {
+    if (!expense) return sum;
+    
+    // Check if expense has entries with periode field
+    if (expense.entries && Array.isArray(expense.entries)) {
+      return sum + expense.entries.reduce((entrySum: number, entry: any) => {
+        const nilai = entry.nilai || 0;
+        const periode = entry.periode || 'minggu';
+        
+        // Convert to monthly based on periode
+        let monthlyValue = 0;
+        if (periode === 'minggu' || periode === 'weekly') {
+          monthlyValue = Math.round(nilai * 30 / 7);
+        } else if (periode === 'bulan' || periode === 'monthly') {
+          monthlyValue = nilai;
+        } else if (periode === 'tahun' || periode === 'yearly') {
+          // If already yearly, divide by 12 to get monthly
+          monthlyValue = Math.round(nilai / 12);
+        } else {
+          // Default to weekly
+          monthlyValue = Math.round(nilai * 30 / 7);
+        }
+        return entrySum + monthlyValue;
+      }, 0);
+    }
+    
+    // Fallback to direct fields (assumed to be monthly)
     const normalized = getNormalizedExpenseTotals(expense);
     return sum + normalized.total;
   }, 0);
