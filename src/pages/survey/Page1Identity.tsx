@@ -54,6 +54,7 @@ export const Page1Identity = ({
   const [selectedNksIndex, setSelectedNksIndex] = useState<number | null>(null);
   const [selectedNoSampelIndex, setSelectedNoSampelIndex] = useState<number | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Fetch user assignments on mount
   useEffect(() => {
@@ -70,45 +71,76 @@ export const Page1Identity = ({
         localStorage.setItem('userInfo', JSON.stringify(parsed));
       }
       setIsLoading(true);
+      setLoadError(null);
 
       try {
         const { data: response, error } = await supabase.functions.invoke('get-user-assignments', {
           body: { username: nama }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase function error:', error);
+          throw new Error(`Error: ${error.message || 'Gagal memuat data penugasan'}`);
+        }
 
-        if (response?.success && response.data) {
-          setUserAssignments(response.data);
-          // Auto-fill pencacah and pemeriksa
-          updateData({
-            namaPendata: nama,
-            pencacah: response.data.pencacah || '',
-            pemeriksa: response.data.pemeriksa || ''
+        if (!response) {
+          throw new Error('Respons kosong dari server');
+        }
+
+        if (!response.success) {
+          const errorMsg = response.error || 'Gagal memuat data penugasan';
+          console.error('Response error:', errorMsg);
+          throw new Error(errorMsg);
+        }
+
+        if (!response.data) {
+          throw new Error('Data penugasan tidak tersedia');
+        }
+
+        if (!Array.isArray(response.data.assignments) || response.data.assignments.length === 0) {
+          const errorMsg = 'Tidak ada penugasan yang ditemukan untuk petugas ini';
+          console.warn('No assignments found:', response.data);
+          setLoadError(errorMsg);
+          setIsLoading(false);
+          toast({
+            title: "Data Tidak Ditemukan",
+            description: errorMsg,
+            variant: "destructive"
           });
+          return;
+        }
 
-          // If we already have data.nks and data.noSampel, restore the selection
-          if (data.nks && data.noSampel && !hasInitialized) {
-            const nksIdx = response.data.assignments.findIndex(
-              (a: Assignment) => a.nks === data.nks
+        setUserAssignments(response.data);
+        // Auto-fill pencacah and pemeriksa
+        updateData({
+          namaPendata: nama,
+          pencacah: response.data.pencacah || '',
+          pemeriksa: response.data.pemeriksa || ''
+        });
+
+        // If we already have data.nks and data.noSampel, restore the selection
+        if (data.nks && data.noSampel && !hasInitialized) {
+          const nksIdx = response.data.assignments.findIndex(
+            (a: Assignment) => a.nks === data.nks
+          );
+          if (nksIdx >= 0) {
+            setSelectedNksIndex(nksIdx);
+            const noSampelIdx = response.data.assignments[nksIdx].noSampelList.findIndex(
+              (ns: string) => ns === data.noSampel
             );
-            if (nksIdx >= 0) {
-              setSelectedNksIndex(nksIdx);
-              const noSampelIdx = response.data.assignments[nksIdx].noSampelList.findIndex(
-                (ns: string) => ns === data.noSampel
-              );
-              if (noSampelIdx >= 0) {
-                setSelectedNoSampelIndex(noSampelIdx);
-              }
+            if (noSampelIdx >= 0) {
+              setSelectedNoSampelIndex(noSampelIdx);
             }
-            setHasInitialized(true);
           }
+          setHasInitialized(true);
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan saat memuat data';
         console.error('Error fetching user assignments:', error);
+        setLoadError(errorMessage);
         toast({
           title: "Gagal Memuat Data",
-          description: "Tidak dapat memuat data penugasan. Silakan coba lagi.",
+          description: errorMessage,
           variant: "destructive"
         });
       } finally {
@@ -364,19 +396,30 @@ export const Page1Identity = ({
 
             <div className="space-y-2">
               <Label htmlFor="nks">NKS</Label>
+              {loadError && (
+                <div className="text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200 mb-2">
+                  {loadError}
+                </div>
+              )}
               <Select 
                 onValueChange={handleNksChange} 
                 value={selectedNksIndex !== null ? selectedNksIndex.toString() : undefined}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih NKS" />
+                <SelectTrigger disabled={!userAssignments || !userAssignments.assignments || userAssignments.assignments.length === 0}>
+                  <SelectValue placeholder={!userAssignments ? "Memuat..." : userAssignments.assignments?.length === 0 ? "Tidak ada penugasan" : "Pilih NKS"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {userAssignments?.assignments.map((assignment, index) => (
-                    <SelectItem key={index} value={index.toString()}>
-                      {assignment.nks}
-                    </SelectItem>
-                  ))}
+                  {userAssignments?.assignments && userAssignments.assignments.length > 0 ? (
+                    userAssignments.assignments.map((assignment, index) => (
+                      <SelectItem key={index} value={index.toString()}>
+                        {assignment.nks} - {assignment.desa}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      Tidak ada penugasan tersedia
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -419,17 +462,23 @@ export const Page1Identity = ({
               <Select 
                 onValueChange={handleNoSampelChange} 
                 value={selectedNoSampelIndex !== null ? selectedNoSampelIndex.toString() : undefined}
-                disabled={selectedNksIndex === null}
+                disabled={selectedNksIndex === null || !userAssignments}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={selectedNksIndex === null ? "Pilih NKS dahulu" : "Pilih No Sampel"} />
+                  <SelectValue placeholder={selectedNksIndex === null ? "Pilih NKS dahulu" : selectedNoSampelIndex === null && userAssignments?.assignments[selectedNksIndex]?.noSampelList?.length === 0 ? "Tidak ada sampel" : "Pilih No Sampel"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {selectedNksIndex !== null && userAssignments?.assignments[selectedNksIndex]?.noSampelList.map((noSampel, index) => (
-                    <SelectItem key={index} value={index.toString()}>
-                      {noSampel}
-                    </SelectItem>
-                  ))}
+                  {selectedNksIndex !== null && userAssignments?.assignments[selectedNksIndex]?.noSampelList && userAssignments.assignments[selectedNksIndex].noSampelList.length > 0 ? (
+                    userAssignments.assignments[selectedNksIndex].noSampelList.map((noSampel, index) => (
+                      <SelectItem key={index} value={index.toString()}>
+                        {noSampel}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      {selectedNksIndex === null ? "Pilih NKS terlebih dahulu" : "Tidak ada sampel"}
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
