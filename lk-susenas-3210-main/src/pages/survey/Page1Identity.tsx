@@ -319,7 +319,7 @@ export const Page1Identity = ({
           <Loader2 className="h-6 w-6 animate-spin mr-2" />
           <span>Memuat data penugasan...</span>
         </div>
-      ) : !isLoading && (
+      ) : (
         <div>
           {isLoadingData && (
             <div className="flex items-center justify-center py-2 bg-blue-50 rounded-md">
