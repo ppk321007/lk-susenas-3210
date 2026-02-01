@@ -319,8 +319,8 @@ export const Page1Identity = ({
           <Loader2 className="h-6 w-6 animate-spin mr-2" />
           <span>Memuat data penugasan...</span>
         </div>
-      ) : (
-        <>
+      ) : !isLoading && (
+        <div>
           {isLoadingData && (
             <div className="flex items-center justify-center py-2 bg-blue-50 rounded-md">
               <RefreshCw className="h-4 w-4 animate-spin mr-2 text-blue-600" />
@@ -489,7 +489,7 @@ export const Page1Identity = ({
               Jumlah Anggota Rumah Tangga: {data.jumlahAnggotaRumahTangga}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
