@@ -763,7 +763,6 @@ serve(async (req) => {
 
     // PAGE 6 data (2 cells)
     const page6Cells = matchingRow.slice(colIndex, colIndex + 2);
-    console.log(`📊 PAGE 6 cells at index ${colIndex}-${colIndex + 1}: ${JSON.stringify(page6Cells)}`);
     const page6Data = parsePage6Data(page6Cells);
     Object.assign(surveyData, page6Data);
     
