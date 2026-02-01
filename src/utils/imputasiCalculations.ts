@@ -481,12 +481,10 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   );
   
   // For auto-generated entries that have been edited by users, preserve their user-entered values
+  // Use lenient matching - only check ID pattern, not field values
+  // This ensures entries persist even if optional fields aren't filled by user
   const editedAutoUpah = (data.pendapatanUpah || []).filter(
-    (e) => e && e.id && e.id.startsWith('auto-imputasi-va-') && (
-      e.upahUang > 0 || 
-      e.upahBarang > 0 || 
-      e.lembur > 0
-    )
+    (e) => e && e.id && e.id.startsWith('auto-imputasi-va-')
   );
   
   // Merge auto-generated with existing user values, prioritizing user edits
@@ -509,12 +507,11 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     (e) => e && e.id && !e.id.startsWith('auto-imputasi-vb-') && e.id !== 'auto-generated-usaha'
   );
   
-  // For auto-generated entries that have been edited by users, preserve their user-entered values  
+  // For auto-generated entries that have been edited by users, preserve their user-entered values
+  // Use lenient matching - only check ID pattern, not field values  
+  // This ensures entries persist even if optional fields aren't filled by user
   const editedAutoUsaha = (data.pendapatanUsaha || []).filter(
-    (e) => e && e.id && e.id.startsWith('auto-imputasi-vb-') && (
-      e.nilaiProduksi > 0 || 
-      e.biayaProduksi > 0
-    )
+    (e) => e && e.id && e.id.startsWith('auto-imputasi-vb-')
   );
   
   // Merge auto-generated with existing user values, prioritizing user edits

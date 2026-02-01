@@ -162,7 +162,7 @@ export const Page6 = ({
       return total + totalPembelian + totalProduksiSendiri;
     }, 0);
 
-    // Food is in weekly period - convert to monthly (30/7)
+    // Food is in weekly period - convert to monthly (30/7), don't round yet
     const rataRataSebulanFood = foodSubtotal * 30 / 7;
 
     // Calculate non-food monthly total (already handles period conversion internally)
@@ -171,13 +171,14 @@ export const Page6 = ({
       return totalMonthly + getNonFoodMonthlyTotal(monthlyData);
     }, 0);
 
-    // For yearly non-food data, need to convert to monthly (divide by 12)
+    // For yearly non-food data, convert to monthly (divide by 12), don't round yet to avoid precision loss
     const nonFoodYearlyMonthlyTotal = Object.keys(NON_FOOD_CATEGORIES).reduce((totalMonthly, categoryKey) => {
       const yearlyTotal = getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
-      return totalMonthly + Math.round(yearlyTotal / 12);
+      return totalMonthly + (yearlyTotal / 12); // Don't round individual items
     }, 0);
 
     // RATA-RATA PENGELUARAN RUMAH TANGGA SEBULAN (in monthly period)
+    // Round only the final monthly total, not individual components
     const rataRataRumahTanggaSebulan = Math.round(rataRataSebulanFood + nonFoodMonthlyTotal + nonFoodYearlyMonthlyTotal);
 
     // Return yearly consumption (monthly * 12)
