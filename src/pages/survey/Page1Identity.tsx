@@ -346,21 +346,15 @@ export const Page1Identity = ({
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin mr-2" />
-          <span>Memuat data penugasan...</span>
+      {isLoadingData && (
+        <div className="flex items-center justify-center py-2 bg-blue-50 rounded-md">
+          <RefreshCw className="h-4 w-4 animate-spin mr-2 text-blue-600" />
+          <span className="text-sm text-blue-600">Memuat data rumah tangga...</span>
         </div>
-      ) : (
-        <>
-          {isLoadingData && (
-            <div className="flex items-center justify-center py-2 bg-blue-50 rounded-md">
-              <RefreshCw className="h-4 w-4 animate-spin mr-2 text-blue-600" />
-              <span className="text-sm text-blue-600">Memuat data rumah tangga...</span>
-            </div>
-          )}
+      )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="namaPendata">Nama Petugas Pendataan Lapangan</Label>
               <Input 
@@ -401,12 +395,18 @@ export const Page1Identity = ({
                   {loadError}
                 </div>
               )}
+              {isLoading && (
+                <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-200 mb-2 flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Memuat daftar NKS...
+                </div>
+              )}
               <Select 
                 onValueChange={handleNksChange} 
                 value={selectedNksIndex !== null ? selectedNksIndex.toString() : undefined}
               >
-                <SelectTrigger disabled={!userAssignments || !userAssignments.assignments || userAssignments.assignments.length === 0}>
-                  <SelectValue placeholder={!userAssignments ? "Memuat..." : userAssignments.assignments?.length === 0 ? "Tidak ada penugasan" : "Pilih NKS"} />
+                <SelectTrigger disabled={isLoading || !userAssignments || !userAssignments.assignments || userAssignments.assignments.length === 0}>
+                  <SelectValue placeholder={isLoading ? "Memuat..." : !userAssignments ? "Memuat..." : userAssignments.assignments?.length === 0 ? "Tidak ada penugasan" : "Pilih NKS"} />
                 </SelectTrigger>
                 <SelectContent>
                   {userAssignments?.assignments && userAssignments.assignments.length > 0 ? (
@@ -417,7 +417,7 @@ export const Page1Identity = ({
                     ))
                   ) : (
                     <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      Tidak ada penugasan tersedia
+                      {isLoading ? "Sedang memuat..." : "Tidak ada penugasan tersedia"}
                     </div>
                   )}
                 </SelectContent>
