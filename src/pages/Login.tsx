@@ -59,7 +59,7 @@ const Login = () => {
       console.error('Login error:', error);
       toast({
         title: "Error",
-        description: "Terjadi kesalahan saat login. Silakan coba lagi.",
+        description: "Terjadi kesalahan saat login. Silakan coba lagi..",
         variant: "destructive",
       });
     } finally {
