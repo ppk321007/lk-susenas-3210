@@ -504,8 +504,67 @@ function parsePage5Data(cells: string[]): Record<string, any> {
     biayaPemindahan: { pembelian: 0, pemberian: 0, pembuatanSendiri: 0, penjualan: 0, pemberianKepada: 0, netto: 0 },
     lahanBarang: { ...defaultAsetPerubahan }
   };
+  
   if (asetCell && asetCell !== '0') {
-    // existing parsing (below) handles this cell
+    console.log("📦 Parsing asetCell:", asetCell);
+    const asetItems = asetCell.split(' | ');
+    for (const item of asetItems) {
+      // Format: AsetTetapUsaha_itemKey_Pembelian:X_Pemberian:X_PembuatanSendiri:X_Penjualan:X_PemberianKepada:X_Netto:X_ImputasiPemberian:X_ImputasiPemberianKepada:X
+      // Or: itemKey_Pembelian:X_Pemberian:X_... (for bangunanTinggal, biayaPemindahan, lahanBarang)
+      
+      // Try AsetTetapUsaha format first
+      const asetTetapMatch = item.match(
+        /AsetTetapUsaha_(\w+)_Pembelian:(-?\d+)_Pemberian:(-?\d+)_PembuatanSendiri:(-?\d+)_Penjualan:(-?\d+)_PemberianKepada:(-?\d+)_Netto:(-?\d+)_ImputasiPemberian:(-?\d+)_ImputasiPemberianKepada:(-?\d+)/
+      );
+      if (asetTetapMatch) {
+        const itemKey = asetTetapMatch[1];
+        if (result.asetPerubahan.asetTetapUsaha[itemKey]) {
+          result.asetPerubahan.asetTetapUsaha[itemKey] = {
+            pembelian: toInt(asetTetapMatch[2]),
+            pemberian: toInt(asetTetapMatch[3]),
+            pembuatanSendiri: toInt(asetTetapMatch[4]),
+            penjualan: toInt(asetTetapMatch[5]),
+            pemberianKepada: toInt(asetTetapMatch[6]),
+            netto: toInt(asetTetapMatch[7]),
+            imputasiPenamabahanPemberian: toInt(asetTetapMatch[8]),
+            imputasiPenguranganPemberianKepada: toInt(asetTetapMatch[9])
+          };
+          console.log(`✅ Parsed AsetTetapUsaha.${itemKey}: pembelian=${asetTetapMatch[2]}, netto=${asetTetapMatch[7]}`);
+        }
+        continue;
+      }
+      
+      // Try other asset format (bangunanTinggal, biayaPemindahan, lahanBarang)
+      const otherAsetMatch = item.match(
+        /^(\w+)_Pembelian:(-?\d+)_Pemberian:(-?\d+)_PembuatanSendiri:(-?\d+)_Penjualan:(-?\d+)_PemberianKepada:(-?\d+)_Netto:(-?\d+)_ImputasiPemberian:(-?\d+)_ImputasiPemberianKepada:(-?\d+)/
+      );
+      if (otherAsetMatch) {
+        const itemKey = otherAsetMatch[1];
+        if (itemKey === 'bangunanTinggal' || itemKey === 'lahanBarang') {
+          result.asetPerubahan[itemKey] = {
+            pembelian: toInt(otherAsetMatch[2]),
+            pemberian: toInt(otherAsetMatch[3]),
+            pembuatanSendiri: toInt(otherAsetMatch[4]),
+            penjualan: toInt(otherAsetMatch[5]),
+            pemberianKepada: toInt(otherAsetMatch[6]),
+            netto: toInt(otherAsetMatch[7]),
+            imputasiPenamabahanPemberian: toInt(otherAsetMatch[8]),
+            imputasiPenguranganPemberianKepada: toInt(otherAsetMatch[9])
+          };
+          console.log(`✅ Parsed ${itemKey}: pembelian=${otherAsetMatch[2]}, netto=${otherAsetMatch[7]}`);
+        } else if (itemKey === 'biayaPemindahan') {
+          result.asetPerubahan.biayaPemindahan = {
+            pembelian: toInt(otherAsetMatch[2]),
+            pemberian: toInt(otherAsetMatch[3]),
+            pembuatanSendiri: toInt(otherAsetMatch[4]),
+            penjualan: toInt(otherAsetMatch[5]),
+            pemberianKepada: toInt(otherAsetMatch[6]),
+            netto: toInt(otherAsetMatch[7])
+          };
+          console.log(`✅ Parsed biayaPemindahan: pembelian=${otherAsetMatch[2]}, netto=${otherAsetMatch[7]}`);
+        }
+      }
+    }
   }
 
   return result;
