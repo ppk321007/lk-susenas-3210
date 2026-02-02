@@ -37,37 +37,35 @@ export const Page6 = ({
   
   // Initialize financial transactions with calculated imputasi values
   // Ensure all transaction fields have default 0 to prevent losing data on reload
-  const transaksiKeuangan = {
-    // Default empty values for all transaction fields
-    pengambilanUangTunai: 0,
-    meminjamUang: 0,
-    menerimaPembayaranKredit: 0,
-    kreditBarang: 0,
-    lainnyaPenerimaan: 0,
-    menyimpanUangTunai: 0,
-    membayarHutang: 0,
-    memberikanKreditBarang: 0,
-    membayarKreditBarang: 0,
-    lainnyaPengeluaran: 0,
-    imputasiPenerimaanPengambilanUangTunai: 0,
-    imputasiPenerimaanMeminjamUang: 0,
-    imputasiPenerimaanKreditBarang: 0,
-    imputasiPenerimaanLainnya: 0,
-    imputasiPengeluaranMenyimpanUangTunai: 0,
-    imputasiPengeluaranLainnya: 0,
-    kontrolMengambil: {},
-    kontrolMenyimpan: {},
-    // Merge with user data (user values take priority for transaction amounts)
-    ...(data.transaksiKeuangan || {}),
-    // Only apply imputasi-calculated fields, never override user transaction amounts
-    imputasiPenerimaanPengambilanUangTunai: imputasiCalculations.transaksiKeuangan?.imputasiPenerimaanPengambilanUangTunai || 0,
-    imputasiPenerimaanMeminjamUang: imputasiCalculations.transaksiKeuangan?.imputasiPenerimaanMeminjamUang || 0,
-    imputasiPenerimaanKreditBarang: imputasiCalculations.transaksiKeuangan?.imputasiPenerimaanKreditBarang || 0,
-    imputasiPenerimaanLainnya: imputasiCalculations.transaksiKeuangan?.imputasiPenerimaanLainnya || 0,
-    imputasiPengeluaranMenyimpanUangTunai: imputasiCalculations.transaksiKeuangan?.imputasiPengeluaranMenyimpanUangTunai || 0,
-    imputasiPengeluaranLainnya: imputasiCalculations.transaksiKeuangan?.imputasiPengeluaranLainnya || 0,
-    kontrolMengambil: imputasiCalculations.transaksiKeuangan?.kontrolMengambil || {},
-    kontrolMenyimpan: imputasiCalculations.transaksiKeuangan?.kontrolMenyimpan || {}
+  // Build transaksiKeuangan by merging user data with calculated imputasi
+  const userTransaksi = data.transaksiKeuangan || {} as Partial<TransaksiKeuanganEntry>;
+  const calculatedTransaksi = (imputasiCalculations as any).transaksiKeuangan || {};
+  
+  const transaksiKeuangan: TransaksiKeuanganEntry = {
+    // User-editable transaction fields (preserve user values)
+    pengambilanUangTunai: userTransaksi.pengambilanUangTunai || 0,
+    meminjamUang: userTransaksi.meminjamUang || 0,
+    menerimaPembayaranKredit: userTransaksi.menerimaPembayaranKredit || 0,
+    kreditBarang: userTransaksi.kreditBarang || 0,
+    lainnyaPenerimaan: userTransaksi.lainnyaPenerimaan || 0,
+    menyimpanUangTunai: userTransaksi.menyimpanUangTunai || 0,
+    membayarHutang: userTransaksi.membayarHutang || 0,
+    memberikanKreditBarang: userTransaksi.memberikanKreditBarang || 0,
+    membayarKreditBarang: userTransaksi.membayarKreditBarang || 0,
+    lainnyaPengeluaran: userTransaksi.lainnyaPengeluaran || 0,
+    // Calculated imputasi fields (from calculations)
+    imputasiPenerimaanPengambilanUangTunai: calculatedTransaksi.imputasiPenerimaanPengambilanUangTunai || 0,
+    imputasiPenerimaanMeminjamUang: calculatedTransaksi.imputasiPenerimaanMeminjamUang || 0,
+    imputasiPenerimaanKreditBarang: calculatedTransaksi.imputasiPenerimaanKreditBarang || 0,
+    imputasiPenerimaanLainnya: calculatedTransaksi.imputasiPenerimaanLainnya || 0,
+    imputasiPengeluaranMenyimpanUangTunai: calculatedTransaksi.imputasiPengeluaranMenyimpanUangTunai || 0,
+    imputasiPengeluaranLainnya: calculatedTransaksi.imputasiPengeluaranLainnya || 0
+  };
+
+  // Store kontrol data separately for display (not in TransaksiKeuanganEntry type)
+  const kontrolData = {
+    kontrolMengambil: calculatedTransaksi.kontrolMengambil || {},
+    kontrolMenyimpan: calculatedTransaksi.kontrolMenyimpan || {}
   };
   
   const updateTransaksiKeuangan = (field: keyof TransaksiKeuanganEntry, value: number) => {
@@ -80,8 +78,8 @@ export const Page6 = ({
   };
 
   // Get kontrol data for display
-  const kontrolMengambil = (transaksiKeuangan as any).kontrolMengambil || {};
-  const kontrolMenyimpan = (transaksiKeuangan as any).kontrolMenyimpan || {};
+  const kontrolMengambil = kontrolData.kontrolMengambil || {};
+  const kontrolMenyimpan = kontrolData.kontrolMenyimpan || {};
 
   // Calculate income values
   const calculateUpahGaji = () => {

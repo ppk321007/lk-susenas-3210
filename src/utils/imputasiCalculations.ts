@@ -575,30 +575,36 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     },
 
     // BLOK VE - Transfer Berjalan
-    // Only return imputasi-calculated fields, not user input fields
-    // User input fields should be preserved from data.transferBerjalan
+    // Only return imputasi-calculated fields merged with existing data
     transferBerjalan: {
       pemerintah: {
+        ...data.transferBerjalan?.pemerintah,
         imputasiTransferDiterimaUang: data.transferBerjalan?.pemerintah?.imputasiTransferDiterimaUang || 0,
         imputasiTransferDiterimaBarang: data.transferBerjalan?.pemerintah?.imputasiTransferDiterimaBarang || 0
       },
       pemerintahBantuan: {
+        ...data.transferBerjalan?.pemerintahBantuan,
         imputasiTransferDiterimaUang: pemerintahBantuanImputasiUang,
         imputasiTransferDiterimaBarang: pemerintahBantuanImputasiBarang
       },
       pemerintahUangPensiun: {
+        ...data.transferBerjalan?.pemerintahUangPensiun,
         imputasiTransferDiterimaUang: data.transferBerjalan?.pemerintahUangPensiun?.imputasiTransferDiterimaUang || 0
       },
       badanUsaha: {
+        ...data.transferBerjalan?.badanUsaha,
         imputasiTransferDiterimaBarang: badanUsahaBarangImputasi
       },
       rumahTanggaLain: {
+        ...data.transferBerjalan?.rumahTanggaLain,
         imputasiTransferDiterimaBarang: rumahTanggaLainImputasiBarang
       },
       lembagaNirlaba: {
+        ...data.transferBerjalan?.lembagaNirlaba,
         imputasiTransferDiterimaBarang: lembagaNirlabaImputasiBarang
       },
       luarNegeri: {
+        ...data.transferBerjalan?.luarNegeri,
         imputasiTransferDiterimaBarang: luarNegeriImputasiBarang
       }
     },
@@ -874,13 +880,25 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         Menyimpan Uang Imputasi: ${menyimpanUangTunaiImputasi}`);
 
       return {
+        // Preserve user-editable transaction amounts from existing data
+        pengambilanUangTunai: data.transaksiKeuangan?.pengambilanUangTunai || 0,
+        meminjamUang: data.transaksiKeuangan?.meminjamUang || 0,
+        menerimaPembayaranKredit: data.transaksiKeuangan?.menerimaPembayaranKredit || 0,
+        kreditBarang: data.transaksiKeuangan?.kreditBarang || 0,
+        lainnyaPenerimaan: data.transaksiKeuangan?.lainnyaPenerimaan || 0,
+        menyimpanUangTunai: data.transaksiKeuangan?.menyimpanUangTunai || 0,
+        membayarHutang: data.transaksiKeuangan?.membayarHutang || 0,
+        memberikanKreditBarang: data.transaksiKeuangan?.memberikanKreditBarang || 0,
+        membayarKreditBarang: data.transaksiKeuangan?.membayarKreditBarang || 0,
+        lainnyaPengeluaran: data.transaksiKeuangan?.lainnyaPengeluaran || 0,
+        // Calculated imputasi values
         imputasiPenerimaanPengambilanUangTunai: pengambilanUangTunaiImputasiBase,
         imputasiPenerimaanMeminjamUang: meminjamUangImputasi,
         imputasiPenerimaanKreditBarang: kreditBarangImputasi,
         imputasiPenerimaanLainnya: data.transaksiKeuangan?.imputasiPenerimaanLainnya || 0,
         imputasiPengeluaranMenyimpanUangTunai: menyimpanUangTunaiImputasi,
         imputasiPengeluaranLainnya: data.transaksiKeuangan?.imputasiPengeluaranLainnya || 0,
-        // Store control values for display in Page6
+        // Store control values for display in Page6 (as extra properties)
         kontrolMengambil: {
           biayaProduksi,
           transferKeluar,
@@ -908,7 +926,7 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
           hasilProduksiBelumTerjual,
           total2: total2Menyimpan
         }
-      };
+      } as any;
     })()
   };
 };
