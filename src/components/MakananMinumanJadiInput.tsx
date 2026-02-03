@@ -41,12 +41,16 @@ export const MakananMinumanJadiInput = ({
     let totalPembelian = 0;
     let totalProduksiSendiri = 0;
 
+    if (!data.namaAnggotaRumahTangga || !data.makananMinuman) {
+      return { totalPembelian: 0, totalProduksiSendiri: 0 };
+    }
+
     data.namaAnggotaRumahTangga.forEach((_, index) => {
       const key = `${categoryKey}_${index}`;
       const expense = data.makananMinuman[key];
       if (expense) {
         // Check if expense has entries
-        if (expense.entries && Array.isArray(expense.entries)) {
+        if (expense.entries && Array.isArray(expense.entries) && expense.entries.length > 0) {
           expense.entries.forEach((entry: any) => {
             const nilai = entry.nilai || 0;
             if (entry.kategori === 'Pembelian') {
@@ -64,7 +68,7 @@ export const MakananMinumanJadiInput = ({
     });
 
     return { totalPembelian, totalProduksiSendiri };
-  }, [data.makananMinuman, data.namaAnggotaRumahTangga, categoryKey]);
+  }, [categoryKey, data]);
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('id-ID').format(Math.round(num));
