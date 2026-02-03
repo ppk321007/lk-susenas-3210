@@ -123,13 +123,82 @@ export interface KepemilikanEntry {
 }
 
 export interface TransferBerjalanEntry {
-  pemerintah: { diterimaUang: number; diterimaBarang: number; dibayarUang: number; dibayarBarang: number; imputasiTransferDiterimaUang: number; imputasiTransferDiterimaBarang: number };
-  pemerintahUangPensiun: { diterimaUang: number; diterimaBarang: number; dibayarUang: number; dibayarBarang: number; imputasiTransferDiterimaUang: number };
-  pemerintahBantuan: { diterimaUang: number; diterimaBarang: number; dibayarUang: number; dibayarBarang: number; imputasiTransferDiterimaUang: number; imputasiTransferDiterimaBarang: number };
-  badanUsaha: { diterimaUang: number; diterimaBarang: number; dibayarUang: number; dibayarBarang: number; imputasiTransferDiterimaBarang: number };
-  rumahTanggaLain: { diterimaUang: number; diterimaBarang: number; dibayarUang: number; dibayarBarang: number; imputasiTransferDiterimaBarang: number };
-  lembagaNirlaba: { diterimaUang: number; diterimaBarang: number; dibayarUang: number; dibayarBarang: number; imputasiTransferDiterimaBarang: number };
-  luarNegeri: { diterimaUang: number; diterimaBarang: number; dibayarUang: number; dibayarBarang: number; imputasiTransferDiterimaBarang: number };
+  /** Optional array with per-entry formula breakdown used for tooltips */
+  pemerintah: {
+    diterimaUang: number;
+    diterimaBarang: number;
+    dibayarUang: number;
+    dibayarBarang: number;
+    imputasiTransferDiterimaUang: number;
+    imputasiTransferDiterimaBarang: number;
+    imputasiTransferDiterimaUangBreakdown?: ImputasiBreakdownItem[];
+    imputasiTransferDiterimaBarangBreakdown?: ImputasiBreakdownItem[];
+  };
+
+  pemerintahUangPensiun: {
+    diterimaUang: number;
+    diterimaBarang: number;
+    dibayarUang: number;
+    dibayarBarang: number;
+    imputasiTransferDiterimaUang: number;
+    imputasiTransferDiterimaUangBreakdown?: ImputasiBreakdownItem[];
+    imputasiTransferDiterimaBarangBreakdown?: ImputasiBreakdownItem[];
+  };
+
+  pemerintahBantuan: {
+    diterimaUang: number;
+    diterimaBarang: number;
+    dibayarUang: number;
+    dibayarBarang: number;
+    imputasiTransferDiterimaUang: number;
+    imputasiTransferDiterimaBarang: number;
+    imputasiTransferDiterimaUangBreakdown?: ImputasiBreakdownItem[];
+    imputasiTransferDiterimaBarangBreakdown?: ImputasiBreakdownItem[];
+  };
+
+  badanUsaha: {
+    diterimaUang: number;
+    diterimaBarang: number;
+    dibayarUang: number;
+    dibayarBarang: number;
+    imputasiTransferDiterimaBarang: number;
+    imputasiTransferDiterimaBarangBreakdown?: ImputasiBreakdownItem[];
+  };
+
+  rumahTanggaLain: {
+    diterimaUang: number;
+    diterimaBarang: number;
+    dibayarUang: number;
+    dibayarBarang: number;
+    imputasiTransferDiterimaBarang: number;
+    imputasiTransferDiterimaBarangBreakdown?: ImputasiBreakdownItem[];
+  };
+
+  lembagaNirlaba: {
+    diterimaUang: number;
+    diterimaBarang: number;
+    dibayarUang: number;
+    dibayarBarang: number;
+    imputasiTransferDiterimaBarang: number;
+    imputasiTransferDiterimaBarangBreakdown?: ImputasiBreakdownItem[];
+  };
+
+  luarNegeri: {
+    diterimaUang: number;
+    diterimaBarang: number;
+    dibayarUang: number;
+    dibayarBarang: number;
+    imputasiTransferDiterimaBarang: number;
+    imputasiTransferDiterimaBarangBreakdown?: ImputasiBreakdownItem[];
+  };
+}
+
+export interface ImputasiBreakdownItem {
+  label: string;
+  nilai: number;
+  periode?: string;
+  yearly: number;
+  formula: string;
 }
 
 export interface TransferModalEntry {
