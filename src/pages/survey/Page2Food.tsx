@@ -71,16 +71,33 @@ export const Page2Food = ({
     
     Object.entries(FOOD_CATEGORIES).forEach(([categoryKey, category]) => {
       let completed = 0;
-      let total = category.items.length;
+      let total = 0;
       
-      category.items.forEach(item => {
-        const itemKey = `${categoryKey}_${item}`;
-        const expense = data.makananMinuman[itemKey];
-        // Anggap completed jika ada nilai (dari entries atau langsung)
-        if (expense && getExpenseTotal(expense) > 0) {
-          completed++;
+      // Special handling for M-N categories (per-member entries)
+      if (categoryKey === 'M' || categoryKey === 'N') {
+        total = data.namaAnggotaRumahTangga?.length || 0;
+        if (data.namaAnggotaRumahTangga && data.makananMinuman) {
+          data.namaAnggotaRumahTangga.forEach((_, index) => {
+            const key = `${categoryKey}_${index}`;
+            const expense = data.makananMinuman[key];
+            // Count as completed if has entries or direct values
+            if (expense && getExpenseTotal(expense) > 0) {
+              completed++;
+            }
+          });
         }
-      });
+      } else {
+        // Standard handling for A-L categories
+        total = category.items.length;
+        category.items.forEach(item => {
+          const itemKey = `${categoryKey}_${item}`;
+          const expense = data.makananMinuman[itemKey];
+          // Anggap completed jika ada nilai (dari entries atau langsung)
+          if (expense && getExpenseTotal(expense) > 0) {
+            completed++;
+          }
+        });
+      }
       
       progress[categoryKey] = {
         completed,
@@ -90,7 +107,7 @@ export const Page2Food = ({
     });
     
     return progress;
-  }, [data.makananMinuman]);
+  }, [data.makananMinuman, data.namaAnggotaRumahTangga]);
 
   // Hitung total keseluruhan - FIXED: Calculate from entries if available
   const overallTotal = useMemo(() => {
@@ -100,33 +117,58 @@ export const Page2Food = ({
     Object.keys(FOOD_CATEGORIES).forEach(categoryKey => {
       const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
       
-      category.items.forEach(item => {
-        const key = `${categoryKey}_${item}`;
-        const expense = data.makananMinuman[key];
-        if (expense) {
-          // Check if entries exist and sum from entries
-          if (expense.entries && expense.entries.length > 0) {
-            expense.entries.forEach((entry: any) => {
-              if (entry.kategori === 'Pembelian') {
-                totalPembelian += entry.nilai || 0;
+      // Special handling for M-N categories (per-member entries)
+      if (categoryKey === 'M' || categoryKey === 'N') {
+        if (data.namaAnggotaRumahTangga && data.makananMinuman) {
+          data.namaAnggotaRumahTangga.forEach((_, index) => {
+            const key = `${categoryKey}_${index}`;
+            const expense = data.makananMinuman[key];
+            if (expense) {
+              if (expense.entries && expense.entries.length > 0) {
+                expense.entries.forEach((entry: any) => {
+                  if (entry.kategori === 'Pembelian') {
+                    totalPembelian += entry.nilai || 0;
+                  } else if (entry.kategori === 'Produksi Sendiri/Pemberian' || entry.kategori === 'Pemberian') {
+                    totalProduksiSendiri += entry.nilai || 0;
+                  }
+                });
               } else {
-                totalProduksiSendiri += entry.nilai || 0;
+                totalPembelian += expense.pembelian || 0;
+                totalProduksiSendiri += expense.produksiSendiri || 0;
               }
-            });
-          } else {
-            // Fallback to direct values
-            totalPembelian += expense.pembelian || 0;
-            totalProduksiSendiri += expense.produksiSendiri || 0;
-          }
+            }
+          });
         }
-      });
+      } else {
+        // Standard handling for A-L categories
+        category.items.forEach(item => {
+          const key = `${categoryKey}_${item}`;
+          const expense = data.makananMinuman[key];
+          if (expense) {
+            // Check if entries exist and sum from entries
+            if (expense.entries && expense.entries.length > 0) {
+              expense.entries.forEach((entry: any) => {
+                if (entry.kategori === 'Pembelian') {
+                  totalPembelian += entry.nilai || 0;
+                } else {
+                  totalProduksiSendiri += entry.nilai || 0;
+                }
+              });
+            } else {
+              // Fallback to direct values
+              totalPembelian += expense.pembelian || 0;
+              totalProduksiSendiri += expense.produksiSendiri || 0;
+            }
+          }
+        });
+      }
     });
     
     return {
       totalPembelian,
       totalProduksiSendiri
     };
-  }, [data.makananMinuman]);
+  }, [data.makananMinuman, data.namaAnggotaRumahTangga]);
 
   // Hitung jumlah kategori yang terisi (minimal 1 item terisi)
   const completedCategories = useMemo(() => {
