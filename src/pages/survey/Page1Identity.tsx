@@ -354,7 +354,7 @@ export const Page1Identity = ({
       {isLoadingData && (
         <div className="flex items-center justify-center py-2 bg-blue-50 rounded-md">
           <RefreshCw className="h-4 w-4 animate-spin mr-2 text-blue-600" />
-          <span className="text-sm text-blue-600">Memuat data rumah tangga...</span>
+          <span className="text-sm text-blue-600">Memuat data rumah tangga</span>
         </div>
       )}
 
