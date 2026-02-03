@@ -37,28 +37,38 @@ export const MakananMinumanJadiInput = ({
   };
 
   // Use normalizer for correct totals from entries array
-  const getCategoryTotal = useMemo(() => {
-    return () => {
-      let totalPembelian = 0;
-      let totalProduksiSendiri = 0;
+  const totals = useMemo(() => {
+    let totalPembelian = 0;
+    let totalProduksiSendiri = 0;
 
-      data.namaAnggotaRumahTangga.forEach((_, index) => {
-        const key = `${categoryKey}_${index}`;
-        const expense = data.makananMinuman[key];
-        const normalized = getNormalizedExpenseTotals(expense);
-        totalPembelian += normalized.pembelian;
-        totalProduksiSendiri += normalized.produksiSendiri;
-      });
+    data.namaAnggotaRumahTangga.forEach((_, index) => {
+      const key = `${categoryKey}_${index}`;
+      const expense = data.makananMinuman[key];
+      if (expense) {
+        // Check if expense has entries
+        if (expense.entries && Array.isArray(expense.entries)) {
+          expense.entries.forEach((entry: any) => {
+            const nilai = entry.nilai || 0;
+            if (entry.kategori === 'Pembelian') {
+              totalPembelian += nilai;
+            } else if (entry.kategori === 'Produksi Sendiri/Pemberian' || entry.kategori === 'Pemberian') {
+              totalProduksiSendiri += nilai;
+            }
+          });
+        } else {
+          // Fallback to direct fields
+          totalPembelian += expense.pembelian || 0;
+          totalProduksiSendiri += expense.produksiSendiri || 0;
+        }
+      }
+    });
 
-      return { totalPembelian, totalProduksiSendiri };
-    };
+    return { totalPembelian, totalProduksiSendiri };
   }, [data.makananMinuman, data.namaAnggotaRumahTangga, categoryKey]);
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('id-ID').format(Math.round(num));
   };
-
-  const totals = getCategoryTotal();
 
   return (
     <Card>
