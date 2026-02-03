@@ -12,6 +12,7 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   let pemerintahBantuanImputasiUang = 0;
   let pemerintahBantuanImputasiBarang = 0;
   let rumahTanggaLainImputasiBarang = 0;
+  const rumahTanggaLainBreakdown: Array<{ label: string; nilai: number; periode?: string; yearly: number; formula: string }> = [];
   let lembagaNirlabaImputasiBarang = 0;
   let luarNegeriImputasiBarang = 0;
   let pengambilanUangTunaiImputasi = 0;
@@ -229,6 +230,31 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         
         if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
           rumahTanggaLainImputasiBarang += yearlyValue;
+          // build readable label
+          let label = key;
+          try {
+            const underscoreIndex = key.indexOf('_');
+            if (underscoreIndex > -1) {
+              const prefix = key.substring(0, underscoreIndex);
+              const rest = key.substring(underscoreIndex + 1);
+              label = rest;
+              if ((prefix === 'M' || prefix === 'N') && data && Array.isArray((data as any).namaAnggotaRumahTangga)) {
+                const idx = parseInt(rest, 10);
+                if (!isNaN(idx) && (data as any).namaAnggotaRumahTangga[idx]) {
+                  label = `${(data as any).namaAnggotaRumahTangga[idx]} (anggota)`;
+                }
+              }
+            }
+          } catch (e) {
+            label = key;
+          }
+
+          const formatter = new Intl.NumberFormat('id-ID');
+          const rawNilai = entry.nilai || 0;
+          const yearly = yearlyValue;
+          const formula = `${label} Rp ${formatter.format(rawNilai)} × 30/7 × 12 = Rp ${formatter.format(yearly)}`;
+          rumahTanggaLainBreakdown.push({ label, nilai: rawNilai, periode: entry.periode, yearly, formula });
+
           const source = (key.startsWith('M_') || key.startsWith('N_')) ? `(M-N: ${key})` : '';
           console.log(`✓ BLOK VE Rumah Tangga Lain: rumahTanggaLainImputasiBarang += ${yearlyValue} = ${rumahTanggaLainImputasiBarang} | From category: ${key} ${source} | isPemberianKategori: ${isPemberianKategori(entry.kategori)}, jenisDetail match: ${entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain'}`);
         } else if ((key.startsWith('M_') || key.startsWith('N_')) && isPemberianKategori(entry.kategori)) {
@@ -680,7 +706,8 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       },
       rumahTanggaLain: {
         ...data.transferBerjalan?.rumahTanggaLain,
-        imputasiTransferDiterimaBarang: rumahTanggaLainImputasiBarang
+        imputasiTransferDiterimaBarang: rumahTanggaLainImputasiBarang,
+        imputasiTransferDiterimaBarangBreakdown: rumahTanggaLainBreakdown
       },
       lembagaNirlaba: {
         ...data.transferBerjalan?.lembagaNirlaba,

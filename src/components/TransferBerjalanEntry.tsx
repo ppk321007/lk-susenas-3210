@@ -82,6 +82,10 @@ export const TransferBerjalanEntry = ({
       return `Dari konsumsi kesehatan (Rumah Sakit, Puskesmas, dll.) dengan kategori "Pemberian dari Pemerintah secara Gratis"`;
     }
     if (key === 'rumahTanggaLain') {
+      const breakdown = (data.transferBerjalan?.rumahTanggaLain as any)?.imputasiTransferDiterimaBarangBreakdown;
+      if (Array.isArray(breakdown) && breakdown.length > 0) {
+        return breakdown.map((b: any) => b.formula).join('\n');
+      }
       return `Dari konsumsi dengan kategori "Pemberian dari Rumah Tangga Lain" (Barang)`;
     }
     if (key === 'lembagaNirlaba') {
