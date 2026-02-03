@@ -50,6 +50,31 @@ export const TransferBerjalanEntry = ({
     return uangPensiun + bantuan;
   };
 
+  const buildPemerintahCombinedFormula = (mode: 'uang' | 'barang') => {
+    const parts: string[] = [];
+    const pb = data.transferBerjalan?.pemerintahBantuan as any;
+    const pp = data.transferBerjalan?.pemerintahUangPensiun as any;
+
+    if (mode === 'uang') {
+      const b1 = pb?.imputasiTransferDiterimaUangBreakdown || [];
+      const b2 = pp?.imputasiTransferDiterimaUangBreakdown || [];
+      if (b1.length || b2.length) {
+        parts.push('Rincian Pemerintah (Uang):');
+        [...b1, ...b2].forEach((item: any) => parts.push(`- ${item.formula}`));
+      }
+    } else {
+      const b1 = pb?.imputasiTransferDiterimaBarangBreakdown || [];
+      // pemerintahUangPensiun unlikely has barang breakdown, include if present
+      const b2 = pp?.imputasiTransferDiterimaBarangBreakdown || [];
+      if (b1.length || b2.length) {
+        parts.push('Rincian Pemerintah (Barang):');
+        [...b1, ...b2].forEach((item: any) => parts.push(`- ${item.formula}`));
+      }
+    }
+
+    return parts.join('\n');
+  };
+
   // Get imputasi value for a transfer type
   const getImputasiUang = (key: string): number => {
     return (data.transferBerjalan?.[key as keyof typeof data.transferBerjalan] as any)?.imputasiTransferDiterimaUang || 0;
@@ -64,10 +89,21 @@ export const TransferBerjalanEntry = ({
     const value = getImputasiUang(key);
     if (value === 0) return '';
     if (key === 'pemerintahBantuan') {
+      const breakdown = (data.transferBerjalan?.pemerintahBantuan as any)?.imputasiTransferDiterimaUangBreakdown;
+      if (Array.isArray(breakdown) && breakdown.length > 0) return breakdown.map((b: any) => b.formula).join('\n');
       return `Dari konsumsi dengan kategori "Pemberian dari Pemerintah secara Gratis"`;
     }
     if (key === 'rumahTanggaLain') {
+      const breakdown = (data.transferBerjalan?.rumahTanggaLain as any)?.imputasiTransferDiterimaUangBreakdown || (data.transferBerjalan?.rumahTanggaLain as any)?.imputasiTransferDiterimaBarangBreakdown;
+      if (Array.isArray(breakdown) && breakdown.length > 0) return breakdown.map((b: any) => b.formula).join('\n');
       return `Dari konsumsi dengan kategori "Pemberian dari Rumah Tangga Lain"`;
+    }
+    if (key === 'pemerintah') {
+      // combine pemerintahBantuan and pemerintahUangPensiun breakdowns
+      const b1 = (data.transferBerjalan?.pemerintahBantuan as any)?.imputasiTransferDiterimaUangBreakdown || [];
+      const b2 = (data.transferBerjalan?.pemerintahUangPensiun as any)?.imputasiTransferDiterimaUangBreakdown || [];
+      const combined = [...b1, ...b2];
+      if (combined.length > 0) return combined.map((b: any) => b.formula).join('\n');
     }
     return `Nilai imputasi: Rp ${formatNumber(value)}`;
   };
@@ -76,22 +112,28 @@ export const TransferBerjalanEntry = ({
     const value = getImputasiBarang(key);
     if (value === 0) return '';
     if (key === 'pemerintahBantuan') {
+      const breakdown = (data.transferBerjalan?.pemerintahBantuan as any)?.imputasiTransferDiterimaBarangBreakdown;
+      if (Array.isArray(breakdown) && breakdown.length > 0) return breakdown.map((b: any) => b.formula).join('\n');
       return `Dari konsumsi dengan kategori "Pemberian dari Pemerintah secara Gratis" (Barang)`;
     }
     if (key === 'badanUsaha') {
+      const breakdown = (data.transferBerjalan?.badanUsaha as any)?.imputasiTransferDiterimaBarangBreakdown;
+      if (Array.isArray(breakdown) && breakdown.length > 0) return breakdown.map((b: any) => b.formula).join('\n');
       return `Dari konsumsi kesehatan (Rumah Sakit, Puskesmas, dll.) dengan kategori "Pemberian dari Pemerintah secara Gratis"`;
     }
     if (key === 'rumahTanggaLain') {
       const breakdown = (data.transferBerjalan?.rumahTanggaLain as any)?.imputasiTransferDiterimaBarangBreakdown;
-      if (Array.isArray(breakdown) && breakdown.length > 0) {
-        return breakdown.map((b: any) => b.formula).join('\n');
-      }
+      if (Array.isArray(breakdown) && breakdown.length > 0) return breakdown.map((b: any) => b.formula).join('\n');
       return `Dari konsumsi dengan kategori "Pemberian dari Rumah Tangga Lain" (Barang)`;
     }
     if (key === 'lembagaNirlaba') {
+      const breakdown = (data.transferBerjalan?.lembagaNirlaba as any)?.imputasiTransferDiterimaBarangBreakdown;
+      if (Array.isArray(breakdown) && breakdown.length > 0) return breakdown.map((b: any) => b.formula).join('\n');
       return `Dari konsumsi dengan kategori "Pemberian dari Lembaga Nirlaba"`;
     }
     if (key === 'luarNegeri') {
+      const breakdown = (data.transferBerjalan?.luarNegeri as any)?.imputasiTransferDiterimaBarangBreakdown;
+      if (Array.isArray(breakdown) && breakdown.length > 0) return breakdown.map((b: any) => b.formula).join('\n');
       return `Dari konsumsi dengan kategori "Pemberian dari Luar Negeri"`;
     }
     return `Nilai imputasi: Rp ${formatNumber(value)}`;
@@ -122,7 +164,13 @@ export const TransferBerjalanEntry = ({
               <td className={`border border-gray-300 p-2 font-medium ${transfer.isChild ? 'pl-6' : ''}`}>{transfer.label}</td>
               <td className="border border-gray-300 p-2">
                 {transfer.isParent ? (
-                  <span className="text-sm font-semibold">Rp {formatNumber(getPemerintahTotal('diterimaUang'))}</span>
+                  <ImputasiTooltip
+                    value={getPemerintahTotal('diterimaUang')}
+                    formula={buildPemerintahCombinedFormula('uang')}
+                    label={`Pemerintah - Rincian Uang`}
+                  >
+                    <span className="text-sm font-semibold">Rp {formatNumber(getPemerintahTotal('diterimaUang'))}</span>
+                  </ImputasiTooltip>
                 ) : (
                   <Input 
                     type="text" 
@@ -143,7 +191,13 @@ export const TransferBerjalanEntry = ({
               </td>
               <td className="border border-gray-300 p-2">
                 {transfer.isParent ? (
-                  <span className="text-sm font-semibold">Rp {formatNumber(getPemerintahTotal('diterimaBarang'))}</span>
+                  <ImputasiTooltip
+                    value={getPemerintahTotal('diterimaBarang')}
+                    formula={buildPemerintahCombinedFormula('barang')}
+                    label={`Pemerintah - Rincian Barang`}
+                  >
+                    <span className="text-sm font-semibold">Rp {formatNumber(getPemerintahTotal('diterimaBarang'))}</span>
+                  </ImputasiTooltip>
                 ) : (
                   <Input 
                     type="text" 

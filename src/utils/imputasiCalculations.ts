@@ -13,6 +13,27 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   let pemerintahBantuanImputasiBarang = 0;
   let rumahTanggaLainImputasiBarang = 0;
   const rumahTanggaLainBreakdown: Array<{ label: string; nilai: number; periode?: string; yearly: number; formula: string }> = [];
+  const pemerintahBantuanUangBreakdown: Array<{ label: string; nilai: number; periode?: string; yearly: number; formula: string }> = [];
+  const pemerintahBantuanBarangBreakdown: Array<{ label: string; nilai: number; periode?: string; yearly: number; formula: string }> = [];
+  const lembagaNirlabaBreakdown: Array<{ label: string; nilai: number; periode?: string; yearly: number; formula: string }> = [];
+  const luarNegeriBreakdown: Array<{ label: string; nilai: number; periode?: string; yearly: number; formula: string }> = [];
+  const badanUsahaBreakdown: Array<{ label: string; nilai: number; periode?: string; yearly: number; formula: string }> = [];
+
+  // Helper to build human readable formula for an entry
+  const buildFormulaForEntry = (label: string, rawNilai: number, periode: string | undefined, yearly: number) => {
+    const formatter = new Intl.NumberFormat('id-ID');
+    let multiplierText = '';
+    if (!periode || periode === 'minggu' || periode === 'weekly') {
+      multiplierText = '× 30/7 × 12';
+    } else if (periode === 'bulan' || periode === 'monthly') {
+      multiplierText = '× 12';
+    } else if (periode === 'tahun' || periode === 'yearly') {
+      multiplierText = '× 1';
+    } else {
+      multiplierText = '× 30/7 × 12';
+    }
+    return `${label} Rp ${formatter.format(rawNilai)} ${multiplierText} = Rp ${formatter.format(yearly)}`;
+  };
   let lembagaNirlabaImputasiBarang = 0;
   let luarNegeriImputasiBarang = 0;
   let pengambilanUangTunaiImputasi = 0;
@@ -204,16 +225,37 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         // 4. BLOK VE - Bantuan Pemerintah - Imputasi Transfer Diterima Uang
         if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Konsumsi Bantuan Pangan BPNT') {
           pemerintahBantuanImputasiUang += yearlyValue;
+          pemerintahBantuanUangBreakdown.push({
+            label: key,
+            nilai: entry.nilai || 0,
+            periode: entry.periode,
+            yearly: yearlyValue,
+            formula: buildFormulaForEntry(key, entry.nilai || 0, entry.periode, yearlyValue)
+          });
           console.log(`✓ BLOK VE Pemerintah Uang: pemerintahBantuanImputasiUang += ${yearlyValue} = ${pemerintahBantuanImputasiUang}`);
         }
 
         // 5. BLOK VE - Bantuan Pemerintah - Imputasi Transfer Diterima Barang
         if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Subsidi harga dari Pemerintah (Pembelian barang di bawah harga pasar)') {
           pemerintahBantuanImputasiBarang += yearlyValue;
+          pemerintahBantuanBarangBreakdown.push({
+            label: key,
+            nilai: entry.nilai || 0,
+            periode: entry.periode,
+            yearly: yearlyValue,
+            formula: buildFormulaForEntry(key, entry.nilai || 0, entry.periode, yearlyValue)
+          });
           console.log(`✓ BLOK VE Pemerintah Barang Rule 1: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
         }
         if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
           pemerintahBantuanImputasiBarang += yearlyValue;
+          pemerintahBantuanBarangBreakdown.push({
+            label: key,
+            nilai: entry.nilai || 0,
+            periode: entry.periode,
+            yearly: yearlyValue,
+            formula: buildFormulaForEntry(key, entry.nilai || 0, entry.periode, yearlyValue)
+          });
           console.log(`✓ BLOK VE Pemerintah Barang Rule 2: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
         }
 
@@ -265,12 +307,26 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         // 7. BLOK VE - Lembaga Nirlaba - Imputasi Transfer Diterima Barang
         if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
           lembagaNirlabaImputasiBarang += yearlyValue;
+          lembagaNirlabaBreakdown.push({
+            label: key,
+            nilai: entry.nilai || 0,
+            periode: entry.periode,
+            yearly: yearlyValue,
+            formula: buildFormulaForEntry(key, entry.nilai || 0, entry.periode, yearlyValue)
+          });
           console.log(`✓ BLOK VE Lembaga Nirlaba: lembagaNirlabaImputasiBarang += ${yearlyValue} = ${lembagaNirlabaImputasiBarang}`);
         }
 
         // 8. BLOK VE - Luar Negeri - Imputasi Transfer Diterima Barang
         if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
           luarNegeriImputasiBarang += yearlyValue;
+          luarNegeriBreakdown.push({
+            label: key,
+            nilai: entry.nilai || 0,
+            periode: entry.periode,
+            yearly: yearlyValue,
+            formula: buildFormulaForEntry(key, entry.nilai || 0, entry.periode, yearlyValue)
+          });
           console.log(`✓ BLOK VE Luar Negeri: luarNegeriImputasiBarang += ${yearlyValue} = ${luarNegeriImputasiBarang}`);
         }
 
@@ -336,6 +392,19 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
               // Use the periode field if present, otherwise default to 'bulan' for monthly data
               const yearlyValue = convertToYearly(entry.nilai, entry.periode || 'bulan');
               console.log(`Monthly Entry: item=${itemKey}, kategori="${entry.kategori}", jenisDetail="${entry.jenisDetail}", nilai=${entry.nilai}, periode=${entry.periode || 'bulan'}, yearlyValue=${yearlyValue}`);
+              // push breakdowns for non-food where applicable
+              if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
+                lembagaNirlabaImputasiBarang += yearlyValue;
+                lembagaNirlabaBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'bulan', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'bulan', yearlyValue) });
+              }
+              if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
+                luarNegeriImputasiBarang += yearlyValue;
+                luarNegeriBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'bulan', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'bulan', yearlyValue) });
+              }
+              if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
+                rumahTanggaLainImputasiBarang += yearlyValue;
+                rumahTanggaLainBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'bulan', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'bulan', yearlyValue) });
+              }
               processNonFoodEntry(entry.kategori, entry.jenisDetail, yearlyValue, itemKey, 'monthly');
             }
           });
@@ -356,6 +425,19 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
             // Use the periode field if present, otherwise default to 'tahun' for yearly data
             const yearlyValue = convertToYearly(entry.nilai, entry.periode || 'tahun');
             console.log(`Yearly Entry: item=${itemKey}, kategori="${entry.kategori}", jenisDetail="${entry.jenisDetail}", nilai=${entry.nilai}, periode=${entry.periode || 'tahun'}, yearlyValue=${yearlyValue}`);
+            // push breakdowns for yearly non-food entries
+            if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
+              lembagaNirlabaImputasiBarang += yearlyValue;
+              lembagaNirlabaBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'tahun', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'tahun', yearlyValue) });
+            }
+            if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
+              luarNegeriImputasiBarang += yearlyValue;
+              luarNegeriBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'tahun', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'tahun', yearlyValue) });
+            }
+            if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
+              rumahTanggaLainImputasiBarang += yearlyValue;
+              rumahTanggaLainBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'tahun', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'tahun', yearlyValue) });
+            }
             processNonFoodEntry(entry.kategori, entry.jenisDetail, yearlyValue, itemKey, 'yearly');
           }
         });
@@ -595,24 +677,22 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   
   // Merge auto-generated with existing user values, prioritizing user edits
   const mergedAutoUpah = autoUpahEntries.map(autoEntry => {
-    // Match by ID instead of jenisPekerjaan - this is more reliable
-    // User data will have the same ID as auto-generated (auto-imputasi-va-X)
     const existingEdit = editedAutoUpah.find(edited => edited.id === autoEntry.id);
     if (existingEdit) {
       return {
         ...autoEntry,
         ...existingEdit,
-        imputasiUpahGajiBarang: autoEntry.imputasiUpahGajiBarang // Always use calculated imputasi
+        imputasiUpahGajiBarang: autoEntry.imputasiUpahGajiBarang
       };
     }
     return autoEntry;
   });
-  
+
   // Always include regenerated auto entries - they're the source of truth for imputasi
   // But filter out any manual entries with same jenisPekerjaan to avoid duplicates
   const autoJenisPekerjaan = new Set(mergedAutoUpah.map(e => e.jenisPekerjaan));
   const filteredExistingUpah = existingUpah.filter(e => !autoJenisPekerjaan.has(e.jenisPekerjaan));
-  
+
   const finalUpah = [...filteredExistingUpah, ...mergedAutoUpah].map(e => ({
     ...e,
     kategoriLU: e.kategoriLU || 'belum terdefinisikan',
@@ -623,8 +703,8 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     (e) => e && e.id && !e.id.startsWith('auto-imputasi-vb-') && e.id !== 'auto-generated-usaha'
   );
   
-  // For auto-generated entries that have been edited by users, preserve their user-entered values
-  // Use lenient matching - only check ID pattern, not field values  
+    // For auto-generated entries that have been edited by users, preserve their user-entered values
+    // Use lenient matching - only check ID pattern, not field values
   // This ensures entries persist even if optional fields aren't filled by user
   // Also auto-fill empty kategoriLU and jenisPekerjaan with 'belum terdefinisikan'
   const editedAutoUsaha = (data.pendapatanUsaha || []).filter(
@@ -685,7 +765,7 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
 
     // BLOK VE - Transfer Berjalan
     // Only return imputasi-calculated fields merged with existing data
-    transferBerjalan: {
+    transferBerjalan: ({
       pemerintah: {
         ...data.transferBerjalan?.pemerintah,
         imputasiTransferDiterimaUang: data.transferBerjalan?.pemerintah?.imputasiTransferDiterimaUang || 0,
@@ -694,7 +774,9 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       pemerintahBantuan: {
         ...data.transferBerjalan?.pemerintahBantuan,
         imputasiTransferDiterimaUang: pemerintahBantuanImputasiUang,
-        imputasiTransferDiterimaBarang: pemerintahBantuanImputasiBarang
+        imputasiTransferDiterimaBarang: pemerintahBantuanImputasiBarang,
+        imputasiTransferDiterimaUangBreakdown: pemerintahBantuanUangBreakdown,
+        imputasiTransferDiterimaBarangBreakdown: pemerintahBantuanBarangBreakdown
       },
       pemerintahUangPensiun: {
         ...data.transferBerjalan?.pemerintahUangPensiun,
@@ -702,7 +784,8 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       },
       badanUsaha: {
         ...data.transferBerjalan?.badanUsaha,
-        imputasiTransferDiterimaBarang: badanUsahaBarangImputasi
+        imputasiTransferDiterimaBarang: badanUsahaBarangImputasi,
+        imputasiTransferDiterimaBarangBreakdown: badanUsahaBreakdown
       },
       rumahTanggaLain: {
         ...data.transferBerjalan?.rumahTanggaLain,
@@ -711,13 +794,15 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       },
       lembagaNirlaba: {
         ...data.transferBerjalan?.lembagaNirlaba,
-        imputasiTransferDiterimaBarang: lembagaNirlabaImputasiBarang
+        imputasiTransferDiterimaBarang: lembagaNirlabaImputasiBarang,
+        imputasiTransferDiterimaBarangBreakdown: lembagaNirlabaBreakdown
       },
       luarNegeri: {
         ...data.transferBerjalan?.luarNegeri,
-        imputasiTransferDiterimaBarang: luarNegeriImputasiBarang
+        imputasiTransferDiterimaBarang: luarNegeriImputasiBarang,
+        imputasiTransferDiterimaBarangBreakdown: luarNegeriBreakdown
       }
-    },
+    } as any),
 
     // Calculate totals for Transfer Modal (BLOK VF) to map to Asset Changes (BLOK VG)
     transferModal: data.transferModal,
