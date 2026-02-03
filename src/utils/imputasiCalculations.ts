@@ -809,9 +809,9 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       const biayaProduksiKonsumsi = (data.produksiSendiri?.perkiraanSewaRumah?.biayaProduksi || 0) +
         (data.produksiSendiri?.hasilPertanian?.biayaProduksi || 0);
       
-      // 4. Transfer Berjalan yang Dibayar/Diberikan (Blok VE kolom 4 dan 5 - both uang and barang)
+      // 4. Transfer Berjalan Barang yang Dibayar/Diberikan (Blok VE kolom 5 - dibayarBarang saja)
       const transferKeluar = Object.values(data.transferBerjalan || {}).reduce((sum, entity) => {
-        return sum + (entity?.dibayarUang || 0) + (entity?.dibayarBarang || 0);
+        return sum + (entity?.dibayarBarang || 0);
       }, 0);
       
       // 5. Pendapatan Kepemilikan yang Dibayar (Blok VD kolom 3)
@@ -878,6 +878,9 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       // 5. Pembelian Barang Kredit (Blok VII Rincian 4 kolom 2 - kreditBarang penerimaan)
       const membeliBarangKredit = data.transaksiKeuangan?.kreditBarang || 0;
       
+      // 6. Non Transaksi (listrik nyantol, pajak gak bayar, dll) - stored separately if needed
+      const nonTransaksi = 0; // This would need a separate field if required
+      
       // Calculate Total 1 and Total 2 for Pengambilan Uang
       // Note: Konsumsi is calculated dynamically in Page6, so we pass it as 0 here
       // The actual formula will be completed in Page6.tsx
@@ -887,9 +890,9 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         pendapatanKepemilikanDibayar + transferModalKeluar + penambahanAset + transaksiKeuanganKeluar;
       
       // Formula: UpahGajiBarang + NilaiProduksiSendiri + TransferMasukBarang + 
-      //          TransferMasukModal + MembeliBarangKredit
+      //          TransferMasukModal + MembeliBarangKredit + NonTransaksi
       const total2Pengambilan = upahGajiBarang + nilaiProduksiSendiri + transferMasukBarang + 
-        transferMasukModal + membeliBarangKredit;
+        transferMasukModal + membeliBarangKredit + nonTransaksi;
       
       // Pengambilan Uang = Total1 - Total2 (konsumsi is added in Page6)
       // This base value is partial - Page6 adds konsumsi to get final imputasi
