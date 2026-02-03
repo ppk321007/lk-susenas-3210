@@ -180,6 +180,7 @@ function extractSpreadsheetId(input: string): string {
 function formatExpenseEntry(itemName: string, expense: any, categoryKey: string): string {
   // Check if expense has entries array (EnhancedExpenseInput format)
   if (expense.entries && Array.isArray(expense.entries) && expense.entries.length > 0) {
+    console.log(`[formatExpenseEntry] M-N: ${itemName} has entries:`, expense.entries);
     const pembelianEntries: string[] = [];
     const pemberianEntries: string[] = [];
     
@@ -188,6 +189,7 @@ function formatExpenseEntry(itemName: string, expense: any, categoryKey: string)
         const detail = entry.jenisDetail || entry.kategori;
         // Use ~~ as delimiter instead of _ to avoid conflicts with itemName that contains _
         const formatted = `${itemName}~~${entry.nilai}~~${entry.kategori}~~${detail}`;
+        console.log(`[formatExpenseEntry] Entry: nilai=${entry.nilai}, kategori=${entry.kategori}, detail=${detail} → ${formatted}`);
         
         if (entry.kategori === 'Pembelian') {
           pembelianEntries.push(formatted);
@@ -209,6 +211,7 @@ function formatExpenseEntry(itemName: string, expense: any, categoryKey: string)
   }
   
   // Fallback to old format (ExpenseInput format with pembelian/produksiSendiri)
+  console.log(`[formatExpenseEntry] FALLBACK: ${itemName} using old format (no entries array). pembelian=${expense.pembelian}, produksiSendiri=${expense.produksiSendiri}`);
   const pembelianEntries: string[] = [];
   const pemberianEntries: string[] = [];
   
