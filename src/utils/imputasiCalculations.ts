@@ -1000,10 +1000,15 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         // Store control values for display in Page6 (as extra properties)
         kontrolMengambil: {
           biayaProduksi,
+          biayaProduksiFormula: `Biaya Produksi Usaha (Blok VB)`,
           transferKeluar,
+          transferKeluarFormula: `Transfer Berjalan Dibayar Uang + Barang (Blok VE)`,
           pendapatanKepemilikanDibayar,
+          pendapatanKepemilikanFormula: `Pendapatan Kepemilikan Dibayar (Blok VD)`,
           penambahanAset,
+          penambahanAsetFormula: `Penambahan Aset (Blok VG)`,
           transaksiKeuanganKeluar,
+          transaksiKeuanganFormula: `Transaksi Keuangan Keluar (Blok VII: bayar hutang + beri kredit + bayar kredit + lainnya)`,
           total1: total1Pengambilan,
           upahGajiBarang,
           nilaiProduksiSendiri,
