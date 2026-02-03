@@ -397,7 +397,7 @@ export const Page1Identity = ({
               <Label htmlFor="nks">NKS</Label>
               {loadError && (
                 <div className="text-sm text-red-700 bg-red-50 p-3 rounded border border-red-200 mb-2 space-y-1">
-                  <div className="font-semibold">⚠️ Gagal Memuat Data Penugasan</div>
+                  <div className="font-semibold">Gagal Memuat Data Penugasan</div>
                   <div>{loadError}</div>
                   <div className="text-xs text-red-600 mt-2">
                     Solusi: 
