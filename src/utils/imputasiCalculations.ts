@@ -856,9 +856,9 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
       const nilaiProduksiSendiri = (data.produksiSendiri?.perkiraanSewaRumah?.nilaiProduksi || 0) +
         (data.produksiSendiri?.hasilPertanian?.nilaiProduksi || 0);
       
-      // 3. Transfer Berjalan Diterima dalam bentuk Barang/Jasa (Blok VE kolom 3 - diterimaBarang + imputasi)
+      // 3. Transfer Berjalan Diterima dalam bentuk Barang/Jasa (Blok VE kolom 3 - imputasiTransferDiterimaBarang saja)
       const transferMasukBarang = Object.values(data.transferBerjalan || {}).reduce((sum, entity) => {
-        return sum + (entity?.diterimaBarang || 0) + (entity?.imputasiTransferDiterimaBarang || 0);
+        return sum + (entity?.imputasiTransferDiterimaBarang || 0);
       }, 0);
       
       // 4. Transfer Modal/Aset Diterima (Blok VF kolom 2 dan 3 - diterima)
