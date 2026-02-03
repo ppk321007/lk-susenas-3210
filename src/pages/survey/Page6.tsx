@@ -347,7 +347,23 @@ export const Page6 = ({
                    <td className="border border-gray-300 p-2 text-right bg-amber-50">
                      <ImputasiTooltip 
                        value={imputasiPengambilanUangFinal}
-                       formula={`Konsumsi RT + Total1 - Total2 = ${formatNumber(konsumsiRT)} + ${formatNumber((kontrolMengambil as any)?.total1 || 0)} - ${formatNumber((kontrolMengambil as any)?.total2 || 0)}`}
+                       formula={`Konsumsi RT + Total1 - Total2
+= ${formatNumber(konsumsiRT)} + ${formatNumber((kontrolMengambil as any)?.total1 || 0)} - ${formatNumber((kontrolMengambil as any)?.total2 || 0)}
+= Rp ${formatNumber(imputasiPengambilanUangFinal)}
+
+Total1 (Pengeluaran):
+• Biaya Produksi: Rp ${formatNumber((kontrolMengambil as any)?.biayaProduksi || 0)}
+• Transfer Keluar: Rp ${formatNumber((kontrolMengambil as any)?.transferKeluar || 0)}
+• Pendapatan Kepemilikan Dibayar: Rp ${formatNumber((kontrolMengambil as any)?.pendapatanKepemilikanDibayar || 0)}
+• Penambahan Aset: Rp ${formatNumber((kontrolMengambil as any)?.penambahanAset || 0)}
+• Transaksi Keuangan Keluar: Rp ${formatNumber((kontrolMengambil as any)?.transaksiKeuanganKeluar || 0)}
+
+Total2 (Pengurang):
+• Upah/Gaji Barang: Rp ${formatNumber((kontrolMengambil as any)?.upahGajiBarang || 0)}
+• Nilai Produksi Sendiri: Rp ${formatNumber((kontrolMengambil as any)?.nilaiProduksiSendiri || 0)}
+• Transfer Masuk Barang: Rp ${formatNumber((kontrolMengambil as any)?.transferMasukBarang || 0)}
+• Transfer Masuk Modal: Rp ${formatNumber((kontrolMengambil as any)?.transferMasukModal || 0)}
+• Kredit Barang: Rp ${formatNumber((kontrolMengambil as any)?.membeliBarangKredit || 0)}`}
                        label="Imputasi Pengambilan Uang Tunai"
                      >
                        Rp {formatNumber(imputasiPengambilanUangFinal)}
@@ -360,7 +376,18 @@ export const Page6 = ({
                    <td className="border border-gray-300 p-2 text-right bg-amber-50">
                      <ImputasiTooltip 
                        value={transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai || 0}
-                       formula="Lihat tabel Kontrol Menyimpan"
+                       formula={`Total1 - Total2 = ${formatNumber((kontrolMenyimpan as any)?.total1 || 0)} - ${formatNumber((kontrolMenyimpan as any)?.total2 || 0)}
+                       
+Total1 (Penerimaan):
+• Upah/Gaji Uang: Rp ${formatNumber((kontrolMenyimpan as any)?.upahGajiUang || 0)}
+• Nilai Produksi Usaha: Rp ${formatNumber((kontrolMenyimpan as any)?.nilaiProduksiUsaha || 0)}
+• Transfer Masuk Uang: Rp ${formatNumber((kontrolMenyimpan as any)?.transferMasukUang || 0)}
+• Pendapatan Kepemilikan: Rp ${formatNumber((kontrolMenyimpan as any)?.pendapatanKepemilikanDiterima || 0)}
+• Pengurangan Aset: Rp ${formatNumber((kontrolMenyimpan as any)?.penguranganAset || 0)}
+• Transaksi Keuangan Diterima: Rp ${formatNumber((kontrolMenyimpan as any)?.transaksiKeuanganDiterima || 0)}
+
+Total2 (Pengurang):
+• Transfer Modal Keluar: Rp ${formatNumber((kontrolMenyimpan as any)?.transferModalKeluar || 0)}`}
                        label="Imputasi Menyimpan Uang Tunai"
                      >
                        Rp {formatNumber(transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai || 0)}
