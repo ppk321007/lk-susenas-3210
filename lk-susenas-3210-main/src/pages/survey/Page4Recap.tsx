@@ -48,11 +48,12 @@ export const Page4Recap = ({
   };
 
   // Table 2: Weekly food expenses summary - use normalizer for correct totals
+  // NOTE: M (Makanan dan Minuman Jadi) and N (Rokok dan Tembakau) are NOT included in Total Pembelian/Produksi
   const getCategoryTotals = () => {
-    const categories = ["Padi-Padian", "Umbi-umbian", "Ikan/Udang/cumi/kerang", "Daging", "Telur dan Susu", "Sayur-sayuran", "Kacang-kacangan", "Buah-buahan", "Minyak dan kelapa", "Bahan Minuman", "Bumbu-bumbuan", "Bahan Makanan Lainnya", "Makanan dan Minuman Jadi", "Rokok dan Tembakau"];
+    const categories = ["Padi-Padian", "Umbi-umbian", "Ikan/Udang/cumi/kerang", "Daging", "Telur dan Susu", "Sayur-sayuran", "Kacang-kacangan", "Buah-buahan", "Minyak dan kelapa", "Bahan Minuman", "Bumbu-bumbuan", "Bahan Makanan Lainnya"];
     
     return categories.map((categoryName, index) => {
-      const categoryKey = String.fromCharCode(65 + index); // A, B, C, etc.
+      const categoryKey = String.fromCharCode(65 + index); // A, B, C, etc. (A-L only, excluding M and N)
       const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
       
       const { totalPembelian, totalProduksiSendiri } = getFoodCategoryTotals(

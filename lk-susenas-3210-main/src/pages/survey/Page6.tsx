@@ -151,7 +151,12 @@ export const Page6 = ({
   // Calculate consumption expenses from BLOK IV.3.3 - use exact same calculation as Page4Recap
   const calculateKonsumsiRT = () => {
     // Calculate food subtotal using normalizer (weekly)
+    // NOTE: M (Makanan dan Minuman Jadi) and N (Rokok dan Tembakau) are NOT included in Total Pembelian/Produksi
     const foodSubtotal = Object.keys(FOOD_CATEGORIES).reduce((total, categoryKey) => {
+      // Skip M and N categories as per requirement
+      if (categoryKey === 'M' || categoryKey === 'N') {
+        return total;
+      }
       const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
       const { totalPembelian, totalProduksiSendiri } = getFoodCategoryTotals(
         categoryKey,
