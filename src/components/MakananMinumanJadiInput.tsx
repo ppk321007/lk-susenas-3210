@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSurveyImputasi } from "@/hooks/useSurveyImputasi";
 import { validatePage2Entries, IncompleteEntry } from "@/utils/validationUtils";
 import { getNormalizedExpenseTotals } from "@/utils/expenseNormalizer";
+import { useMemo } from "react";
 
 interface MakananMinumanJadiInputProps {
   data: SurveyData;
@@ -36,20 +37,22 @@ export const MakananMinumanJadiInput = ({
   };
 
   // Use normalizer for correct totals from entries array
-  const getCategoryTotal = () => {
-    let totalPembelian = 0;
-    let totalProduksiSendiri = 0;
+  const getCategoryTotal = useMemo(() => {
+    return () => {
+      let totalPembelian = 0;
+      let totalProduksiSendiri = 0;
 
-    data.namaAnggotaRumahTangga.forEach((_, index) => {
-      const key = `${categoryKey}_${index}`;
-      const expense = data.makananMinuman[key];
-      const normalized = getNormalizedExpenseTotals(expense);
-      totalPembelian += normalized.pembelian;
-      totalProduksiSendiri += normalized.produksiSendiri;
-    });
+      data.namaAnggotaRumahTangga.forEach((_, index) => {
+        const key = `${categoryKey}_${index}`;
+        const expense = data.makananMinuman[key];
+        const normalized = getNormalizedExpenseTotals(expense);
+        totalPembelian += normalized.pembelian;
+        totalProduksiSendiri += normalized.produksiSendiri;
+      });
 
-    return { totalPembelian, totalProduksiSendiri };
-  };
+      return { totalPembelian, totalProduksiSendiri };
+    };
+  }, [data.makananMinuman, data.namaAnggotaRumahTangga, categoryKey]);
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('id-ID').format(Math.round(num));
