@@ -194,26 +194,54 @@ export const Page2Food = ({
     let totalPembelian = 0;
     let totalProduksiSendiri = 0;
     
-    category.items.forEach(item => {
-      const key = `${categoryKey}_${item}`;
-      const expense = data.makananMinuman[key];
-      if (expense) {
-        // Check if entries exist and sum from entries
-        if (expense.entries && expense.entries.length > 0) {
-          expense.entries.forEach((entry: any) => {
-            if (entry.kategori === 'Pembelian') {
-              totalPembelian += entry.nilai || 0;
+    // Special handling for M-N categories (per-member entries)
+    if (categoryKey === 'M' || categoryKey === 'N') {
+      if (data.namaAnggotaRumahTangga && data.makananMinuman) {
+        data.namaAnggotaRumahTangga.forEach((_, index) => {
+          const key = `${categoryKey}_${index}`;
+          const expense = data.makananMinuman[key];
+          if (expense) {
+            // Check if entries exist and sum from entries
+            if (expense.entries && Array.isArray(expense.entries) && expense.entries.length > 0) {
+              expense.entries.forEach((entry: any) => {
+                const nilai = entry.nilai || 0;
+                if (entry.kategori === 'Pembelian') {
+                  totalPembelian += nilai;
+                } else if (entry.kategori === 'Produksi Sendiri/Pemberian' || entry.kategori === 'Pemberian') {
+                  totalProduksiSendiri += nilai;
+                }
+              });
             } else {
-              totalProduksiSendiri += entry.nilai || 0;
+              // Fallback to direct fields
+              totalPembelian += expense.pembelian || 0;
+              totalProduksiSendiri += expense.produksiSendiri || 0;
             }
-          });
-        } else {
-          // Fallback to direct values
-          totalPembelian += expense.pembelian || 0;
-          totalProduksiSendiri += expense.produksiSendiri || 0;
-        }
+          }
+        });
       }
-    });
+    } else {
+      // Standard handling for A-L categories (per-item entries)
+      category.items.forEach(item => {
+        const key = `${categoryKey}_${item}`;
+        const expense = data.makananMinuman[key];
+        if (expense) {
+          // Check if entries exist and sum from entries
+          if (expense.entries && expense.entries.length > 0) {
+            expense.entries.forEach((entry: any) => {
+              if (entry.kategori === 'Pembelian') {
+                totalPembelian += entry.nilai || 0;
+              } else {
+                totalProduksiSendiri += entry.nilai || 0;
+              }
+            });
+          } else {
+            // Fallback to direct values
+            totalPembelian += expense.pembelian || 0;
+            totalProduksiSendiri += expense.produksiSendiri || 0;
+          }
+        }
+      });
+    }
     
     return {
       totalPembelian,
