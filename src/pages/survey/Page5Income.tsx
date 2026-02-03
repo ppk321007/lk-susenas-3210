@@ -7,6 +7,7 @@ import { TransferBerjalanEntry } from "@/components/TransferBerjalanEntry";
 import { TransferModalEntry } from "@/components/TransferModalEntry";
 import { AsetPerubahanEntry } from "@/components/AsetPerubahanEntry";
 import { useSurveyImputasi } from "@/hooks/useSurveyImputasi";
+import { ImputasiTooltip } from "@/components/ImputasiTooltip";
 interface Page4IncomeProps {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
@@ -166,8 +167,15 @@ export const Page5Income = ({
                       upahBarang: parseNumber(e.target.value)
                     })} placeholder="Rp 0" className="text-sm" />
                       </td>
-                      <td className="border border-gray-300 p-2">
-                        <Input type="text" value={entry.imputasiUpahGajiBarang ? formatNumber(entry.imputasiUpahGajiBarang) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-foreground" />
+                      <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                        <ImputasiTooltip 
+                          value={entry.imputasiUpahGajiBarang || 0}
+                          originalValue={entry.upahBarang || 0}
+                          conversionText="(sama dengan Upah/Gaji Barang)"
+                          label="Imputasi Upah/Gaji Barang"
+                        >
+                          Rp {formatNumber(entry.imputasiUpahGajiBarang || 0)}
+                        </ImputasiTooltip>
                       </td>
                       <td className="border border-gray-300 p-2">
                         <Input type="text" value={entry.lembur ? formatNumber(entry.lembur) : ''} onChange={e => updateUpahEntry(index, {
@@ -264,8 +272,15 @@ export const Page5Income = ({
                       <td className="border border-gray-300 p-2 text-right">
                         Rp {formatNumber(entry.nilaiProduksi - entry.biayaProduksi)}
                       </td>
-                      <td className="border border-gray-300 p-2">
-                        <Input type="text" value={entry.imputasiNilaiProduksi ? formatNumber(entry.imputasiNilaiProduksi) : '0'} readOnly disabled placeholder="Rp 0" className="text-sm bg-gray-100 text-foreground" />
+                      <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                        <ImputasiTooltip 
+                          value={entry.imputasiNilaiProduksi || 0}
+                          originalValue={entry.nilaiProduksi || 0}
+                          conversionText="(sama dengan Nilai Produksi)"
+                          label="Imputasi Nilai Produksi"
+                        >
+                          Rp {formatNumber(entry.imputasiNilaiProduksi || 0)}
+                        </ImputasiTooltip>
                       </td>
                       <td className="border border-gray-300 p-2 text-center">
                         <Button size="sm" variant="destructive" onClick={() => removeUsahaEntry(index)}>
@@ -351,8 +366,15 @@ export const Page5Income = ({
                   <td className="border border-gray-300 p-2 text-right">
                     Rp {formatNumber(data.produksiSendiri?.perkiraanSewaRumah?.surplus || 0)}
                   </td>
-                  <td className="border border-gray-300 p-2 text-right bg-gray-50">
-                    Rp {formatNumber(data.produksiSendiri?.perkiraanSewaRumah?.imputasiNilaiProduksi || 0)}
+                  <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                    <ImputasiTooltip 
+                      value={data.produksiSendiri?.perkiraanSewaRumah?.imputasiNilaiProduksi || 0}
+                      originalValue={data.produksiSendiri?.perkiraanSewaRumah?.nilaiProduksi || 0}
+                      conversionText="(sama dengan Nilai Produksi)"
+                      label="Imputasi Perkiraan Sewa Rumah"
+                    >
+                      Rp {formatNumber(data.produksiSendiri?.perkiraanSewaRumah?.imputasiNilaiProduksi || 0)}
+                    </ImputasiTooltip>
                   </td>
                 </tr>
                 <tr>
@@ -386,8 +408,15 @@ export const Page5Income = ({
                   <td className="border border-gray-300 p-2 text-right">
                     Rp {formatNumber(data.produksiSendiri?.hasilPertanian?.surplus || 0)}
                   </td>
-                  <td className="border border-gray-300 p-2 text-right bg-gray-50">
-                    Rp {formatNumber(data.produksiSendiri?.hasilPertanian?.imputasiNilaiProduksi || 0)}
+                  <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                    <ImputasiTooltip 
+                      value={data.produksiSendiri?.hasilPertanian?.imputasiNilaiProduksi || 0}
+                      originalValue={data.produksiSendiri?.hasilPertanian?.nilaiProduksi || 0}
+                      conversionText="(sama dengan Nilai Produksi)"
+                      label="Imputasi Hasil Pertanian"
+                    >
+                      Rp {formatNumber(data.produksiSendiri?.hasilPertanian?.imputasiNilaiProduksi || 0)}
+                    </ImputasiTooltip>
                   </td>
                 </tr>
                 <tr className="bg-muted font-semibold">
@@ -401,8 +430,13 @@ export const Page5Income = ({
                   <td className="border border-gray-300 p-2 text-right">
                     Rp {formatNumber((data.produksiSendiri?.perkiraanSewaRumah?.surplus || 0) + (data.produksiSendiri?.hasilPertanian?.surplus || 0))}
                   </td>
-                  <td className="border border-gray-300 p-2 text-right bg-gray-50">
-                    Rp {formatNumber((data.produksiSendiri?.perkiraanSewaRumah?.imputasiNilaiProduksi || 0) + (data.produksiSendiri?.hasilPertanian?.imputasiNilaiProduksi || 0))}
+                  <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                    <ImputasiTooltip 
+                      value={(data.produksiSendiri?.perkiraanSewaRumah?.imputasiNilaiProduksi || 0) + (data.produksiSendiri?.hasilPertanian?.imputasiNilaiProduksi || 0)}
+                      label="Total Imputasi Produksi Sendiri"
+                    >
+                      Rp {formatNumber((data.produksiSendiri?.perkiraanSewaRumah?.imputasiNilaiProduksi || 0) + (data.produksiSendiri?.hasilPertanian?.imputasiNilaiProduksi || 0))}
+                    </ImputasiTooltip>
                   </td>
                 </tr>
               </tbody>
