@@ -344,80 +344,112 @@ export const Page6 = ({
                     WebkitAppearance: 'none'
                   }} />
                   </td>
-                  <td className="border border-gray-300 p-2">
-                     <Input type="text" value={formatNumber(imputasiPengambilanUangFinal)} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
+                   <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                     <ImputasiTooltip 
+                       value={imputasiPengambilanUangFinal}
+                       formula={`Konsumsi RT + Total1 - Total2 = ${formatNumber(konsumsiRT)} + ${formatNumber((kontrolMengambil as any)?.total1 || 0)} - ${formatNumber((kontrolMengambil as any)?.total2 || 0)}`}
+                       label="Imputasi Pengambilan Uang Tunai"
+                     >
+                       Rp {formatNumber(imputasiPengambilanUangFinal)}
+                     </ImputasiTooltip>
                    </td>
-                  <td className="border border-gray-300 p-2">1. Menyimpan Uang Tunai dan Menabung</td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.menyimpanUangTunai ? formatNumber(transaksiKeuangan.menyimpanUangTunai) : ''} onChange={e => updateTransaksiKeuangan('menyimpanUangTunai', parseNumber(e.target.value))} className="w-full text-right" />
-                  </td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai ? formatNumber(transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai) : '0'} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
-                  </td>
+                   <td className="border border-gray-300 p-2">1. Menyimpan Uang Tunai dan Menabung</td>
+                   <td className="border border-gray-300 p-2">
+                     <Input type="text" value={transaksiKeuangan.menyimpanUangTunai ? formatNumber(transaksiKeuangan.menyimpanUangTunai) : ''} onChange={e => updateTransaksiKeuangan('menyimpanUangTunai', parseNumber(e.target.value))} className="w-full text-right" />
+                   </td>
+                   <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                     <ImputasiTooltip 
+                       value={transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai || 0}
+                       formula="Lihat tabel Kontrol Menyimpan"
+                       label="Imputasi Menyimpan Uang Tunai"
+                     >
+                       Rp {formatNumber(transaksiKeuangan.imputasiPengeluaranMenyimpanUangTunai || 0)}
+                     </ImputasiTooltip>
+                   </td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 p-2">2. Meminjam Uang</td>
                   <td className="border border-gray-300 p-2">
                     <Input type="text" value={transaksiKeuangan.meminjamUang ? formatNumber(transaksiKeuangan.meminjamUang) : ''} onChange={e => updateTransaksiKeuangan('meminjamUang', parseNumber(e.target.value))} className="w-full text-right" />
                   </td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.imputasiPenerimaanMeminjamUang ? formatNumber(transaksiKeuangan.imputasiPenerimaanMeminjamUang) : '0'} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
-                  </td>
-                  <td className="border border-gray-300 p-2">2. Membayar Hutang</td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.membayarHutang ? formatNumber(transaksiKeuangan.membayarHutang) : ''} onChange={e => updateTransaksiKeuangan('membayarHutang', parseNumber(e.target.value))} className="w-full text-right" />
-                  </td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value="0" readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
-                  </td>
+                   <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                     <ImputasiTooltip 
+                       value={transaksiKeuangan.imputasiPenerimaanMeminjamUang || 0}
+                       label="Imputasi Meminjam Uang"
+                     >
+                       Rp {formatNumber(transaksiKeuangan.imputasiPenerimaanMeminjamUang || 0)}
+                     </ImputasiTooltip>
+                   </td>
+                   <td className="border border-gray-300 p-2">2. Membayar Hutang</td>
+                   <td className="border border-gray-300 p-2">
+                     <Input type="text" value={transaksiKeuangan.membayarHutang ? formatNumber(transaksiKeuangan.membayarHutang) : ''} onChange={e => updateTransaksiKeuangan('membayarHutang', parseNumber(e.target.value))} className="w-full text-right" />
+                   </td>
+                   <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                     <span>Rp 0</span>
+                   </td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 p-2">3. Menerima Pembayaran Kredit Barang (Usaha Rumah Tangga)</td>
                   <td className="border border-gray-300 p-2">
                     <Input type="text" value={transaksiKeuangan.menerimaPembayaranKredit ? formatNumber(transaksiKeuangan.menerimaPembayaranKredit) : ''} onChange={e => updateTransaksiKeuangan('menerimaPembayaranKredit', parseNumber(e.target.value))} className="w-full text-right" />
                   </td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value="0" readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
-                  </td>
-                  <td className="border border-gray-300 p-2">3. Memberikan Kredit Barang (Usaha Rumah Tangga)</td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.memberikanKreditBarang ? formatNumber(transaksiKeuangan.memberikanKreditBarang) : ''} onChange={e => updateTransaksiKeuangan('memberikanKreditBarang', parseNumber(e.target.value))} className="w-full text-right" />
-                  </td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value="0" readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
-                  </td>
+                   <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                     <span>Rp 0</span>
+                   </td>
+                   <td className="border border-gray-300 p-2">3. Memberikan Kredit Barang (Usaha Rumah Tangga)</td>
+                   <td className="border border-gray-300 p-2">
+                     <Input type="text" value={transaksiKeuangan.memberikanKreditBarang ? formatNumber(transaksiKeuangan.memberikanKreditBarang) : ''} onChange={e => updateTransaksiKeuangan('memberikanKreditBarang', parseNumber(e.target.value))} className="w-full text-right" />
+                   </td>
+                   <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                     <span>Rp 0</span>
+                   </td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 p-2">4. Kredit Barang</td>
                   <td className="border border-gray-300 p-2">
                     <Input type="text" value={transaksiKeuangan.kreditBarang ? formatNumber(transaksiKeuangan.kreditBarang) : ''} onChange={e => updateTransaksiKeuangan('kreditBarang', parseNumber(e.target.value))} className="w-full text-right" />
                   </td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.imputasiPenerimaanKreditBarang ? formatNumber(transaksiKeuangan.imputasiPenerimaanKreditBarang) : '0'} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
-                  </td>
-                  <td className="border border-gray-300 p-2">4. Membayar Kredit Barang</td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.membayarKreditBarang ? formatNumber(transaksiKeuangan.membayarKreditBarang) : ''} onChange={e => updateTransaksiKeuangan('membayarKreditBarang', parseNumber(e.target.value))} className="w-full text-right" />
-                  </td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value="0" readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
-                  </td>
+                   <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                     <ImputasiTooltip 
+                       value={transaksiKeuangan.imputasiPenerimaanKreditBarang || 0}
+                       label="Imputasi Kredit Barang"
+                     >
+                       Rp {formatNumber(transaksiKeuangan.imputasiPenerimaanKreditBarang || 0)}
+                     </ImputasiTooltip>
+                   </td>
+                   <td className="border border-gray-300 p-2">4. Membayar Kredit Barang</td>
+                   <td className="border border-gray-300 p-2">
+                     <Input type="text" value={transaksiKeuangan.membayarKreditBarang ? formatNumber(transaksiKeuangan.membayarKreditBarang) : ''} onChange={e => updateTransaksiKeuangan('membayarKreditBarang', parseNumber(e.target.value))} className="w-full text-right" />
+                   </td>
+                   <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                     <span>Rp 0</span>
+                   </td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 p-2">5. Lainnya (Pengembalian Piutang, Menggadaikan Barang, Mendapat Arisan, Klaim Asuransi Jiwa/Pendidikan, dll.)</td>
                   <td className="border border-gray-300 p-2">
                     <Input type="text" value={transaksiKeuangan.lainnyaPenerimaan ? formatNumber(transaksiKeuangan.lainnyaPenerimaan) : ''} onChange={e => updateTransaksiKeuangan('lainnyaPenerimaan', parseNumber(e.target.value))} className="w-full text-right" />
                   </td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.imputasiPenerimaanLainnya ? formatNumber(transaksiKeuangan.imputasiPenerimaanLainnya) : '0'} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
-                  </td>
-                  <td className="border border-gray-300 p-2">5. Lainnya (Meminjamkan Uang, Menebus Barang, Gadaian, Membayar Arisan, Premi Asuransi Jiwa/Pendidikan, dll.)</td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.lainnyaPengeluaran ? formatNumber(transaksiKeuangan.lainnyaPengeluaran) : ''} onChange={e => updateTransaksiKeuangan('lainnyaPengeluaran', parseNumber(e.target.value))} className="w-full text-right" />
-                  </td>
-                  <td className="border border-gray-300 p-2">
-                    <Input type="text" value={transaksiKeuangan.imputasiPengeluaranLainnya ? formatNumber(transaksiKeuangan.imputasiPengeluaranLainnya) : '0'} readOnly disabled placeholder="0" className="w-full text-right bg-gray-100 text-foreground" />
-                  </td>
+                   <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                     <ImputasiTooltip 
+                       value={transaksiKeuangan.imputasiPenerimaanLainnya || 0}
+                       label="Imputasi Penerimaan Lainnya"
+                     >
+                       Rp {formatNumber(transaksiKeuangan.imputasiPenerimaanLainnya || 0)}
+                     </ImputasiTooltip>
+                   </td>
+                   <td className="border border-gray-300 p-2">5. Lainnya (Meminjamkan Uang, Menebus Barang, Gadaian, Membayar Arisan, Premi Asuransi Jiwa/Pendidikan, dll.)</td>
+                   <td className="border border-gray-300 p-2">
+                     <Input type="text" value={transaksiKeuangan.lainnyaPengeluaran ? formatNumber(transaksiKeuangan.lainnyaPengeluaran) : ''} onChange={e => updateTransaksiKeuangan('lainnyaPengeluaran', parseNumber(e.target.value))} className="w-full text-right" />
+                   </td>
+                   <td className="border border-gray-300 p-2 text-right bg-amber-50">
+                     <ImputasiTooltip 
+                       value={transaksiKeuangan.imputasiPengeluaranLainnya || 0}
+                       label="Imputasi Pengeluaran Lainnya"
+                     >
+                       Rp {formatNumber(transaksiKeuangan.imputasiPengeluaranLainnya || 0)}
+                     </ImputasiTooltip>
+                   </td>
                 </tr>
                 <tr className="bg-muted font-semibold">
                   <td className="border border-gray-300 p-2">JUMLAH</td>
