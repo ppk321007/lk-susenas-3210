@@ -72,6 +72,12 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
 
       expense.entries.forEach((entry: ExpenseEntry) => {
         const yearlyValue = convertToYearly(entry.nilai, entry.periode);
+        const isM_N = key.startsWith('M_') || key.startsWith('N_');
+        if (isM_N) {
+          console.log(`[M-N DEBUG] Category: ${key}, Entry #${expense.entries.indexOf(entry)}`);
+          console.log(`  nilai: ${entry.nilai}, kategori: "${entry.kategori}", jenisDetail: "${entry.jenisDetail}"`);
+          console.log(`  periode: ${entry.periode}, yearlyValue: ${yearlyValue}`);
+        }
         console.log(`Entry: kategori=${entry.kategori}, jenisDetail="${entry.jenisDetail}", nilai=${entry.nilai}, periode=${entry.periode || 'minggu'}, yearlyValue=${yearlyValue}`);
 
         // 1. BLOK VA - Imputasi Upah/Gaji Barang
@@ -211,6 +217,16 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         }
 
         // 6. BLOK VE - Rumah Tangga Lain - Imputasi Transfer Diterima Barang
+        const isM_N_check = key.startsWith('M_') || key.startsWith('N_');
+        const isPemb = isPemberianKategori(entry.kategori);
+        const isRumahTangga = entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain';
+        
+        if (isM_N_check && isPemb) {
+          console.log(`[BLOK VE CHECK] M-N found in category ${key}`);
+          console.log(`  isPemberianKategori: ${isPemb}, jenisDetail: "${entry.jenisDetail}"`);
+          console.log(`  isRumahTangga match: ${isRumahTangga}`);
+        }
+        
         if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
           rumahTanggaLainImputasiBarang += yearlyValue;
           const source = (key.startsWith('M_') || key.startsWith('N_')) ? `(M-N: ${key})` : '';

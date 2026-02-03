@@ -101,6 +101,7 @@ export const MakananMinumanJadiInput = ({
                   onChange={(expense) => updateExpense(index, expense)}
                   itemKey={itemKey}
                   incompleteEntries={incompleteEntries}
+                  periode="minggu"
                 />
               );
             })
