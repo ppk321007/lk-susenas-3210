@@ -182,16 +182,31 @@ function parseExpenseCell(cellValue: string): { entries: Array<{ nilai: number; 
     const items = group.split('; ').filter(Boolean);
 
     for (const item of items) {
-      // Format: ItemName_Value_Category_Detail
-      const parts = item.split('_');
-      if (parts.length >= 4) {
-        const nilai = parseFloat(parts[1]) || 0;
-        const kategori = parts[2] || '';
-        const jenisDetail = parts[3] || '';
-
-        if (nilai > 0) {
-          entries.push({ nilai, kategori, jenisDetail });
+      // Support both old format (ItemName_Value_Category_Detail) and new format (ItemName~~Value~~Category~~Detail)
+      let nilai = 0;
+      let kategori = '';
+      let jenisDetail = '';
+      
+      if (item.includes('~~')) {
+        // New format with ~~ delimiter
+        const parts = item.split('~~');
+        if (parts.length >= 4) {
+          nilai = parseFloat(parts[1]) || 0;
+          kategori = parts[2] || '';
+          jenisDetail = parts[3] || '';
         }
+      } else {
+        // Old format with _ delimiter
+        const parts = item.split('_');
+        if (parts.length >= 4) {
+          nilai = parseFloat(parts[1]) || 0;
+          kategori = parts[2] || '';
+          jenisDetail = parts[3] || '';
+        }
+      }
+
+      if (nilai > 0) {
+        entries.push({ nilai, kategori, jenisDetail });
       }
     }
   }
@@ -203,8 +218,9 @@ function parseExpenseCell(cellValue: string): { entries: Array<{ nilai: number; 
 // Format: ART0_MemberName_Value_Category_Detail... || ART1_MemberName_Value_Category_Detail...
 /**
  * Parse per-member expense cells for M-N categories
- * Expected format: ART0_MemberName~~Value~~Category~~Detail || ART1_MemberName~~Value~~Category~~Detail
- * Uses ~~ delimiter to avoid conflicts with underscores in member names and jenisDetail text
+ * Supports both old format (with _ delimiter) and new format (with ~~ delimiter)
+ * Old format: ART0_MemberName_Value_Category_Detail
+ * New format: ART0_MemberName~~Value~~Category~~Detail (uses ~~ to avoid conflicts with underscores)
  */
 function parsePerMemberExpenseCell(cellValue: string, categoryKey: string): Record<string, { entries: Array<{ nilai: number; kategori: string; jenisDetail: string }> }> {
   const result: Record<string, { entries: Array<{ nilai: number; kategori: string; jenisDetail: string }> }> = {};
@@ -225,30 +241,51 @@ function parsePerMemberExpenseCell(cellValue: string, categoryKey: string): Reco
       const items = categoryGroup.split('; ').filter(Boolean);
       
       for (const item of items) {
-        // Format: ART{index}_MemberName~~Value~~Category~~Detail
+        // Format: ART{index}_MemberName~~Value~~Category~~Detail (new) or ART{index}_MemberName_Value_Category_Detail (old)
         // First extract the ART index
         const artMatch = item.match(/^ART(\d+)_(.+)$/);
         if (artMatch) {
           const memberIndex = parseInt(artMatch[1]);
-          const restOfItem = artMatch[2]; // MemberName~~Value~~Category~~Detail
+          const restOfItem = artMatch[2]; // MemberName~~Value~~Category~~Detail or MemberName_Value_Category_Detail
           
-          // Now parse the rest: split by ~~ delimiter
-          const parts = restOfItem.split('~~');
-          // parts[0] = MemberName, parts[1] = Value, parts[2] = Category, parts[3] = Detail
-          if (parts.length >= 4) {
-            const nilai = parseFloat(parts[1]) || 0;
-            const kategori = parts[2] || '';
-            const jenisDetail = parts[3] || '';
-            
-            if (nilai > 0) {
-              // Use the categoryKey passed from caller (M or N)
-              const memberKey = `${categoryKey}_${memberIndex}`;
-              
-              if (!result[memberKey]) {
-                result[memberKey] = { entries: [] };
-              }
-              result[memberKey].entries.push({ nilai, kategori, jenisDetail });
+          let nilai = 0;
+          let kategori = '';
+          let jenisDetail = '';
+          
+          // Try new format first (with ~~ delimiter)
+          if (restOfItem.includes('~~')) {
+            const parts = restOfItem.split('~~');
+            if (parts.length >= 4) {
+              nilai = parseFloat(parts[1]) || 0;
+              kategori = parts[2] || '';
+              jenisDetail = parts[3] || '';
             }
+          } else {
+            // Fallback to old format (with _ delimiter)
+            // Split carefully: first part is MemberName, then Value, Category, Detail
+            const parts = restOfItem.split('_');
+            if (parts.length >= 4) {
+              // For old format, we need to be more careful because MemberName might have underscores
+              // But we know the format is: MemberName_Value_Category_Detail
+              // So we take the last 3 parts as Value, Category, Detail
+              const detail = parts[parts.length - 1];
+              const kategoriOld = parts[parts.length - 2];
+              const nilaiStr = parts[parts.length - 3];
+              
+              nilai = parseFloat(nilaiStr) || 0;
+              kategori = kategoriOld || '';
+              jenisDetail = detail || '';
+            }
+          }
+          
+          if (nilai > 0) {
+            // Use the categoryKey passed from caller (M or N)
+            const memberKey = `${categoryKey}_${memberIndex}`;
+            
+            if (!result[memberKey]) {
+              result[memberKey] = { entries: [] };
+            }
+            result[memberKey].entries.push({ nilai, kategori, jenisDetail });
           }
         }
       }
