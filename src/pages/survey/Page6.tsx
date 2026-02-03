@@ -83,6 +83,12 @@ export const Page6 = ({
   // Get kontrol data for display
   const kontrolMengambil = kontrolData.kontrolMengambil || {};
   const kontrolMenyimpan = kontrolData.kontrolMenyimpan || {};
+  
+  // Helper function to safely get tooltip formula
+  const getFormula = (key: string) => {
+    const formulaKey = `${key}Formula`;
+    return (kontrolMengambil as any)?.[formulaKey] || '';
+  };
 
   // Calculate income values
   const calculateUpahGaji = () => {
@@ -454,40 +460,40 @@ export const Page6 = ({
                   <tr>
                     <td className="border border-gray-300 p-2">Biaya Produksi</td>
                     <td className="border border-gray-300 p-2 text-right">
-                      <ImputasiTooltip formula={kontrolMengambil.biayaProduksiFormula}>
-                        {formatNumber(kontrolMengambil.biayaProduksi || 0)}
+                      <ImputasiTooltip formula={getFormula('biayaProduksi')}>
+                        {formatNumber((kontrolMengambil as any)?.biayaProduksi || 0)}
                       </ImputasiTooltip>
                     </td>
                   </tr>
                   <tr>
                     <td className="border border-gray-300 p-2">Transfer Keluar</td>
                     <td className="border border-gray-300 p-2 text-right">
-                      <ImputasiTooltip formula={kontrolMengambil.transferKeluarFormula}>
-                        {formatNumber(kontrolMengambil.transferKeluar || 0)}
+                      <ImputasiTooltip formula={getFormula('transferKeluar')}>
+                        {formatNumber((kontrolMengambil as any)?.transferKeluar || 0)}
                       </ImputasiTooltip>
                     </td>
                   </tr>
                   <tr>
                     <td className="border border-gray-300 p-2">Pendapatan Kepemilikan yang Dibayar (Blok D)</td>
                     <td className="border border-gray-300 p-2 text-right">
-                      <ImputasiTooltip formula={kontrolMengambil.pendapatanKepemilikanFormula}>
-                        {formatNumber(kontrolMengambil.pendapatanKepemilikanDibayar || 0)}
+                      <ImputasiTooltip formula={getFormula('pendapatanKepemilikan')}>
+                        {formatNumber((kontrolMengambil as any)?.pendapatanKepemilikanDibayar || 0)}
                       </ImputasiTooltip>
                     </td>
                   </tr>
                   <tr>
                     <td className="border border-gray-300 p-2">Penambahan Aset (Blok G)</td>
                     <td className="border border-gray-300 p-2 text-right">
-                      <ImputasiTooltip formula={kontrolMengambil.penambahanAsetFormula}>
-                        {formatNumber(kontrolMengambil.penambahanAset || 0)}
+                      <ImputasiTooltip formula={getFormula('penambahanAset')}>
+                        {formatNumber((kontrolMengambil as any)?.penambahanAset || 0)}
                       </ImputasiTooltip>
                     </td>
                   </tr>
                   <tr>
                     <td className="border border-gray-300 p-2">Transaksi Keuangan Keluar (Blok VII keluar)</td>
                     <td className="border border-gray-300 p-2 text-right">
-                      <ImputasiTooltip formula={kontrolMengambil.transaksiKeuanganFormula}>
-                        {formatNumber(kontrolMengambil.transaksiKeuanganKeluar || 0)}
+                      <ImputasiTooltip formula={getFormula('transaksiKeuangan')}>
+                        {formatNumber((kontrolMengambil as any)?.transaksiKeuanganKeluar || 0)}
                       </ImputasiTooltip>
                     </td>
                   </tr>

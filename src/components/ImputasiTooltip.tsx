@@ -13,19 +13,23 @@ export const ImputasiTooltip: React.FC<ImputasiTooltipProps> = ({
   children,
   className = ''
 }) => {
+  const tooltipText = formula || (value !== undefined ? `Nilai: ${value}` : '');
+  
   return (
     <span
       className={`cursor-help inline-block pointer-events-auto ${className}`}
-      title={formula || (value !== undefined ? `Nilai: ${value}` : '')}
-      data-tooltip={formula || (value !== undefined ? `Nilai: ${value}` : '')}
+      title={tooltipText}
+      data-tooltip={tooltipText}
       style={{
-        textDecoration: 'underline dotted',
-        textDecorationColor: 'rgb(107, 114, 128)',
-        textUnderlineOffset: '2px'
+        textDecoration: 'underline dotted rgb(107, 114, 128)',
+        textDecorationThickness: '1px',
+        textUnderlineOffset: '2px',
+        cursor: 'help'
       }}
     >
-      {children || value}
+      {children || (value !== undefined ? value : '')}
     </span>
   );
 };
+
 
