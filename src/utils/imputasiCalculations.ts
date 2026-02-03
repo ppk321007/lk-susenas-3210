@@ -153,9 +153,57 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         }
         console.log(`✓ BLOK VB Rule 2: usahaImputasiNilaiProduksi += ${yearlyValue} = ${usahaImputasiNilaiProduksi}`);
       }
+      if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Konsumsi Beras/palawija hasil panenan sendiri' && entry.nilai > 0) {
+        usahaImputasiNilaiProduksi += yearlyValue;
+        
+        const key = 'Petani';
+        if (autoUsahaEntriesMap.has(key)) {
+          const existing = autoUsahaEntriesMap.get(key)!;
+          existing.imputasiNilaiProduksi += yearlyValue;
+        } else {
+          autoUsahaEntriesMap.set(key, {
+            id: `auto-imputasi-vb-${autoVbIndex++}`,
+            uraianKegiatan: `Pertanian`,
+            kategoriLU: 'Berusaha sendiri',
+            jenisPekerjaan: 'Petani',
+            nilaiProduksi: 0,
+            biayaProduksi: 0,
+            surplus: 0,
+            imputasiNilaiProduksi: yearlyValue
+          });
+        }
+        console.log(`✓ BLOK VB Rule 2: usahaImputasiNilaiProduksi += ${yearlyValue} = ${usahaImputasiNilaiProduksi}`);
+      }
 
       // Helper to check if kategori is a "Pemberian" type (handles both old and new category names)
       const isPemberianKategori = (kat: string) => kat === 'Produksi Sendiri/Pemberian' || kat === 'Pemberian';
+
+      // BLOK VB Rules for M-N categories with "Produksi Sendiri/Pemberian" - like kategori A-L
+      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Berasal dari Produksi Sendiri' && entry.nilai > 0) {
+        // Check if this is from M or N category based on the key field (will be added to entry)
+        // For now, add to BLOK VB since these are business productions (warung makan, pengolahan rokok, dll)
+        usahaImputasiNilaiProduksi += yearlyValue;
+        
+        // Create or update auto entry based on context
+        // We can infer from jenisDetail or use a generic "Produksi Sendiri" category
+        const key = 'Produksi Sendiri Makanan/Minuman/Tembakau';
+        if (autoUsahaEntriesMap.has(key)) {
+          const existing = autoUsahaEntriesMap.get(key)!;
+          existing.imputasiNilaiProduksi += yearlyValue;
+        } else {
+          autoUsahaEntriesMap.set(key, {
+            id: `auto-imputasi-vb-${autoVbIndex++}`,
+            uraianKegiatan: `Produksi Sendiri Makanan/Minuman/Tembakau`,
+            kategoriLU: 'Berusaha sendiri',
+            jenisPekerjaan: 'Produksi Sendiri Makanan/Minuman/Tembakau',
+            nilaiProduksi: 0,
+            biayaProduksi: 0,
+            surplus: 0,
+            imputasiNilaiProduksi: yearlyValue
+          });
+        }
+        console.log(`✓ BLOK VB Rule 3 (M-N Produksi Sendiri): usahaImputasiNilaiProduksi += ${yearlyValue} = ${usahaImputasiNilaiProduksi}`);
+      }
 
       // 3. BLOK VC - Imputasi Nilai Produksi Hasil Pertanian
       if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Berasal dari Produksi Sendiri') {
