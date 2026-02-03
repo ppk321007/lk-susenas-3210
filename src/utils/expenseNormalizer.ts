@@ -128,7 +128,8 @@ export const getNonFoodMonthlyTotal = (
     if (expense.entries && Array.isArray(expense.entries)) {
       return sum + expense.entries.reduce((entrySum: number, entry: any) => {
         const nilai = entry.nilai || 0;
-        const periode = entry.periode || 'minggu';
+        // For monthly data (komoditiXSebulan), default periode is 'bulan' not 'minggu'
+        const periode = entry.periode || 'bulan';
         
         // Convert to monthly based on periode
         let monthlyValue = 0;
@@ -141,8 +142,8 @@ export const getNonFoodMonthlyTotal = (
           // (User will input yearly amount, we treat it as given amount)
           monthlyValue = nilai;
         } else {
-          // Default to weekly
-          monthlyValue = Math.round(nilai * 30 / 7);
+          // Default to monthly
+          monthlyValue = nilai;
         }
         return entrySum + monthlyValue;
       }, 0);

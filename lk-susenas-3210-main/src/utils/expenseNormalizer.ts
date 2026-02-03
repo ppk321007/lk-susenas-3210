@@ -90,6 +90,31 @@ export const getNonFoodMonthlyTotal = (
   }
 
   return Object.values(monthlyData).reduce((sum, expense) => {
+    if (!expense) return sum;
+    
+    // Check if expense has entries with periode field
+    if (expense.entries && Array.isArray(expense.entries)) {
+      return sum + expense.entries.reduce((entrySum: number, entry: any) => {
+        const nilai = entry.nilai || 0;
+        // For monthly data (komoditiXSebulan), default periode is 'bulan' not 'minggu'
+        const periode = entry.periode || 'bulan';
+        
+        // Convert to monthly based on periode
+        let monthlyValue = 0;
+        if (periode === 'minggu' || periode === 'weekly') {
+          monthlyValue = Math.round(nilai * 30 / 7);
+        } else if (periode === 'bulan' || periode === 'monthly') {
+          monthlyValue = nilai;
+        } else if (periode === 'tahun' || periode === 'yearly') {
+          monthlyValue = nilai;
+        } else {
+          monthlyValue = nilai;
+        }
+        return entrySum + monthlyValue;
+      }, 0);
+    }
+    
+    // Fallback to direct fields (assumed to be monthly)
     const normalized = getNormalizedExpenseTotals(expense);
     return sum + normalized.total;
   }, 0);
