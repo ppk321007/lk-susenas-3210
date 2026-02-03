@@ -171,3 +171,28 @@ export const getNonFoodYearlyTotal = (
       return sum + normalized.total;
     }, 0);
 };
+
+/**
+ * Calculate total non-food monthly average (combines monthly entries and yearly entries converted to monthly)
+ * Used for BLOK IV.3.3 "RATA-RATA PENGELUARAN BUKAN MAKANAN SEBULAN"
+ */
+export const getNonFoodMonthlyAverage = (
+  data: Record<string, any>,
+  nonFoodCategories: Record<string, any>
+): number => {
+  let totalMonthly = 0;
+
+  // Sum of all monthly entries from komoditiXSebulan
+  Object.keys(nonFoodCategories).forEach(categoryKey => {
+    const monthlyData = data[`komoditi${categoryKey}Sebulan`] as Record<string, any>;
+    totalMonthly += getNonFoodMonthlyTotal(monthlyData);
+  });
+
+  // Add yearly entries converted to monthly (divide by 12)
+  let totalYearly = 0;
+  Object.keys(nonFoodCategories).forEach(categoryKey => {
+    totalYearly += getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
+  });
+
+  return totalMonthly + (totalYearly / 12);
+};

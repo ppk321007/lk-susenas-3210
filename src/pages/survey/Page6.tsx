@@ -11,7 +11,8 @@ import { calculateImputasiFromFood } from "@/utils/imputasiCalculations";
 import { 
   getFoodCategoryTotals, 
   getNonFoodMonthlyTotal, 
-  getNonFoodYearlyTotal 
+  getNonFoodYearlyTotal,
+  getNonFoodMonthlyAverage
 } from "@/utils/expenseNormalizer";
 
 interface Page6Props {
@@ -156,8 +157,7 @@ export const Page6 = ({
 
   // Calculate consumption expenses from BLOK IV.3.3 - use exact same calculation as Page4Recap
   const calculateKonsumsiRT = () => {
-    // Calculate food subtotal using normalizer (returns weekly values)
-    // NOTE: M (Makanan dan Minuman Jadi) and N (Rokok dan Tembakau) are NOT included in Total Pembelian/Produksi
+    // Get food category totals (A-L only, not M-N as per BLOK IV.3.2 design)
     const foodSubtotal = Object.keys(FOOD_CATEGORIES).reduce((total, categoryKey) => {
       // Skip M and N categories as per requirement
       if (categoryKey === 'M' || categoryKey === 'N') {
@@ -173,27 +173,19 @@ export const Page6 = ({
       return total + totalPembelian + totalProduksiSendiri;
     }, 0);
 
-    // Food is in weekly period - convert to yearly (30/7 * 12), don't round yet
-    const foodYearlyTotal = foodSubtotal * 30 / 7 * 12;
+    // Food monthly average (from weekly data)
+    const foodMonthlyAverage = foodSubtotal * 30 / 7;
 
-    // Calculate non-food monthly total and convert to yearly (multiply by 12)
-    const nonFoodMonthlyYearlyTotal = Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
-      const monthlyData = data[`komoditi${categoryKey}Sebulan` as keyof SurveyData] as Record<string, any>;
-      return totalYearly + (getNonFoodMonthlyTotal(monthlyData) * 12); // Convert monthly to yearly
-    }, 0);
+    // Get non-food monthly average (combines monthly entries and yearly entries divided by 12)
+    const nonFoodMonthlyAverage = getNonFoodMonthlyAverage(data, NON_FOOD_CATEGORIES);
 
-    // For yearly non-food data, use directly (no conversion needed)
-    const nonFoodYearlyTotal = Object.keys(NON_FOOD_CATEGORIES).reduce((totalYearly, categoryKey) => {
-      const yearlyTotal = getNonFoodYearlyTotal(data.komoditiSetahun, categoryKey);
-      return totalYearly + yearlyTotal; // Use yearly value directly, no /12 conversion
-    }, 0);
+    // RATA-RATA PENGELUARAN RUMAH TANGGA SEBULAN (from BLOK IV.3.3 - food + non-food monthly average)
+    const monthlyAverage = Math.round(foodMonthlyAverage + nonFoodMonthlyAverage);
 
-    // TOTAL PENGELUARAN KONSUMSI RUMAH TANGGA SETAHUN (in yearly period)
-    // Round only the final yearly total, not individual components
-    const totalYearly = Math.round(foodYearlyTotal + nonFoodMonthlyYearlyTotal + nonFoodYearlyTotal);
+    // Convert to yearly (multiply by 12) for BLOK VI
+    const yearlyConsumption = monthlyAverage * 12;
 
-    // Return yearly consumption
-    return totalYearly;
+    return yearlyConsumption;
   };
 
   // Calculate totals
