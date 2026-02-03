@@ -477,7 +477,11 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     return autoEntry;
   });
   
-  const finalUpah = [...existingUpah, ...mergedAutoUpah];
+  const finalUpah = [...existingUpah, ...mergedAutoUpah].map(e => ({
+    ...e,
+    kategoriLU: e.kategoriLU || 'belum terdefinisikan',
+    jenisPekerjaan: e.jenisPekerjaan || 'belum terdefinisikan'
+  }));
 
   const existingUsaha = (data.pendapatanUsaha || []).filter(
     (e) => e && e.id && !e.id.startsWith('auto-imputasi-vb-') && e.id !== 'auto-generated-usaha'
@@ -506,7 +510,11 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     return autoEntry;
   });
   
-  const finalUsaha = [...existingUsaha, ...mergedAutoUsaha];
+  const finalUsaha = [...existingUsaha, ...mergedAutoUsaha].map(e => ({
+    ...e,
+    kategoriLU: e.kategoriLU || 'belum terdefinisikan',
+    jenisPekerjaan: e.jenisPekerjaan || 'belum terdefinisikan'
+  }));
 
   // Return the calculated imputasi values
   return {

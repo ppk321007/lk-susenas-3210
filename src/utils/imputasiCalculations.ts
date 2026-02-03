@@ -476,6 +476,7 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   console.log("autoUsahaEntries:", autoUsahaEntries);
 
   // Prepare final arrays: merge user-edited values with auto-generated entries
+  // Only include TRULY manual user entries (not auto-generated ones)
   const existingUpah = (data.pendapatanUpah || []).filter(
     (e) => e && e.id && !e.id.startsWith('auto-imputasi-va-') && e.id !== 'auto-generated-upah'
   );
@@ -508,7 +509,11 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   });
   
   // Always include regenerated auto entries - they're the source of truth for imputasi
-  const finalUpah = [...existingUpah, ...mergedAutoUpah].map(e => ({
+  // But filter out any manual entries with same jenisPekerjaan to avoid duplicates
+  const autoJenisPekerjaan = new Set(mergedAutoUpah.map(e => e.jenisPekerjaan));
+  const filteredExistingUpah = existingUpah.filter(e => !autoJenisPekerjaan.has(e.jenisPekerjaan));
+  
+  const finalUpah = [...filteredExistingUpah, ...mergedAutoUpah].map(e => ({
     ...e,
     kategoriLU: e.kategoriLU || 'belum terdefinisikan',
     jenisPekerjaan: e.jenisPekerjaan || 'belum terdefinisikan'
@@ -547,7 +552,11 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   });
   
   // Always include regenerated auto entries - they're the source of truth for imputasi
-  const finalUsaha = [...existingUsaha, ...mergedAutoUsaha].map(e => ({
+  // But filter out any manual entries with same jenisPekerjaan to avoid duplicates
+  const autoJenisPekerjaanUsaha = new Set(mergedAutoUsaha.map(e => e.jenisPekerjaan));
+  const filteredExistingUsaha = existingUsaha.filter(e => !autoJenisPekerjaanUsaha.has(e.jenisPekerjaan));
+  
+  const finalUsaha = [...filteredExistingUsaha, ...mergedAutoUsaha].map(e => ({
     ...e,
     kategoriLU: e.kategoriLU || 'belum terdefinisikan',
     jenisPekerjaan: e.jenisPekerjaan || 'belum terdefinisikan'
