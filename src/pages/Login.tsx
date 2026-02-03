@@ -50,7 +50,7 @@ const Login = () => {
         navigate('/');
       } else {
         toast({
-          title: "Login Gagal",
+          title: "Login Gagal..",
           description: data.message || "Nama atau password salah",
           variant: "destructive",
         });
