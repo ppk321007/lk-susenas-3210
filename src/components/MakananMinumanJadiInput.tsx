@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSurveyImputasi } from "@/hooks/useSurveyImputasi";
 import { validatePage2Entries, IncompleteEntry } from "@/utils/validationUtils";
 import { getNormalizedExpenseTotals } from "@/utils/expenseNormalizer";
-import { useMemo } from "react";
 
 interface MakananMinumanJadiInputProps {
   data: SurveyData;
@@ -36,15 +35,11 @@ export const MakananMinumanJadiInput = ({
     });
   };
 
-  // Use normalizer for correct totals from entries array
-  const totals = useMemo(() => {
-    let totalPembelian = 0;
-    let totalProduksiSendiri = 0;
+  // Compute totals directly on each render - no memoization to ensure always up-to-date
+  let totalPembelian = 0;
+  let totalProduksiSendiri = 0;
 
-    if (!data.namaAnggotaRumahTangga || !data.makananMinuman) {
-      return { totalPembelian: 0, totalProduksiSendiri: 0 };
-    }
-
+  if (data.namaAnggotaRumahTangga && data.makananMinuman) {
     data.namaAnggotaRumahTangga.forEach((_, index) => {
       const key = `${categoryKey}_${index}`;
       const expense = data.makananMinuman[key];
@@ -66,9 +61,9 @@ export const MakananMinumanJadiInput = ({
         }
       }
     });
+  }
 
-    return { totalPembelian, totalProduksiSendiri };
-  }, [categoryKey, data]);
+  const totals = { totalPembelian, totalProduksiSendiri };
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('id-ID').format(Math.round(num));
@@ -90,24 +85,30 @@ export const MakananMinumanJadiInput = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {data.namaAnggotaRumahTangga.map((nama, index) => {
-            const itemKey = `${categoryKey}_${index}`;
-            const currentExpense = data.makananMinuman[itemKey] || {
-              pembelian: 0,
-              produksiSendiri: 0
-            };
+          {data.namaAnggotaRumahTangga && data.namaAnggotaRumahTangga.length > 0 ? (
+            data.namaAnggotaRumahTangga.map((nama, index) => {
+              const itemKey = `${categoryKey}_${index}`;
+              const currentExpense = data.makananMinuman?.[itemKey] || {
+                pembelian: 0,
+                produksiSendiri: 0
+              };
 
-            return (
-              <EnhancedExpenseInput
-                key={itemKey}
-                label={`${index + 1}. ${nama}`}
-                value={currentExpense}
-                onChange={(expense) => updateExpense(index, expense)}
-                itemKey={itemKey}
-                incompleteEntries={incompleteEntries}
-              />
-            );
-          })}
+              return (
+                <EnhancedExpenseInput
+                  key={itemKey}
+                  label={`${index + 1}. ${nama}`}
+                  value={currentExpense}
+                  onChange={(expense) => updateExpense(index, expense)}
+                  itemKey={itemKey}
+                  incompleteEntries={incompleteEntries}
+                />
+              );
+            })
+          ) : (
+            <div className="text-center py-6 text-gray-500">
+              Tidak ada anggota rumah tangga yang ditetapkan.
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
