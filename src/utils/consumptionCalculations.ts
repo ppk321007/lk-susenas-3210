@@ -123,7 +123,8 @@ export const applySurveyImputasiCalculations = (data: SurveyData): SurveyData =>
     },
     rumahTanggaLain: {
       ...data.transferBerjalan?.rumahTanggaLain,
-      imputasiTransferDiterimaBarang: householdTransferAmount
+      // Use imputasi-calculated value from food data (includes M-N categories)
+      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.rumahTanggaLain?.imputasiTransferDiterimaBarang || 0
     },
     lembagaNirlaba: {
       ...data.transferBerjalan?.lembagaNirlaba,
