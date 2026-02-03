@@ -58,211 +58,211 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
 
   // Process all food categories
   Object.entries(data.makananMinuman || {}).forEach(([key, expense]) => {
-    if (!expense || !expense.entries) return;
+    if (!expense) return;
 
-    console.log(`Processing category: ${key}`, expense.entries);
+    // Process entries array if available
+    if (expense.entries && Array.isArray(expense.entries) && expense.entries.length > 0) {
+      console.log(`Processing entries for category: ${key}`, expense.entries);
 
-    expense.entries.forEach((entry: ExpenseEntry) => {
-      const yearlyValue = convertToYearly(entry.nilai, entry.periode);
-      console.log(`Entry: kategori=${entry.kategori}, jenisDetail="${entry.jenisDetail}", nilai=${entry.nilai}, periode=${entry.periode || 'minggu'}, yearlyValue=${yearlyValue}`);
+      expense.entries.forEach((entry: ExpenseEntry) => {
+        const yearlyValue = convertToYearly(entry.nilai, entry.periode);
+        console.log(`Entry: kategori=${entry.kategori}, jenisDetail="${entry.jenisDetail}", nilai=${entry.nilai}, periode=${entry.periode || 'minggu'}, yearlyValue=${yearlyValue}`);
 
-      // 1. BLOK VA - Imputasi Upah/Gaji Barang
-      if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Pemberian dari Pemerintah Pemberi Kerja sebagai PNS/ TNI/ Polri/ Karyawan/ Buruh' && entry.nilai > 0) {
-        upahGajiImputasiBarang += yearlyValue;
-        
-        const key = 'PNS/TNI/Polri/Karyawan/Buruh';
-        if (autoUpahEntriesMap.has(key)) {
-          const existing = autoUpahEntriesMap.get(key)!;
-          existing.imputasiUpahGajiBarang += yearlyValue;
-        } else {
-          autoUpahEntriesMap.set(key, {
-            id: `auto-imputasi-va-${autoVaIndex++}`,
-            uraianPekerjaan: `Pekerjaan dengan tunjangan makanan`,
-            kategoriLU: 'Bekerja',
-            jenisPekerjaan: 'PNS/TNI/Polri/Karyawan/Buruh',
-            upahUang: 0,
-            upahBarang: 0,
-            lembur: 0,
-            imputasiUpahGajiBarang: yearlyValue
-          });
+        // 1. BLOK VA - Imputasi Upah/Gaji Barang
+        if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Pemberian dari Pemerintah Pemberi Kerja sebagai PNS/ TNI/ Polri/ Karyawan/ Buruh' && entry.nilai > 0) {
+          upahGajiImputasiBarang += yearlyValue;
+          
+          const keyMap = 'PNS/TNI/Polri/Karyawan/Buruh';
+          if (autoUpahEntriesMap.has(keyMap)) {
+            const existing = autoUpahEntriesMap.get(keyMap)!;
+            existing.imputasiUpahGajiBarang += yearlyValue;
+          } else {
+            autoUpahEntriesMap.set(keyMap, {
+              id: `auto-imputasi-va-${autoVaIndex++}`,
+              uraianPekerjaan: `Pekerjaan dengan tunjangan makanan`,
+              kategoriLU: 'Bekerja',
+              jenisPekerjaan: 'PNS/TNI/Polri/Karyawan/Buruh',
+              upahUang: 0,
+              upahBarang: 0,
+              lembur: 0,
+              imputasiUpahGajiBarang: yearlyValue
+            });
+          }
+          console.log(`✓ BLOK VA Rule 1: upahGajiImputasiBarang += ${yearlyValue} = ${upahGajiImputasiBarang}`);
         }
-        console.log(`✓ BLOK VA Rule 1: upahGajiImputasiBarang += ${yearlyValue} = ${upahGajiImputasiBarang}`);
-      }
-      if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Konsumsi beras/palawija hasil upah buruh derep/ panen' && entry.nilai > 0) {
-        upahGajiImputasiBarang += yearlyValue;
-        
-        const key = 'Buruh Tani/Derep/Panen';
-        if (autoUpahEntriesMap.has(key)) {
-          const existing = autoUpahEntriesMap.get(key)!;
-          existing.imputasiUpahGajiBarang += yearlyValue;
-        } else {
-          autoUpahEntriesMap.set(key, {
-            id: `auto-imputasi-va-${autoVaIndex++}`,
-            uraianPekerjaan: `Buruh pertanian`,
-            kategoriLU: 'Bekerja',
-            jenisPekerjaan: 'Buruh Tani/Derep/Panen',
-            upahUang: 0,
-            upahBarang: 0,
-            lembur: 0,
-            imputasiUpahGajiBarang: yearlyValue
-          });
+        if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Konsumsi beras/palawija hasil upah buruh derep/ panen' && entry.nilai > 0) {
+          upahGajiImputasiBarang += yearlyValue;
+          
+          const keyMap = 'Buruh Tani/Derep/Panen';
+          if (autoUpahEntriesMap.has(keyMap)) {
+            const existing = autoUpahEntriesMap.get(keyMap)!;
+            existing.imputasiUpahGajiBarang += yearlyValue;
+          } else {
+            autoUpahEntriesMap.set(keyMap, {
+              id: `auto-imputasi-va-${autoVaIndex++}`,
+              uraianPekerjaan: `Buruh pertanian`,
+              kategoriLU: 'Bekerja',
+              jenisPekerjaan: 'Buruh Tani/Derep/Panen',
+              upahUang: 0,
+              upahBarang: 0,
+              lembur: 0,
+              imputasiUpahGajiBarang: yearlyValue
+            });
+          }
+          console.log(`✓ BLOK VA Rule 2: upahGajiImputasiBarang += ${yearlyValue} = ${upahGajiImputasiBarang}`);
         }
-        console.log(`✓ BLOK VA Rule 2: upahGajiImputasiBarang += ${yearlyValue} = ${upahGajiImputasiBarang}`);
-      }
 
-      // 2. BLOK VB - Imputasi Nilai Produksi Usaha
-      if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Pengambilan dari Warung Sendiri' && entry.nilai > 0) {
-        usahaImputasiNilaiProduksi += yearlyValue;
-        
-        const key = 'Pedagang/Warung';
-        if (autoUsahaEntriesMap.has(key)) {
-          const existing = autoUsahaEntriesMap.get(key)!;
-          existing.imputasiNilaiProduksi += yearlyValue;
-        } else {
-          autoUsahaEntriesMap.set(key, {
-            id: `auto-imputasi-vb-${autoVbIndex++}`,
-            uraianKegiatan: `Warung/Toko`,
-            kategoriLU: 'Berusaha sendiri',
-            jenisPekerjaan: 'Pedagang/Warung',
-            nilaiProduksi: 0,
-            biayaProduksi: 0,
-            surplus: 0,
-            imputasiNilaiProduksi: yearlyValue
-          });
+        // 2. BLOK VB - Imputasi Nilai Produksi Usaha
+        if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Pengambilan dari Warung Sendiri' && entry.nilai > 0) {
+          usahaImputasiNilaiProduksi += yearlyValue;
+          
+          const keyMap = 'Pedagang/Warung';
+          if (autoUsahaEntriesMap.has(keyMap)) {
+            const existing = autoUsahaEntriesMap.get(keyMap)!;
+            existing.imputasiNilaiProduksi += yearlyValue;
+          } else {
+            autoUsahaEntriesMap.set(keyMap, {
+              id: `auto-imputasi-vb-${autoVbIndex++}`,
+              uraianKegiatan: `Warung/Toko`,
+              kategoriLU: 'Berusaha sendiri',
+              jenisPekerjaan: 'Pedagang/Warung',
+              nilaiProduksi: 0,
+              biayaProduksi: 0,
+              surplus: 0,
+              imputasiNilaiProduksi: yearlyValue
+            });
+          }
+          console.log(`✓ BLOK VB Rule 1: usahaImputasiNilaiProduksi += ${yearlyValue} = ${usahaImputasiNilaiProduksi}`);
         }
-        console.log(`✓ BLOK VB Rule 1: usahaImputasiNilaiProduksi += ${yearlyValue} = ${usahaImputasiNilaiProduksi}`);
-      }
-      if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Konsumsi Beras/palawija hasil panenan sendiri' && entry.nilai > 0) {
-        usahaImputasiNilaiProduksi += yearlyValue;
-        
-        const key = 'Petani';
-        if (autoUsahaEntriesMap.has(key)) {
-          const existing = autoUsahaEntriesMap.get(key)!;
-          existing.imputasiNilaiProduksi += yearlyValue;
-        } else {
-          autoUsahaEntriesMap.set(key, {
-            id: `auto-imputasi-vb-${autoVbIndex++}`,
-            uraianKegiatan: `Pertanian`,
-            kategoriLU: 'Berusaha sendiri',
-            jenisPekerjaan: 'Petani',
-            nilaiProduksi: 0,
-            biayaProduksi: 0,
-            surplus: 0,
-            imputasiNilaiProduksi: yearlyValue
-          });
+        if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Konsumsi Beras/palawija hasil panenan sendiri' && entry.nilai > 0) {
+          usahaImputasiNilaiProduksi += yearlyValue;
+          
+          const keyMap = 'Petani';
+          if (autoUsahaEntriesMap.has(keyMap)) {
+            const existing = autoUsahaEntriesMap.get(keyMap)!;
+            existing.imputasiNilaiProduksi += yearlyValue;
+          } else {
+            autoUsahaEntriesMap.set(keyMap, {
+              id: `auto-imputasi-vb-${autoVbIndex++}`,
+              uraianKegiatan: `Pertanian`,
+              kategoriLU: 'Berusaha sendiri',
+              jenisPekerjaan: 'Petani',
+              nilaiProduksi: 0,
+              biayaProduksi: 0,
+              surplus: 0,
+              imputasiNilaiProduksi: yearlyValue
+            });
+          }
+          console.log(`✓ BLOK VB Rule 2: usahaImputasiNilaiProduksi += ${yearlyValue} = ${usahaImputasiNilaiProduksi}`);
         }
-        console.log(`✓ BLOK VB Rule 2: usahaImputasiNilaiProduksi += ${yearlyValue} = ${usahaImputasiNilaiProduksi}`);
-      }
-      if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Konsumsi Beras/palawija hasil panenan sendiri' && entry.nilai > 0) {
-        usahaImputasiNilaiProduksi += yearlyValue;
-        
-        const key = 'Petani';
-        if (autoUsahaEntriesMap.has(key)) {
-          const existing = autoUsahaEntriesMap.get(key)!;
-          existing.imputasiNilaiProduksi += yearlyValue;
-        } else {
-          autoUsahaEntriesMap.set(key, {
-            id: `auto-imputasi-vb-${autoVbIndex++}`,
-            uraianKegiatan: `Pertanian`,
-            kategoriLU: 'Berusaha sendiri',
-            jenisPekerjaan: 'Petani',
-            nilaiProduksi: 0,
-            biayaProduksi: 0,
-            surplus: 0,
-            imputasiNilaiProduksi: yearlyValue
-          });
+
+        // Helper to check if kategori is a "Pemberian" type (handles both old and new category names)
+        const isPemberianKategori = (kat: string) => kat === 'Produksi Sendiri/Pemberian' || kat === 'Pemberian';
+
+        // BLOK VB Rules for M-N categories with "Produksi Sendiri/Pemberian" - like kategori A-L
+        if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Berasal dari Produksi Sendiri' && entry.nilai > 0) {
+          usahaImputasiNilaiProduksi += yearlyValue;
+          
+          const keyMap = 'Produksi Sendiri Makanan/Minuman/Tembakau';
+          if (autoUsahaEntriesMap.has(keyMap)) {
+            const existing = autoUsahaEntriesMap.get(keyMap)!;
+            existing.imputasiNilaiProduksi += yearlyValue;
+          } else {
+            autoUsahaEntriesMap.set(keyMap, {
+              id: `auto-imputasi-vb-${autoVbIndex++}`,
+              uraianKegiatan: `Produksi Sendiri Makanan/Minuman/Tembakau`,
+              kategoriLU: 'Berusaha sendiri',
+              jenisPekerjaan: 'Produksi Sendiri Makanan/Minuman/Tembakau',
+              nilaiProduksi: 0,
+              biayaProduksi: 0,
+              surplus: 0,
+              imputasiNilaiProduksi: yearlyValue
+            });
+          }
+          console.log(`✓ BLOK VB Rule 3 (M-N Produksi Sendiri): usahaImputasiNilaiProduksi += ${yearlyValue} = ${usahaImputasiNilaiProduksi}`);
         }
-        console.log(`✓ BLOK VB Rule 2: usahaImputasiNilaiProduksi += ${yearlyValue} = ${usahaImputasiNilaiProduksi}`);
-      }
 
-      // Helper to check if kategori is a "Pemberian" type (handles both old and new category names)
-      const isPemberianKategori = (kat: string) => kat === 'Produksi Sendiri/Pemberian' || kat === 'Pemberian';
-
-      // BLOK VB Rules for M-N categories with "Produksi Sendiri/Pemberian" - like kategori A-L
-      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Berasal dari Produksi Sendiri' && entry.nilai > 0) {
-        // Check if this is from M or N category based on the key field (will be added to entry)
-        // For now, add to BLOK VB since these are business productions (warung makan, pengolahan rokok, dll)
-        usahaImputasiNilaiProduksi += yearlyValue;
-        
-        // Create or update auto entry based on context
-        // We can infer from jenisDetail or use a generic "Produksi Sendiri" category
-        const key = 'Produksi Sendiri Makanan/Minuman/Tembakau';
-        if (autoUsahaEntriesMap.has(key)) {
-          const existing = autoUsahaEntriesMap.get(key)!;
-          existing.imputasiNilaiProduksi += yearlyValue;
-        } else {
-          autoUsahaEntriesMap.set(key, {
-            id: `auto-imputasi-vb-${autoVbIndex++}`,
-            uraianKegiatan: `Produksi Sendiri Makanan/Minuman/Tembakau`,
-            kategoriLU: 'Berusaha sendiri',
-            jenisPekerjaan: 'Produksi Sendiri Makanan/Minuman/Tembakau',
-            nilaiProduksi: 0,
-            biayaProduksi: 0,
-            surplus: 0,
-            imputasiNilaiProduksi: yearlyValue
-          });
+        // 3. BLOK VC - Imputasi Nilai Produksi Hasil Pertanian
+        if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Berasal dari Produksi Sendiri') {
+          hasilPertanianImputasi += yearlyValue;
+          console.log(`✓ BLOK VC: hasilPertanianImputasi += ${yearlyValue} = ${hasilPertanianImputasi}`);
         }
-        console.log(`✓ BLOK VB Rule 3 (M-N Produksi Sendiri): usahaImputasiNilaiProduksi += ${yearlyValue} = ${usahaImputasiNilaiProduksi}`);
-      }
 
-      // 3. BLOK VC - Imputasi Nilai Produksi Hasil Pertanian
-      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Berasal dari Produksi Sendiri') {
-        hasilPertanianImputasi += yearlyValue;
-        console.log(`✓ BLOK VC: hasilPertanianImputasi += ${yearlyValue} = ${hasilPertanianImputasi}`);
-      }
+        // 4. BLOK VE - Bantuan Pemerintah - Imputasi Transfer Diterima Uang
+        if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Konsumsi Bantuan Pangan BPNT') {
+          pemerintahBantuanImputasiUang += yearlyValue;
+          console.log(`✓ BLOK VE Pemerintah Uang: pemerintahBantuanImputasiUang += ${yearlyValue} = ${pemerintahBantuanImputasiUang}`);
+        }
 
-      // 4. BLOK VE - Bantuan Pemerintah - Imputasi Transfer Diterima Uang
-      if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Konsumsi Bantuan Pangan BPNT') {
-        pemerintahBantuanImputasiUang += yearlyValue;
-        console.log(`✓ BLOK VE Pemerintah Uang: pemerintahBantuanImputasiUang += ${yearlyValue} = ${pemerintahBantuanImputasiUang}`);
-      }
+        // 5. BLOK VE - Bantuan Pemerintah - Imputasi Transfer Diterima Barang
+        if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Subsidi harga dari Pemerintah (Pembelian barang di bawah harga pasar)') {
+          pemerintahBantuanImputasiBarang += yearlyValue;
+          console.log(`✓ BLOK VE Pemerintah Barang Rule 1: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
+        }
+        if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
+          pemerintahBantuanImputasiBarang += yearlyValue;
+          console.log(`✓ BLOK VE Pemerintah Barang Rule 2: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
+        }
 
-      // 5. BLOK VE - Bantuan Pemerintah - Imputasi Transfer Diterima Barang
-      if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Subsidi harga dari Pemerintah (Pembelian barang di bawah harga pasar)') {
-        pemerintahBantuanImputasiBarang += yearlyValue;
-        console.log(`✓ BLOK VE Pemerintah Barang Rule 1: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
-      }
-      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Pemerintah secara Gratis') {
-        pemerintahBantuanImputasiBarang += yearlyValue;
-        console.log(`✓ BLOK VE Pemerintah Barang Rule 2: pemerintahBantuanImputasiBarang += ${yearlyValue} = ${pemerintahBantuanImputasiBarang}`);
-      }
+        // 6. BLOK VE - Rumah Tangga Lain - Imputasi Transfer Diterima Barang
+        if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
+          rumahTanggaLainImputasiBarang += yearlyValue;
+          console.log(`✓ BLOK VE Rumah Tangga Lain: rumahTanggaLainImputasiBarang += ${yearlyValue} = ${rumahTanggaLainImputasiBarang}`);
+        }
 
-      // 6. BLOK VE - Rumah Tangga Lain - Imputasi Transfer Diterima Barang
-      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
-        rumahTanggaLainImputasiBarang += yearlyValue;
-        console.log(`✓ BLOK VE Rumah Tangga Lain: rumahTanggaLainImputasiBarang += ${yearlyValue} = ${rumahTanggaLainImputasiBarang}`);
-      }
+        // 7. BLOK VE - Lembaga Nirlaba - Imputasi Transfer Diterima Barang
+        if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
+          lembagaNirlabaImputasiBarang += yearlyValue;
+          console.log(`✓ BLOK VE Lembaga Nirlaba: lembagaNirlabaImputasiBarang += ${yearlyValue} = ${lembagaNirlabaImputasiBarang}`);
+        }
 
-      // 7. BLOK VE - Lembaga Nirlaba - Imputasi Transfer Diterima Barang
-      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
-        lembagaNirlabaImputasiBarang += yearlyValue;
-        console.log(`✓ BLOK VE Lembaga Nirlaba: lembagaNirlabaImputasiBarang += ${yearlyValue} = ${lembagaNirlabaImputasiBarang}`);
-      }
+        // 8. BLOK VE - Luar Negeri - Imputasi Transfer Diterima Barang
+        if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
+          luarNegeriImputasiBarang += yearlyValue;
+          console.log(`✓ BLOK VE Luar Negeri: luarNegeriImputasiBarang += ${yearlyValue} = ${luarNegeriImputasiBarang}`);
+        }
 
-      // 8. BLOK VE - Luar Negeri - Imputasi Transfer Diterima Barang
-      if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
-        luarNegeriImputasiBarang += yearlyValue;
-        console.log(`✓ BLOK VE Luar Negeri: luarNegeriImputasiBarang += ${yearlyValue} = ${luarNegeriImputasiBarang}`);
-      }
+        // 9. BLOK VII - Pengambilan Uang Tunai - Imputasi Rincian Penerimaan
+        if (entry.kategori === 'Pembelian' && (
+          entry.jenisDetail === 'Pembelian Tunai' ||
+          entry.jenisDetail === 'Pengambilan dari Warung Sendiri' ||
+          entry.jenisDetail === 'Konsumsi Bantuan Pangan BPNT' ||
+          entry.jenisDetail === 'Konsumsi Beras/palawija hasil panenan sendiri' ||
+          entry.jenisDetail === 'Konsumsi beras/palawija hasil upah buruh derep/panen'
+        )) {
+          pengambilanUangTunaiImputasi += yearlyValue;
+          console.log(`✓ BLOK VII Pengambilan Uang Tunai: pengambilanUangTunaiImputasi += ${yearlyValue} = ${pengambilanUangTunaiImputasi}`);
+        }
 
-      // 9. BLOK VII - Pengambilan Uang Tunai - Imputasi Rincian Penerimaan
-      if (entry.kategori === 'Pembelian' && (
-        entry.jenisDetail === 'Pembelian Tunai' ||
-        entry.jenisDetail === 'Pengambilan dari Warung Sendiri' ||
-        entry.jenisDetail === 'Konsumsi Bantuan Pangan BPNT' ||
-        entry.jenisDetail === 'Konsumsi Beras/palawija hasil panenan sendiri' ||
-        entry.jenisDetail === 'Konsumsi beras/palawija hasil upah buruh derep/panen'
-      )) {
-        pengambilanUangTunaiImputasi += yearlyValue;
-        console.log(`✓ BLOK VII Pengambilan Uang Tunai: pengambilanUangTunaiImputasi += ${yearlyValue} = ${pengambilanUangTunaiImputasi}`);
-      }
+        // 10. BLOK VII - Meminjam Uang - Imputasi Rincian Penerimaan
+        if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Pembelian Bon/Hutang') {
+          meminjamUangImputasi += yearlyValue;
+          console.log(`✓ BLOK VII Meminjam Uang: meminjamUangImputasi += ${yearlyValue} = ${meminjamUangImputasi}`);
+        }
+      });
+    } else {
+      console.log(`⚠ No entries array for ${key}`, expense);
+    }
+  });
 
-      // 10. BLOK VII - Meminjam Uang - Imputasi Rincian Penerimaan
-      if (entry.kategori === 'Pembelian' && entry.jenisDetail === 'Pembelian Bon/Hutang') {
-        meminjamUangImputasi += yearlyValue;
-        console.log(`✓ BLOK VII Meminjam Uang: meminjamUangImputasi += ${yearlyValue} = ${meminjamUangImputasi}`);
-      }
-    });
+  // FALLBACK: Process food entries that don't have entries array but have direct fields (pembelian/produksiSendiri)
+  // This handles legacy or incomplete entries
+  console.log("=== FALLBACK PROCESSING FOR FOOD DATA WITHOUT ENTRIES ARRAY ===");
+  Object.entries(data.makananMinuman || {}).forEach(([key, expense]) => {
+    if (!expense) return;
+    
+    // Skip if already has entries array (already processed above)
+    if (expense.entries && Array.isArray(expense.entries) && expense.entries.length > 0) {
+      return;
+    }
+    
+    console.log(`Processing fallback for ${key}:`, expense);
+    
+    // If there are direct fields (pembelian/produksiSendiri), we can't determine the imputasi kategori
+    // Since we don't know the jenisDetail, we can't apply imputasi rules
+    // This is a limitation - imputasi requires knowing the specific category/detail
+    // So we skip fallback entries for now
+    console.log(`⚠ Skipping ${key} - no entries array and no way to determine imputasi kategori`);
   });
 
   // Process NON-FOOD data from Page 3
