@@ -1,11 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { SurveyData } from "@/types/survey";
+import { ImputasiTooltip } from "@/components/ImputasiTooltip";
+
 interface AsetPerubahanEntryProps {
   data: SurveyData;
   updateData: (updates: Partial<SurveyData>) => void;
   formatNumber: (num: number) => string;
   parseNumber: (str: string) => number;
 }
+
 export const AsetPerubahanEntry = ({
   data,
   updateData,
@@ -28,6 +31,7 @@ export const AsetPerubahanEntry = ({
     key: 'lainnya',
     label: 'e. Lainnya (Produk Kekayaan Intelektual)'
   }];
+
   const otherAssetItems = [{
     key: 'bangunanTinggal',
     label: '2. Bangunan Tempat Tinggal'
@@ -38,6 +42,7 @@ export const AsetPerubahanEntry = ({
     key: 'lahanBarang',
     label: '4. Lahan/Tanah dan Barang Berharga'
   }];
+
   const updateAsetTetapUsaha = (itemKey: string, field: string, value: number) => {
     const current = data.asetPerubahan?.asetTetapUsaha?.[itemKey as keyof typeof data.asetPerubahan.asetTetapUsaha] || {
       pembelian: 0,
@@ -66,6 +71,7 @@ export const AsetPerubahanEntry = ({
       }
     });
   };
+
   const updateOtherAset = (itemKey: string, field: string, value: number) => {
     type OtherAsetKeys = 'bangunanTinggal' | 'biayaPemindahan' | 'lahanBarang';
     const current = data.asetPerubahan?.[itemKey as OtherAsetKeys] || {
@@ -92,16 +98,41 @@ export const AsetPerubahanEntry = ({
       }
     });
   };
+
   const getAsetTetapUsahaValue = (itemKey: string, field: string): number => {
     const item = data.asetPerubahan?.asetTetapUsaha?.[itemKey as keyof typeof data.asetPerubahan.asetTetapUsaha];
     return (item as any)?.[field] || 0;
   };
+
   const getOtherAsetValue = (itemKey: string, field: string): number => {
     type OtherAsetKeys = 'bangunanTinggal' | 'biayaPemindahan' | 'lahanBarang';
     const item = data.asetPerubahan?.[itemKey as OtherAsetKeys];
     return (item as any)?.[field] || 0;
   };
-  return <div className="overflow-x-auto">
+
+  // Get formula for imputasi
+  const getImputasiFormula = (label: string, fieldName: string, value: number): string => {
+    if (value === 0) return '';
+    if (fieldName === 'imputasiPenamabahanPemberian') {
+      return `Sama dengan nilai "Pemberian" pada ${label}`;
+    }
+    if (fieldName === 'imputasiPenguranganPemberianKepada') {
+      return `Sama dengan nilai "Pemberian Kepada" pada ${label}`;
+    }
+    return `Nilai: Rp ${formatNumber(value)}`;
+  };
+
+  // Check if item should show imputasi
+  const shouldShowImputasiAsetTetap = (itemKey: string) => {
+    return ['bangunanBukan', 'kendaraan', 'mesinPeralatan', 'tanamanHewan'].includes(itemKey);
+  };
+
+  const shouldShowImputasiOther = (itemKey: string) => {
+    return ['bangunanTinggal', 'lahanBarang'].includes(itemKey);
+  };
+
+  return (
+    <div className="overflow-x-auto">
       <table className="w-full border-collapse border border-gray-300">
         <thead>
           <tr className="bg-professional-table-header text-professional-table-header-foreground">
@@ -129,113 +160,279 @@ export const AsetPerubahanEntry = ({
           <tr>
             <td className="border border-gray-300 p-2 font-medium" colSpan={11}>1. Aset tetap untuk Usaha Rumah Tangga</td>
           </tr>
-          {asetTetapUsahaItems.map(item => <tr key={item.key}>
-              <td className="border border-gray-300 p-2 pl-6">{item.label}</td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={getAsetTetapUsahaValue(item.key, 'pembelian') ? formatNumber(getAsetTetapUsahaValue(item.key, 'pembelian')) : ''} onChange={e => updateAsetTetapUsaha(item.key, 'pembelian', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={getAsetTetapUsahaValue(item.key, 'pemberian') ? formatNumber(getAsetTetapUsahaValue(item.key, 'pemberian')) : ''} onChange={e => updateAsetTetapUsaha(item.key, 'pemberian', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={['bangunanBukan', 'kendaraan', 'mesinPeralatan', 'tanamanHewan'].includes(item.key) && getAsetTetapUsahaValue(item.key, 'imputasiPenamabahanPemberian') ? formatNumber(getAsetTetapUsahaValue(item.key, 'imputasiPenamabahanPemberian')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-foreground" />
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={getAsetTetapUsahaValue(item.key, 'pembuatanSendiri') ? formatNumber(getAsetTetapUsahaValue(item.key, 'pembuatanSendiri')) : ''} onChange={e => updateAsetTetapUsaha(item.key, 'pembuatanSendiri', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
-              </td>
-              <td className="border border-gray-300 p-1 text-right text-xs">
-                {formatNumber(getAsetTetapUsahaValue(item.key, 'pembelian') + getAsetTetapUsahaValue(item.key, 'pemberian') + getAsetTetapUsahaValue(item.key, 'pembuatanSendiri'))}
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={getAsetTetapUsahaValue(item.key, 'penjualan') ? formatNumber(getAsetTetapUsahaValue(item.key, 'penjualan')) : ''} onChange={e => updateAsetTetapUsaha(item.key, 'penjualan', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={getAsetTetapUsahaValue(item.key, 'pemberianKepada') ? formatNumber(getAsetTetapUsahaValue(item.key, 'pemberianKepada')) : ''} onChange={e => updateAsetTetapUsaha(item.key, 'pemberianKepada', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={['bangunanBukan', 'kendaraan', 'mesinPeralatan', 'tanamanHewan'].includes(item.key) && getAsetTetapUsahaValue(item.key, 'imputasiPenguranganPemberianKepada') ? formatNumber(getAsetTetapUsahaValue(item.key, 'imputasiPenguranganPemberianKepada')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-foreground" />
-              </td>
-              <td className="border border-gray-300 p-1 text-right text-xs">
-                {formatNumber(getAsetTetapUsahaValue(item.key, 'penjualan') + getAsetTetapUsahaValue(item.key, 'pemberianKepada'))}
-              </td>
-              <td className="border border-gray-300 p-1 text-right text-xs font-semibold">
-                {formatNumber(getAsetTetapUsahaValue(item.key, 'netto'))}
-              </td>
-            </tr>)}
+          {asetTetapUsahaItems.map(item => {
+            const imputasiPenambahan = getAsetTetapUsahaValue(item.key, 'imputasiPenamabahanPemberian');
+            const imputasiPengurangan = getAsetTetapUsahaValue(item.key, 'imputasiPenguranganPemberianKepada');
+            const pemberianValue = getAsetTetapUsahaValue(item.key, 'pemberian');
+            const pemberianKepadaValue = getAsetTetapUsahaValue(item.key, 'pemberianKepada');
+            
+            return (
+              <tr key={item.key}>
+                <td className="border border-gray-300 p-2 pl-6">{item.label}</td>
+                <td className="border border-gray-300 p-1">
+                  <Input 
+                    type="text" 
+                    value={getAsetTetapUsahaValue(item.key, 'pembelian') ? formatNumber(getAsetTetapUsahaValue(item.key, 'pembelian')) : ''} 
+                    onChange={e => updateAsetTetapUsaha(item.key, 'pembelian', parseNumber(e.target.value))} 
+                    placeholder="0" 
+                    className="text-xs h-8" 
+                  />
+                </td>
+                <td className="border border-gray-300 p-1">
+                  <Input 
+                    type="text" 
+                    value={getAsetTetapUsahaValue(item.key, 'pemberian') ? formatNumber(getAsetTetapUsahaValue(item.key, 'pemberian')) : ''} 
+                    onChange={e => updateAsetTetapUsaha(item.key, 'pemberian', parseNumber(e.target.value))} 
+                    placeholder="0" 
+                    className="text-xs h-8" 
+                  />
+                </td>
+                <td className="border border-gray-300 p-1 text-right text-xs bg-amber-50">
+                  {shouldShowImputasiAsetTetap(item.key) ? (
+                    <ImputasiTooltip 
+                      value={imputasiPenambahan}
+                      originalValue={pemberianValue}
+                      conversionText="(sama dengan Pemberian)"
+                      label={`Imputasi Penambahan - ${item.label}`}
+                    >
+                      {formatNumber(imputasiPenambahan)}
+                    </ImputasiTooltip>
+                  ) : (
+                    <span>0</span>
+                  )}
+                </td>
+                <td className="border border-gray-300 p-1">
+                  <Input 
+                    type="text" 
+                    value={getAsetTetapUsahaValue(item.key, 'pembuatanSendiri') ? formatNumber(getAsetTetapUsahaValue(item.key, 'pembuatanSendiri')) : ''} 
+                    onChange={e => updateAsetTetapUsaha(item.key, 'pembuatanSendiri', parseNumber(e.target.value))} 
+                    placeholder="0" 
+                    className="text-xs h-8" 
+                  />
+                </td>
+                <td className="border border-gray-300 p-1 text-right text-xs">
+                  {formatNumber(getAsetTetapUsahaValue(item.key, 'pembelian') + getAsetTetapUsahaValue(item.key, 'pemberian') + getAsetTetapUsahaValue(item.key, 'pembuatanSendiri'))}
+                </td>
+                <td className="border border-gray-300 p-1">
+                  <Input 
+                    type="text" 
+                    value={getAsetTetapUsahaValue(item.key, 'penjualan') ? formatNumber(getAsetTetapUsahaValue(item.key, 'penjualan')) : ''} 
+                    onChange={e => updateAsetTetapUsaha(item.key, 'penjualan', parseNumber(e.target.value))} 
+                    placeholder="0" 
+                    className="text-xs h-8" 
+                  />
+                </td>
+                <td className="border border-gray-300 p-1">
+                  <Input 
+                    type="text" 
+                    value={getAsetTetapUsahaValue(item.key, 'pemberianKepada') ? formatNumber(getAsetTetapUsahaValue(item.key, 'pemberianKepada')) : ''} 
+                    onChange={e => updateAsetTetapUsaha(item.key, 'pemberianKepada', parseNumber(e.target.value))} 
+                    placeholder="0" 
+                    className="text-xs h-8" 
+                  />
+                </td>
+                <td className="border border-gray-300 p-1 text-right text-xs bg-amber-50">
+                  {shouldShowImputasiAsetTetap(item.key) ? (
+                    <ImputasiTooltip 
+                      value={imputasiPengurangan}
+                      originalValue={pemberianKepadaValue}
+                      conversionText="(sama dengan Pemberian Kepada)"
+                      label={`Imputasi Pengurangan - ${item.label}`}
+                    >
+                      {formatNumber(imputasiPengurangan)}
+                    </ImputasiTooltip>
+                  ) : (
+                    <span>0</span>
+                  )}
+                </td>
+                <td className="border border-gray-300 p-1 text-right text-xs">
+                  {formatNumber(getAsetTetapUsahaValue(item.key, 'penjualan') + getAsetTetapUsahaValue(item.key, 'pemberianKepada'))}
+                </td>
+                <td className="border border-gray-300 p-1 text-right text-xs font-semibold">
+                  {formatNumber(getAsetTetapUsahaValue(item.key, 'netto'))}
+                </td>
+              </tr>
+            );
+          })}
           
           {/* Other asset categories */}
-          {otherAssetItems.map(item => <tr key={item.key}>
-              <td className="border border-gray-300 p-2 font-medium">{item.label}</td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={getOtherAsetValue(item.key, 'pembelian') ? formatNumber(getOtherAsetValue(item.key, 'pembelian')) : ''} onChange={e => updateOtherAset(item.key, 'pembelian', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={getOtherAsetValue(item.key, 'pemberian') ? formatNumber(getOtherAsetValue(item.key, 'pemberian')) : ''} onChange={e => updateOtherAset(item.key, 'pemberian', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={['bangunanTinggal', 'lahanBarang'].includes(item.key) && getOtherAsetValue(item.key, 'imputasiPenamabahanPemberian') ? formatNumber(getOtherAsetValue(item.key, 'imputasiPenamabahanPemberian')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-foreground" />
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={getOtherAsetValue(item.key, 'pembuatanSendiri') ? formatNumber(getOtherAsetValue(item.key, 'pembuatanSendiri')) : ''} onChange={e => updateOtherAset(item.key, 'pembuatanSendiri', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
-              </td>
-              <td className="border border-gray-300 p-1 text-right text-xs">
-                {formatNumber(getOtherAsetValue(item.key, 'pembelian') + getOtherAsetValue(item.key, 'pemberian') + getOtherAsetValue(item.key, 'pembuatanSendiri'))}
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={getOtherAsetValue(item.key, 'penjualan') ? formatNumber(getOtherAsetValue(item.key, 'penjualan')) : ''} onChange={e => updateOtherAset(item.key, 'penjualan', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={getOtherAsetValue(item.key, 'pemberianKepada') ? formatNumber(getOtherAsetValue(item.key, 'pemberianKepada')) : ''} onChange={e => updateOtherAset(item.key, 'pemberianKepada', parseNumber(e.target.value))} placeholder="0" className="text-xs h-8" />
-              </td>
-              <td className="border border-gray-300 p-1">
-                <Input type="text" value={['bangunanTinggal', 'lahanBarang'].includes(item.key) && getOtherAsetValue(item.key, 'imputasiPenguranganPemberianKepada') ? formatNumber(getOtherAsetValue(item.key, 'imputasiPenguranganPemberianKepada')) : '0'} readOnly disabled placeholder="0" className="text-xs h-8 bg-gray-100 text-foreground" />
-              </td>
-              <td className="border border-gray-300 p-1 text-right text-xs">
-                {formatNumber(getOtherAsetValue(item.key, 'penjualan') + getOtherAsetValue(item.key, 'pemberianKepada'))}
-              </td>
-              <td className="border border-gray-300 p-1 text-right text-xs font-semibold">
-                {formatNumber(getOtherAsetValue(item.key, 'netto'))}
-              </td>
-            </tr>)}
+          {otherAssetItems.map(item => {
+            const imputasiPenambahan = getOtherAsetValue(item.key, 'imputasiPenamabahanPemberian');
+            const imputasiPengurangan = getOtherAsetValue(item.key, 'imputasiPenguranganPemberianKepada');
+            const pemberianValue = getOtherAsetValue(item.key, 'pemberian');
+            const pemberianKepadaValue = getOtherAsetValue(item.key, 'pemberianKepada');
+            
+            return (
+              <tr key={item.key}>
+                <td className="border border-gray-300 p-2 font-medium">{item.label}</td>
+                <td className="border border-gray-300 p-1">
+                  <Input 
+                    type="text" 
+                    value={getOtherAsetValue(item.key, 'pembelian') ? formatNumber(getOtherAsetValue(item.key, 'pembelian')) : ''} 
+                    onChange={e => updateOtherAset(item.key, 'pembelian', parseNumber(e.target.value))} 
+                    placeholder="0" 
+                    className="text-xs h-8" 
+                  />
+                </td>
+                <td className="border border-gray-300 p-1">
+                  <Input 
+                    type="text" 
+                    value={getOtherAsetValue(item.key, 'pemberian') ? formatNumber(getOtherAsetValue(item.key, 'pemberian')) : ''} 
+                    onChange={e => updateOtherAset(item.key, 'pemberian', parseNumber(e.target.value))} 
+                    placeholder="0" 
+                    className="text-xs h-8" 
+                  />
+                </td>
+                <td className="border border-gray-300 p-1 text-right text-xs bg-amber-50">
+                  {shouldShowImputasiOther(item.key) ? (
+                    <ImputasiTooltip 
+                      value={imputasiPenambahan}
+                      originalValue={pemberianValue}
+                      conversionText="(sama dengan Pemberian)"
+                      label={`Imputasi Penambahan - ${item.label}`}
+                    >
+                      {formatNumber(imputasiPenambahan)}
+                    </ImputasiTooltip>
+                  ) : (
+                    <span>0</span>
+                  )}
+                </td>
+                <td className="border border-gray-300 p-1">
+                  <Input 
+                    type="text" 
+                    value={getOtherAsetValue(item.key, 'pembuatanSendiri') ? formatNumber(getOtherAsetValue(item.key, 'pembuatanSendiri')) : ''} 
+                    onChange={e => updateOtherAset(item.key, 'pembuatanSendiri', parseNumber(e.target.value))} 
+                    placeholder="0" 
+                    className="text-xs h-8" 
+                  />
+                </td>
+                <td className="border border-gray-300 p-1 text-right text-xs">
+                  {formatNumber(getOtherAsetValue(item.key, 'pembelian') + getOtherAsetValue(item.key, 'pemberian') + getOtherAsetValue(item.key, 'pembuatanSendiri'))}
+                </td>
+                <td className="border border-gray-300 p-1">
+                  <Input 
+                    type="text" 
+                    value={getOtherAsetValue(item.key, 'penjualan') ? formatNumber(getOtherAsetValue(item.key, 'penjualan')) : ''} 
+                    onChange={e => updateOtherAset(item.key, 'penjualan', parseNumber(e.target.value))} 
+                    placeholder="0" 
+                    className="text-xs h-8" 
+                  />
+                </td>
+                <td className="border border-gray-300 p-1">
+                  <Input 
+                    type="text" 
+                    value={getOtherAsetValue(item.key, 'pemberianKepada') ? formatNumber(getOtherAsetValue(item.key, 'pemberianKepada')) : ''} 
+                    onChange={e => updateOtherAset(item.key, 'pemberianKepada', parseNumber(e.target.value))} 
+                    placeholder="0" 
+                    className="text-xs h-8" 
+                  />
+                </td>
+                <td className="border border-gray-300 p-1 text-right text-xs bg-amber-50">
+                  {shouldShowImputasiOther(item.key) ? (
+                    <ImputasiTooltip 
+                      value={imputasiPengurangan}
+                      originalValue={pemberianKepadaValue}
+                      conversionText="(sama dengan Pemberian Kepada)"
+                      label={`Imputasi Pengurangan - ${item.label}`}
+                    >
+                      {formatNumber(imputasiPengurangan)}
+                    </ImputasiTooltip>
+                  ) : (
+                    <span>0</span>
+                  )}
+                </td>
+                <td className="border border-gray-300 p-1 text-right text-xs">
+                  {formatNumber(getOtherAsetValue(item.key, 'penjualan') + getOtherAsetValue(item.key, 'pemberianKepada'))}
+                </td>
+                <td className="border border-gray-300 p-1 text-right text-xs font-semibold">
+                  {formatNumber(getOtherAsetValue(item.key, 'netto'))}
+                </td>
+              </tr>
+            );
+          })}
           
           {/* Grand Total Row */}
           <tr className="bg-muted font-semibold">
             <td className="border border-gray-300 p-2 text-center">JUMLAH</td>
             <td className="border border-gray-300 p-1 text-right text-xs">
-              {formatNumber([...asetTetapUsahaItems, ...otherAssetItems].reduce((sum, item) => sum + (item.key in otherAssetItems.map(i => i.key) ? getOtherAsetValue(item.key, 'pembelian') : getAsetTetapUsahaValue(item.key, 'pembelian')), 0))}
+              {formatNumber(
+                asetTetapUsahaItems.reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'pembelian'), 0) +
+                otherAssetItems.reduce((sum, item) => sum + getOtherAsetValue(item.key, 'pembelian'), 0)
+              )}
             </td>
             <td className="border border-gray-300 p-1 text-right text-xs">
-              {formatNumber([...asetTetapUsahaItems, ...otherAssetItems].reduce((sum, item) => sum + (item.key in otherAssetItems.map(i => i.key) ? getOtherAsetValue(item.key, 'pemberian') : getAsetTetapUsahaValue(item.key, 'pemberian')), 0))}
+              {formatNumber(
+                asetTetapUsahaItems.reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'pemberian'), 0) +
+                otherAssetItems.reduce((sum, item) => sum + getOtherAsetValue(item.key, 'pemberian'), 0)
+              )}
+            </td>
+            <td className="border border-gray-300 p-1 text-right text-xs bg-amber-50">
+              <ImputasiTooltip 
+                value={
+                  asetTetapUsahaItems.filter(i => shouldShowImputasiAsetTetap(i.key)).reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'imputasiPenamabahanPemberian'), 0) +
+                  otherAssetItems.filter(i => shouldShowImputasiOther(i.key)).reduce((sum, item) => sum + getOtherAsetValue(item.key, 'imputasiPenamabahanPemberian'), 0)
+                }
+                label="Total Imputasi Penambahan Pemberian"
+              >
+                {formatNumber(
+                  asetTetapUsahaItems.filter(i => shouldShowImputasiAsetTetap(i.key)).reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'imputasiPenamabahanPemberian'), 0) +
+                  otherAssetItems.filter(i => shouldShowImputasiOther(i.key)).reduce((sum, item) => sum + getOtherAsetValue(item.key, 'imputasiPenamabahanPemberian'), 0)
+                )}
+              </ImputasiTooltip>
             </td>
             <td className="border border-gray-300 p-1 text-right text-xs">
-              {formatNumber([...asetTetapUsahaItems, ...otherAssetItems].reduce((sum, item) => sum + (item.key in otherAssetItems.map(i => i.key) ? getOtherAsetValue(item.key, 'pembuatanSendiri') : getAsetTetapUsahaValue(item.key, 'pembuatanSendiri')), 0))}
+              {formatNumber(
+                asetTetapUsahaItems.reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'pembuatanSendiri'), 0) +
+                otherAssetItems.reduce((sum, item) => sum + getOtherAsetValue(item.key, 'pembuatanSendiri'), 0)
+              )}
             </td>
             <td className="border border-gray-300 p-1 text-right text-xs">
-              {formatNumber([...asetTetapUsahaItems, ...otherAssetItems].reduce((sum, item) => {
-              const pembelian = item.key in otherAssetItems.map(i => i.key) ? getOtherAsetValue(item.key, 'pembelian') : getAsetTetapUsahaValue(item.key, 'pembelian');
-              const pemberian = item.key in otherAssetItems.map(i => i.key) ? getOtherAsetValue(item.key, 'pemberian') : getAsetTetapUsahaValue(item.key, 'pemberian');
-              const pembuatan = item.key in otherAssetItems.map(i => i.key) ? getOtherAsetValue(item.key, 'pembuatanSendiri') : getAsetTetapUsahaValue(item.key, 'pembuatanSendiri');
-              return sum + pembelian + pemberian + pembuatan;
-            }, 0))}
+              {formatNumber(
+                asetTetapUsahaItems.reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'pembelian') + getAsetTetapUsahaValue(item.key, 'pemberian') + getAsetTetapUsahaValue(item.key, 'pembuatanSendiri'), 0) +
+                otherAssetItems.reduce((sum, item) => sum + getOtherAsetValue(item.key, 'pembelian') + getOtherAsetValue(item.key, 'pemberian') + getOtherAsetValue(item.key, 'pembuatanSendiri'), 0)
+              )}
             </td>
             <td className="border border-gray-300 p-1 text-right text-xs">
-              {formatNumber([...asetTetapUsahaItems, ...otherAssetItems].reduce((sum, item) => sum + (item.key in otherAssetItems.map(i => i.key) ? getOtherAsetValue(item.key, 'penjualan') : getAsetTetapUsahaValue(item.key, 'penjualan')), 0))}
+              {formatNumber(
+                asetTetapUsahaItems.reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'penjualan'), 0) +
+                otherAssetItems.reduce((sum, item) => sum + getOtherAsetValue(item.key, 'penjualan'), 0)
+              )}
             </td>
             <td className="border border-gray-300 p-1 text-right text-xs">
-              {formatNumber([...asetTetapUsahaItems, ...otherAssetItems].reduce((sum, item) => sum + (item.key in otherAssetItems.map(i => i.key) ? getOtherAsetValue(item.key, 'pemberianKepada') : getAsetTetapUsahaValue(item.key, 'pemberianKepada')), 0))}
+              {formatNumber(
+                asetTetapUsahaItems.reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'pemberianKepada'), 0) +
+                otherAssetItems.reduce((sum, item) => sum + getOtherAsetValue(item.key, 'pemberianKepada'), 0)
+              )}
+            </td>
+            <td className="border border-gray-300 p-1 text-right text-xs bg-amber-50">
+              <ImputasiTooltip 
+                value={
+                  asetTetapUsahaItems.filter(i => shouldShowImputasiAsetTetap(i.key)).reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'imputasiPenguranganPemberianKepada'), 0) +
+                  otherAssetItems.filter(i => shouldShowImputasiOther(i.key)).reduce((sum, item) => sum + getOtherAsetValue(item.key, 'imputasiPenguranganPemberianKepada'), 0)
+                }
+                label="Total Imputasi Pengurangan Pemberian"
+              >
+                {formatNumber(
+                  asetTetapUsahaItems.filter(i => shouldShowImputasiAsetTetap(i.key)).reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'imputasiPenguranganPemberianKepada'), 0) +
+                  otherAssetItems.filter(i => shouldShowImputasiOther(i.key)).reduce((sum, item) => sum + getOtherAsetValue(item.key, 'imputasiPenguranganPemberianKepada'), 0)
+                )}
+              </ImputasiTooltip>
             </td>
             <td className="border border-gray-300 p-1 text-right text-xs">
-              {formatNumber([...asetTetapUsahaItems, ...otherAssetItems].reduce((sum, item) => {
-              const penjualan = item.key in otherAssetItems.map(i => i.key) ? getOtherAsetValue(item.key, 'penjualan') : getAsetTetapUsahaValue(item.key, 'penjualan');
-              const pemberian = item.key in otherAssetItems.map(i => i.key) ? getOtherAsetValue(item.key, 'pemberianKepada') : getAsetTetapUsahaValue(item.key, 'pemberianKepada');
-              return sum + penjualan + pemberian;
-            }, 0))}
+              {formatNumber(
+                asetTetapUsahaItems.reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'penjualan') + getAsetTetapUsahaValue(item.key, 'pemberianKepada'), 0) +
+                otherAssetItems.reduce((sum, item) => sum + getOtherAsetValue(item.key, 'penjualan') + getOtherAsetValue(item.key, 'pemberianKepada'), 0)
+              )}
             </td>
             <td className="border border-gray-300 p-1 text-right text-xs">
-              {formatNumber([...asetTetapUsahaItems, ...otherAssetItems].reduce((sum, item) => sum + (item.key in otherAssetItems.map(i => i.key) ? getOtherAsetValue(item.key, 'netto') : getAsetTetapUsahaValue(item.key, 'netto')), 0))}
+              {formatNumber(
+                asetTetapUsahaItems.reduce((sum, item) => sum + getAsetTetapUsahaValue(item.key, 'netto'), 0) +
+                otherAssetItems.reduce((sum, item) => sum + getOtherAsetValue(item.key, 'netto'), 0)
+              )}
             </td>
           </tr>
         </tbody>
       </table>
-    </div>;
+    </div>
+  );
 };
