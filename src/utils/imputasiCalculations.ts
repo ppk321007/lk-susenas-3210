@@ -213,7 +213,11 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         // 6. BLOK VE - Rumah Tangga Lain - Imputasi Transfer Diterima Barang
         if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
           rumahTanggaLainImputasiBarang += yearlyValue;
-          console.log(`✓ BLOK VE Rumah Tangga Lain: rumahTanggaLainImputasiBarang += ${yearlyValue} = ${rumahTanggaLainImputasiBarang} | From category: ${key}`);
+          const source = (key.startsWith('M_') || key.startsWith('N_')) ? `(M-N: ${key})` : '';
+          console.log(`✓ BLOK VE Rumah Tangga Lain: rumahTanggaLainImputasiBarang += ${yearlyValue} = ${rumahTanggaLainImputasiBarang} | From category: ${key} ${source} | isPemberianKategori: ${isPemberianKategori(entry.kategori)}, jenisDetail match: ${entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain'}`);
+        } else if ((key.startsWith('M_') || key.startsWith('N_')) && isPemberianKategori(entry.kategori)) {
+          // Debug: log M-N entries that don't match BLOK VE rules
+          console.log(`⚠️ M-N entry NOT matched to BLOK VE: kategori=${entry.kategori}, jenisDetail="${entry.jenisDetail}" (looking for "Pemberian dari Rumah Tangga Lain")`);
         }
 
         // 7. BLOK VE - Lembaga Nirlaba - Imputasi Transfer Diterima Barang

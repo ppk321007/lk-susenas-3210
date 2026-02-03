@@ -233,60 +233,73 @@ function parsePerMemberExpenseCell(cellValue: string, categoryKey: string): Reco
   const memberGroups = cellValue.split(' || ').filter(Boolean);
 
   for (const memberGroup of memberGroups) {
-    // Split by | for Pembelian vs Pemberian within same member
-    const categoryGroups = memberGroup.split(' | ').filter(Boolean);
+    // Split by both | and ; to get individual entries
+    // | separates Pembelian from Pemberian, ; separates multiple entries within same category
+    // Use regex to split while preserving ART entries
+    const allItems: string[] = [];
     
-    for (const categoryGroup of categoryGroups) {
+    // Split by | first (but be careful - jenisDetail might contain |)
+    const byCategory = memberGroup.split(' | ').filter(Boolean);
+    for (const category of byCategory) {
       // Split by ; for multiple entries
-      const items = categoryGroup.split('; ').filter(Boolean);
+      const byEntry = category.split('; ').filter(Boolean);
+      allItems.push(...byEntry);
+    }
+    
+    for (const item of allItems) {
+      // Skip if item is empty or doesn't look like it's our format
+      if (!item || (!item.includes('ART') && !item.match(/^\d+/))) continue;
       
-      for (const item of items) {
-        // Format: ART{index}_MemberName~~Value~~Category~~Detail (new) or ART{index}_MemberName_Value_Category_Detail (old)
-        // First extract the ART index
-        const artMatch = item.match(/^ART(\d+)_(.+)$/);
-        if (artMatch) {
-          const memberIndex = parseInt(artMatch[1]);
-          const restOfItem = artMatch[2]; // MemberName~~Value~~Category~~Detail or MemberName_Value_Category_Detail
-          
-          let nilai = 0;
-          let kategori = '';
-          let jenisDetail = '';
-          
-          // Try new format first (with ~~ delimiter)
-          if (restOfItem.includes('~~')) {
-            const parts = restOfItem.split('~~');
-            if (parts.length >= 4) {
-              nilai = parseFloat(parts[1]) || 0;
-              kategori = parts[2] || '';
-              jenisDetail = parts[3] || '';
-            }
-          } else {
-            // Fallback to old format (with _ delimiter)
-            // Split carefully: first part is MemberName, then Value, Category, Detail
-            const parts = restOfItem.split('_');
-            if (parts.length >= 4) {
-              // For old format, we need to be more careful because MemberName might have underscores
-              // But we know the format is: MemberName_Value_Category_Detail
-              // So we take the last 3 parts as Value, Category, Detail
-              const detail = parts[parts.length - 1];
-              const kategoriOld = parts[parts.length - 2];
-              const nilaiStr = parts[parts.length - 3];
-              
-              nilai = parseFloat(nilaiStr) || 0;
-              kategori = kategoriOld || '';
-              jenisDetail = detail || '';
-            }
+      // Format: ART{index}_MemberName~~Value~~Category~~Detail (new) or ART{index}_MemberName_Value_Category_Detail (old)
+      // First extract the ART index
+      const artMatch = item.match(/^ART(\d+)_(.+)$/);
+      if (artMatch) {
+        const memberIndex = parseInt(artMatch[1]);
+        const restOfItem = artMatch[2]; // MemberName~~Value~~Category~~Detail or MemberName_Value_Category_Detail
+        
+        let nilai = 0;
+        let kategori = '';
+        let jenisDetail = '';
+        
+        // Try new format first (with ~~ delimiter)
+        if (restOfItem.includes('~~')) {
+          const parts = restOfItem.split('~~');
+          if (parts.length >= 4) {
+            nilai = parseFloat(parts[1]) || 0;
+            kategori = parts[2] || '';
+            jenisDetail = parts.slice(3).join('~~'); // Rejoin in case detail contains ~~
           }
-          
-          if (nilai > 0) {
-            // Use the categoryKey passed from caller (M or N)
-            const memberKey = `${categoryKey}_${memberIndex}`;
+        } else {
+          // Fallback to old format (with _ delimiter)
+          // Pattern: MemberName_Value_Category_Detail...
+          // MemberName is typically just words/spaces, no underscores
+          // Value is numeric
+          // Category is like "Produksi Sendiri/Pemberian"
+          // Detail is like "Pemberian dari Rumah Tangga Lain"
+          const parts = restOfItem.split('_');
+          if (parts.length >= 4) {
+            // parts[0] = MemberName (usually single word or space)
+            // parts[1] = Value
+            // parts[2] = Category
+            // parts[3+] = Detail (might contain underscores)
+            const nilaiStr = parts[1];
+            const kategoriStr = parts[2];
+            const detailParts = parts.slice(3);
             
-            if (!result[memberKey]) {
-              result[memberKey] = { entries: [] };
-            }
-            result[memberKey].entries.push({ nilai, kategori, jenisDetail });
+            nilai = parseFloat(nilaiStr) || 0;
+            kategori = kategoriStr || '';
+            jenisDetail = detailParts.join('_') || '';
           }
+        }
+        
+        if (nilai > 0) {
+          // Use the categoryKey passed from caller (M or N)
+          const memberKey = `${categoryKey}_${memberIndex}`;
+          
+          if (!result[memberKey]) {
+            result[memberKey] = { entries: [] };
+          }
+          result[memberKey].entries.push({ nilai, kategori, jenisDetail });
         }
       }
     }
