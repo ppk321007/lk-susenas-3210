@@ -12,7 +12,8 @@ import {
   getFoodCategoryTotals, 
   getNonFoodMonthlyTotal, 
   getNonFoodYearlyTotal,
-  getNonFoodMonthlyAverage
+  getNonFoodMonthlyAverage,
+  getNormalizedExpenseTotals
 } from "@/utils/expenseNormalizer";
 
 interface Page6Props {
@@ -157,20 +158,29 @@ export const Page6 = ({
 
   // Calculate consumption expenses from BLOK IV.3.3 - use exact same calculation as Page4Recap
   const calculateKonsumsiRT = () => {
-    // Get food category totals (A-L only, not M-N as per BLOK IV.3.2 design)
+    // Get food category totals (A-N, including M and N)
     const foodSubtotal = Object.keys(FOOD_CATEGORIES).reduce((total, categoryKey) => {
-      // Skip M and N categories as per requirement
-      if (categoryKey === 'M' || categoryKey === 'N') {
-        return total;
-      }
       const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
-      const { totalPembelian, totalProduksiSendiri } = getFoodCategoryTotals(
-        categoryKey,
-        data.makananMinuman,
-        category?.items || [],
-        data.namaAnggotaRumahTangga
-      );
-      return total + totalPembelian + totalProduksiSendiri;
+      
+      if (categoryKey === 'M' || categoryKey === 'N') {
+        // For M and N, get per-member totals
+        let mNTotal = 0;
+        data.namaAnggotaRumahTangga.forEach((_, index) => {
+          const expense = data.makananMinuman?.[`${categoryKey}_${index}`];
+          const normalized = getNormalizedExpenseTotals(expense);
+          mNTotal += normalized.total;
+        });
+        return total + mNTotal;
+      } else {
+        // For A-L, use getFoodCategoryTotals
+        const { totalPembelian, totalProduksiSendiri } = getFoodCategoryTotals(
+          categoryKey,
+          data.makananMinuman,
+          category?.items || [],
+          data.namaAnggotaRumahTangga
+        );
+        return total + totalPembelian + totalProduksiSendiri;
+      }
     }, 0);
 
     // Food monthly average (from weekly data)
@@ -179,7 +189,7 @@ export const Page6 = ({
     // Get non-food monthly average (combines monthly entries and yearly entries divided by 12)
     const nonFoodMonthlyAverage = getNonFoodMonthlyAverage(data, NON_FOOD_CATEGORIES);
 
-    // RATA-RATA PENGELUARAN RUMAH TANGGA SEBULAN (from BLOK IV.3.3 - food + non-food monthly average)
+    // RATA-RATA PENGELUARAN RUMAH TANGGA SEBULAN (from BLOK IV.3.3 - food A-N + non-food monthly average)
     const monthlyAverage = Math.round(foodMonthlyAverage + nonFoodMonthlyAverage);
 
     // Convert to yearly (multiply by 12) for BLOK VI
