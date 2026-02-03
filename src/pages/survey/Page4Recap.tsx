@@ -48,12 +48,13 @@ export const Page4Recap = ({
   };
 
   // Table 2: Weekly food expenses summary - use normalizer for correct totals
-  // NOTE: M (Makanan dan Minuman Jadi) and N (Rokok dan Tembakau) are NOT included in Total Pembelian/Produksi
+  // NOTE: M (Makanan dan Minuman Jadi) and N (Rokok dan Tembakau) NOW INCLUDED in subtotal and monthly average
   const getCategoryTotals = () => {
-    const categories = ["Padi-Padian", "Umbi-umbian", "Ikan/Udang/cumi/kerang", "Daging", "Telur dan Susu", "Sayur-sayuran", "Kacang-kacangan", "Buah-buahan", "Minyak dan kelapa", "Bahan Minuman", "Bumbu-bumbuan", "Bahan Makanan Lainnya"];
+    // A-L categories
+    const categoryNames = ["Padi-Padian", "Umbi-umbian", "Ikan/Udang/cumi/kerang", "Daging", "Telur dan Susu", "Sayur-sayuran", "Kacang-kacangan", "Buah-buahan", "Minyak dan kelapa", "Bahan Minuman", "Bumbu-bumbuan", "Bahan Makanan Lainnya"];
     
-    return categories.map((categoryName, index) => {
-      const categoryKey = String.fromCharCode(65 + index); // A, B, C, etc. (A-L only, excluding M and N)
+    const categories = categoryNames.map((categoryName, index) => {
+      const categoryKey = String.fromCharCode(65 + index); // A, B, C, etc. (A-L only)
       const category = FOOD_CATEGORIES[categoryKey as keyof typeof FOOD_CATEGORIES];
       
       const { totalPembelian, totalProduksiSendiri } = getFoodCategoryTotals(
@@ -70,6 +71,41 @@ export const Page4Recap = ({
         total: totalPembelian + totalProduksiSendiri
       };
     });
+
+    // Add M and N categories (per-member entries)
+    // M: Makanan dan Minuman Jadi
+    let mPembelian = 0;
+    let mProduksi = 0;
+    data.namaAnggotaRumahTangga.forEach((_, index) => {
+      const expense = data.makananMinuman?.[`M_${index}`];
+      const normalized = getNormalizedExpenseTotals(expense);
+      mPembelian += normalized.pembelian;
+      mProduksi += normalized.produksiSendiri;
+    });
+    categories.push({
+      jenis: "Makanan dan Minuman Jadi",
+      pembelian: mPembelian,
+      produksi: mProduksi,
+      total: mPembelian + mProduksi
+    });
+
+    // N: Rokok dan Tembakau
+    let nPembelian = 0;
+    let nProduksi = 0;
+    data.namaAnggotaRumahTangga.forEach((_, index) => {
+      const expense = data.makananMinuman?.[`N_${index}`];
+      const normalized = getNormalizedExpenseTotals(expense);
+      nPembelian += normalized.pembelian;
+      nProduksi += normalized.produksiSendiri;
+    });
+    categories.push({
+      jenis: "Rokok dan Tembakau",
+      pembelian: nPembelian,
+      produksi: nProduksi,
+      total: nPembelian + nProduksi
+    });
+
+    return categories;
   };
   const memberExpenses = getMemberExpenses();
   const categoryTotals = getCategoryTotals();
