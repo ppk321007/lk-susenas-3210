@@ -106,33 +106,44 @@ export const applySurveyImputasiCalculations = (data: SurveyData): SurveyData =>
     pemerintah: {
       ...data.transferBerjalan?.pemerintah,
       imputasiTransferDiterimaUang: imputasiUpdates.transferBerjalan?.pemerintah?.imputasiTransferDiterimaUang,
+      imputasiTransferDiterimaUangBreakdown: imputasiUpdates.transferBerjalan?.pemerintah?.imputasiTransferDiterimaUangBreakdown,
       imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.pemerintah?.imputasiTransferDiterimaBarang
+      ,
+      imputasiTransferDiterimaBarangBreakdown: imputasiUpdates.transferBerjalan?.pemerintah?.imputasiTransferDiterimaBarangBreakdown
     },
     pemerintahBantuan: {
       ...data.transferBerjalan?.pemerintahBantuan,
       imputasiTransferDiterimaUang: imputasiUpdates.transferBerjalan?.pemerintahBantuan?.imputasiTransferDiterimaUang,
-      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.pemerintahBantuan?.imputasiTransferDiterimaBarang
+      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.pemerintahBantuan?.imputasiTransferDiterimaBarang,
+      imputasiTransferDiterimaUangBreakdown: imputasiUpdates.transferBerjalan?.pemerintahBantuan?.imputasiTransferDiterimaUangBreakdown,
+      imputasiTransferDiterimaBarangBreakdown: imputasiUpdates.transferBerjalan?.pemerintahBantuan?.imputasiTransferDiterimaBarangBreakdown
     },
     pemerintahUangPensiun: {
       ...data.transferBerjalan?.pemerintahUangPensiun,
-      imputasiTransferDiterimaUang: imputasiUpdates.transferBerjalan?.pemerintahUangPensiun?.imputasiTransferDiterimaUang
+      imputasiTransferDiterimaUang: imputasiUpdates.transferBerjalan?.pemerintahUangPensiun?.imputasiTransferDiterimaUang,
+      imputasiTransferDiterimaUangBreakdown: imputasiUpdates.transferBerjalan?.pemerintahUangPensiun?.imputasiTransferDiterimaUangBreakdown,
+      imputasiTransferDiterimaBarangBreakdown: imputasiUpdates.transferBerjalan?.pemerintahUangPensiun?.imputasiTransferDiterimaBarangBreakdown
     },
     badanUsaha: {
       ...data.transferBerjalan?.badanUsaha,
-      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.badanUsaha?.imputasiTransferDiterimaBarang
+      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.badanUsaha?.imputasiTransferDiterimaBarang,
+      imputasiTransferDiterimaBarangBreakdown: imputasiUpdates.transferBerjalan?.badanUsaha?.imputasiTransferDiterimaBarangBreakdown
     },
     rumahTanggaLain: {
       ...data.transferBerjalan?.rumahTanggaLain,
       // Use imputasi-calculated value from food data (includes M-N categories)
-      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.rumahTanggaLain?.imputasiTransferDiterimaBarang || 0
+      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.rumahTanggaLain?.imputasiTransferDiterimaBarang || 0,
+      imputasiTransferDiterimaBarangBreakdown: imputasiUpdates.transferBerjalan?.rumahTanggaLain?.imputasiTransferDiterimaBarangBreakdown
     },
     lembagaNirlaba: {
       ...data.transferBerjalan?.lembagaNirlaba,
-      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.lembagaNirlaba?.imputasiTransferDiterimaBarang
+      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.lembagaNirlaba?.imputasiTransferDiterimaBarang,
+      imputasiTransferDiterimaBarangBreakdown: imputasiUpdates.transferBerjalan?.lembagaNirlaba?.imputasiTransferDiterimaBarangBreakdown
     },
     luarNegeri: {
       ...data.transferBerjalan?.luarNegeri,
-      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.luarNegeri?.imputasiTransferDiterimaBarang
+      imputasiTransferDiterimaBarang: imputasiUpdates.transferBerjalan?.luarNegeri?.imputasiTransferDiterimaBarang,
+      imputasiTransferDiterimaBarangBreakdown: imputasiUpdates.transferBerjalan?.luarNegeri?.imputasiTransferDiterimaBarangBreakdown
     }
   };
 
