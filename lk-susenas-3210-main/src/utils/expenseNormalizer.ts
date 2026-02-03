@@ -29,10 +29,8 @@ export const getNormalizedExpenseTotals = (expense: FoodExpense | NonFoodExpense
         produksiSendiri += nilai;
       }
     });
-  }
-
-  // FALLBACK: If no entries with values found, use direct fields
-  if (pembelian === 0 && produksiSendiri === 0) {
+  } else {
+    // FALLBACK: If no entries array, use direct fields
     pembelian = expense.pembelian || 0;
     produksiSendiri = expense.produksiSendiri || 0;
   }
