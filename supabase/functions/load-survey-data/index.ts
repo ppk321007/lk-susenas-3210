@@ -201,6 +201,11 @@ function parseExpenseCell(cellValue: string): { entries: Array<{ nilai: number; 
 
 // Parse per-member expense cell format for M and N categories
 // Format: ART0_MemberName_Value_Category_Detail... || ART1_MemberName_Value_Category_Detail...
+/**
+ * Parse per-member expense cells for M-N categories
+ * Expected format: ART0_MemberName~~Value~~Category~~Detail || ART1_MemberName~~Value~~Category~~Detail
+ * Uses ~~ delimiter to avoid conflicts with underscores in member names and jenisDetail text
+ */
 function parsePerMemberExpenseCell(cellValue: string, categoryKey: string): Record<string, { entries: Array<{ nilai: number; kategori: string; jenisDetail: string }> }> {
   const result: Record<string, { entries: Array<{ nilai: number; kategori: string; jenisDetail: string }> }> = {};
   
@@ -220,15 +225,15 @@ function parsePerMemberExpenseCell(cellValue: string, categoryKey: string): Reco
       const items = categoryGroup.split('; ').filter(Boolean);
       
       for (const item of items) {
-        // Format: ART{index}_MemberName_Value_Category_Detail
+        // Format: ART{index}_MemberName~~Value~~Category~~Detail
         // First extract the ART index
         const artMatch = item.match(/^ART(\d+)_(.+)$/);
         if (artMatch) {
           const memberIndex = parseInt(artMatch[1]);
-          const restOfItem = artMatch[2]; // MemberName_Value_Category_Detail
+          const restOfItem = artMatch[2]; // MemberName~~Value~~Category~~Detail
           
-          // Now parse the rest: split by underscore
-          const parts = restOfItem.split('_');
+          // Now parse the rest: split by ~~ delimiter
+          const parts = restOfItem.split('~~');
           // parts[0] = MemberName, parts[1] = Value, parts[2] = Category, parts[3] = Detail
           if (parts.length >= 4) {
             const nilai = parseFloat(parts[1]) || 0;

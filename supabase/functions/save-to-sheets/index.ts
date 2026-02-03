@@ -170,6 +170,13 @@ function extractSpreadsheetId(input: string): string {
 // Format: ItemName_Value_Category_Detail; ItemName_Value_Category_Detail | ItemName_Value_Category_Detail
 // "|" separates different categories (Pembelian vs Pemberian)
 // ";" separates different entries within the same category
+/**
+ * Format expense entry for saving to sheets
+ * For entries array format (used by M-N per-member entries):
+ *   Format: ART{i}_MemberName~~Value~~Category~~Detail (uses ~~ delimiter to avoid conflicts with underscores in names)
+ * For direct format (legacy):
+ *   Format: ItemName~~Value~~Type~~Detail
+ */
 function formatExpenseEntry(itemName: string, expense: any, categoryKey: string): string {
   // Check if expense has entries array (EnhancedExpenseInput format)
   if (expense.entries && Array.isArray(expense.entries) && expense.entries.length > 0) {
@@ -179,7 +186,8 @@ function formatExpenseEntry(itemName: string, expense: any, categoryKey: string)
     for (const entry of expense.entries) {
       if (entry.nilai > 0) {
         const detail = entry.jenisDetail || entry.kategori;
-        const formatted = `${itemName}_${entry.nilai}_${entry.kategori}_${detail}`;
+        // Use ~~ as delimiter instead of _ to avoid conflicts with itemName that contains _
+        const formatted = `${itemName}~~${entry.nilai}~~${entry.kategori}~~${detail}`;
         
         if (entry.kategori === 'Pembelian') {
           pembelianEntries.push(formatted);
@@ -206,12 +214,12 @@ function formatExpenseEntry(itemName: string, expense: any, categoryKey: string)
   
   if (expense.pembelian && expense.pembelian > 0) {
     const detail = expense.jenisPembelian || 'pembelian tunai';
-    pembelianEntries.push(`${itemName}_${expense.pembelian}_pembelian_${detail}`);
+    pembelianEntries.push(`${itemName}~~${expense.pembelian}~~pembelian~~${detail}`);
   }
   
   if (expense.produksiSendiri && expense.produksiSendiri > 0) {
     const detail = expense.jenisProduksiSendiri || 'produksi sendiri';
-    pemberianEntries.push(`${itemName}_${expense.produksiSendiri}_produksi sendiri_${detail}`);
+    pemberianEntries.push(`${itemName}~~${expense.produksiSendiri}~~produksi sendiri~~${detail}`);
   }
   
   const parts: string[] = [];
