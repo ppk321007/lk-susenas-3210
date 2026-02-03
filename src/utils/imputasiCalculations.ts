@@ -60,6 +60,12 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   Object.entries(data.makananMinuman || {}).forEach(([key, expense]) => {
     if (!expense) return;
 
+    // Special debug log for M-N categories
+    if (key.startsWith('M_') || key.startsWith('N_')) {
+      console.log(`📊 FOOD CATEGORY ${key}:`, expense);
+      console.log(`   - entries exist: ${!!expense.entries}, length: ${expense.entries?.length || 0}`);
+    }
+
     // Process entries array if available
     if (expense.entries && Array.isArray(expense.entries) && expense.entries.length > 0) {
       console.log(`Processing entries for category: ${key}`, expense.entries);
@@ -207,7 +213,7 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         // 6. BLOK VE - Rumah Tangga Lain - Imputasi Transfer Diterima Barang
         if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
           rumahTanggaLainImputasiBarang += yearlyValue;
-          console.log(`✓ BLOK VE Rumah Tangga Lain: rumahTanggaLainImputasiBarang += ${yearlyValue} = ${rumahTanggaLainImputasiBarang}`);
+          console.log(`✓ BLOK VE Rumah Tangga Lain: rumahTanggaLainImputasiBarang += ${yearlyValue} = ${rumahTanggaLainImputasiBarang} | From category: ${key}`);
         }
 
         // 7. BLOK VE - Lembaga Nirlaba - Imputasi Transfer Diterima Barang

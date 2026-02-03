@@ -37,12 +37,14 @@ export const EnhancedExpenseInput = ({
   const entries = value.entries || [];
 
   const addEntry = () => {
-    const newEntries = [...entries, { 
+    const newEntry = { 
       nilai: 0, 
       kategori: 'Pembelian' as const, 
       jenisDetail: '',
       periode: periode // Set the period based on context
-    }];
+    };
+    console.log(`✏️ EnhancedExpenseInput.addEntry(): Creating new entry with periode='${periode}':`, newEntry);
+    const newEntries = [...entries, newEntry];
     updateEntries(newEntries);
   };
 
@@ -54,6 +56,7 @@ export const EnhancedExpenseInput = ({
   const updateEntry = (index: number, field: keyof ExpenseEntry, newValue: any) => {
     const newEntries = [...entries];
     newEntries[index] = { ...newEntries[index], [field]: newValue };
+    console.log(`✏️ EnhancedExpenseInput.updateEntry(${index}): ${field} = '${newValue}' | Full entry:`, newEntries[index]);
     updateEntries(newEntries);
   };
 
