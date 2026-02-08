@@ -599,20 +599,9 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     }
 
     // === BLOK VE - Transfer Diterima Barang from Other Sources ===
-    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
-      rumahTanggaLainImputasiBarang += yearlyValue;
-      console.log(`✓ Non-Food BLOK VE Rumah Tangga Lain: rumahTanggaLainImputasiBarang += ${yearlyValue} = ${rumahTanggaLainImputasiBarang}`);
-    }
-
-    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
-      lembagaNirlabaImputasiBarang += yearlyValue;
-      console.log(`✓ Non-Food BLOK VE Lembaga Nirlaba: lembagaNirlabaImputasiBarang += ${yearlyValue} = ${lembagaNirlabaImputasiBarang}`);
-    }
-
-    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
-      luarNegeriImputasiBarang += yearlyValue;
-      console.log(`✓ Non-Food BLOK VE Luar Negeri: luarNegeriImputasiBarang += ${yearlyValue} = ${luarNegeriImputasiBarang}`);
-    }
+    // NOTE: rumahTanggaLain, lembagaNirlaba, luarNegeri accumulation is already done
+    // in the inline checks above (lines ~404-449) where breakdowns are also pushed.
+    // Do NOT accumulate again here to avoid double counting.
 
     // === BLOK VII - Transaksi Keuangan Imputasi Rules ===
     if (kategori === 'Pembelian' && (
