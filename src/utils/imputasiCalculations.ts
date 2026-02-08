@@ -19,9 +19,19 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
   const luarNegeriBreakdown: Array<{ label: string; nilai: number; periode?: string; yearly: number; formula: string }> = [];
   const badanUsahaBreakdown: Array<{ label: string; nilai: number; periode?: string; yearly: number; formula: string }> = [];
 
+  // Helper to clean up raw item keys for display (removes prefixes like "C_yearly_", "A_", etc.)
+  const cleanItemLabel = (rawKey: string): string => {
+    // Remove patterns like "A_yearly_", "C_yearly_", "B_monthly_", etc.
+    let cleaned = rawKey.replace(/^[A-Z]_(?:yearly|monthly)_/, '');
+    // Remove single letter category prefixes like "A_", "B_", etc.
+    cleaned = cleaned.replace(/^[A-Z]_/, '');
+    return cleaned;
+  };
+
   // Helper to build human readable formula for an entry
   const buildFormulaForEntry = (label: string, rawNilai: number, periode: string | undefined, yearly: number) => {
     const formatter = new Intl.NumberFormat('id-ID');
+    const cleanLabel = cleanItemLabel(label);
     let multiplierText = '';
     if (!periode || periode === 'minggu' || periode === 'weekly') {
       multiplierText = '× 30/7 × 12';
@@ -32,7 +42,7 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     } else {
       multiplierText = '× 30/7 × 12';
     }
-    return `${label} Rp ${formatter.format(rawNilai)} ${multiplierText} = Rp ${formatter.format(yearly)}`;
+    return `${cleanLabel} Rp ${formatter.format(rawNilai)} ${multiplierText} = Rp ${formatter.format(yearly)}`;
   };
   let lembagaNirlabaImputasiBarang = 0;
   let luarNegeriImputasiBarang = 0;
@@ -273,13 +283,13 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
         if (isPemberianKategori(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
           rumahTanggaLainImputasiBarang += yearlyValue;
           // build readable label
-          let label = key;
+          let label = cleanItemLabel(key);
           try {
             const underscoreIndex = key.indexOf('_');
             if (underscoreIndex > -1) {
               const prefix = key.substring(0, underscoreIndex);
               const rest = key.substring(underscoreIndex + 1);
-              label = rest;
+              label = cleanItemLabel(rest);
               if ((prefix === 'M' || prefix === 'N') && data && Array.isArray((data as any).namaAnggotaRumahTangga)) {
                 const idx = parseInt(rest, 10);
                 if (!isNaN(idx) && (data as any).namaAnggotaRumahTangga[idx]) {
@@ -288,13 +298,12 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
               }
             }
           } catch (e) {
-            label = key;
+            label = cleanItemLabel(key);
           }
 
-          const formatter = new Intl.NumberFormat('id-ID');
           const rawNilai = entry.nilai || 0;
           const yearly = yearlyValue;
-          const formula = `${label} Rp ${formatter.format(rawNilai)} × 30/7 × 12 = Rp ${formatter.format(yearly)}`;
+          const formula = buildFormulaForEntry(label, rawNilai, entry.periode, yearly);
           rumahTanggaLainBreakdown.push({ label, nilai: rawNilai, periode: entry.periode, yearly, formula });
 
           const source = (key.startsWith('M_') || key.startsWith('N_')) ? `(M-N: ${key})` : '';
@@ -395,15 +404,15 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
               // push breakdowns for non-food where applicable
               if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
                 lembagaNirlabaImputasiBarang += yearlyValue;
-                lembagaNirlabaBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'bulan', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'bulan', yearlyValue) });
+                lembagaNirlabaBreakdown.push({ label: cleanItemLabel(itemKey), nilai: entry.nilai || 0, periode: entry.periode || 'bulan', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'bulan', yearlyValue) });
               }
               if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
                 luarNegeriImputasiBarang += yearlyValue;
-                luarNegeriBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'bulan', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'bulan', yearlyValue) });
+                luarNegeriBreakdown.push({ label: cleanItemLabel(itemKey), nilai: entry.nilai || 0, periode: entry.periode || 'bulan', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'bulan', yearlyValue) });
               }
               if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
                 rumahTanggaLainImputasiBarang += yearlyValue;
-                rumahTanggaLainBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'bulan', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'bulan', yearlyValue) });
+                rumahTanggaLainBreakdown.push({ label: cleanItemLabel(itemKey), nilai: entry.nilai || 0, periode: entry.periode || 'bulan', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'bulan', yearlyValue) });
               }
               processNonFoodEntry(entry.kategori, entry.jenisDetail, yearlyValue, itemKey, 'monthly');
             }
@@ -428,15 +437,15 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
             // push breakdowns for yearly non-food entries
             if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Lembaga Nirlaba (Sumbangan dari Masjid, Gereja, Panti, dll)') {
               lembagaNirlabaImputasiBarang += yearlyValue;
-              lembagaNirlabaBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'tahun', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'tahun', yearlyValue) });
+              lembagaNirlabaBreakdown.push({ label: cleanItemLabel(itemKey), nilai: entry.nilai || 0, periode: entry.periode || 'tahun', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'tahun', yearlyValue) });
             }
             if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Luar Negeri (Sumbangan dari LSM Luar Negeri)') {
               luarNegeriImputasiBarang += yearlyValue;
-              luarNegeriBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'tahun', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'tahun', yearlyValue) });
+              luarNegeriBreakdown.push({ label: cleanItemLabel(itemKey), nilai: entry.nilai || 0, periode: entry.periode || 'tahun', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'tahun', yearlyValue) });
             }
             if (isPemberianKategoriNonFood(entry.kategori) && entry.jenisDetail === 'Pemberian dari Rumah Tangga Lain') {
               rumahTanggaLainImputasiBarang += yearlyValue;
-              rumahTanggaLainBreakdown.push({ label: itemKey, nilai: entry.nilai || 0, periode: entry.periode || 'tahun', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'tahun', yearlyValue) });
+              rumahTanggaLainBreakdown.push({ label: cleanItemLabel(itemKey), nilai: entry.nilai || 0, periode: entry.periode || 'tahun', yearly: yearlyValue, formula: buildFormulaForEntry(itemKey, entry.nilai || 0, entry.periode || 'tahun', yearlyValue) });
             }
             processNonFoodEntry(entry.kategori, entry.jenisDetail, yearlyValue, itemKey, 'yearly');
           }
@@ -545,7 +554,8 @@ export const calculateImputasiFromFood = (data: SurveyData): Partial<SurveyData>
     }
 
     // === BLOK VC - Imputasi Nilai Produksi Hasil Pertanian Rules ===
-    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Berasal dari Produksi Sendiri') {
+    // Exclude "Rumah milik sendiri" - it goes to perkiraanSewaRumahImputasi instead (Rule 11)
+    if (isPemberianKategoriNonFood(kategori) && jenisDetail === 'Berasal dari Produksi Sendiri' && itemKey !== 'Rumah milik sendiri') {
       hasilPertanianImputasi += yearlyValue;
       console.log(`✓ Non-Food BLOK VC: hasilPertanianImputasi += ${yearlyValue} = ${hasilPertanianImputasi}`);
     }
