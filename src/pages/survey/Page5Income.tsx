@@ -411,8 +411,7 @@ export const Page5Income = ({
                   <td className="border border-gray-300 p-2 text-right bg-amber-50">
                     <ImputasiTooltip 
                       value={data.produksiSendiri?.hasilPertanian?.imputasiNilaiProduksi || 0}
-                      originalValue={data.produksiSendiri?.hasilPertanian?.nilaiProduksi || 0}
-                      conversionText="(sama dengan Nilai Produksi)"
+                      formula={`Dihitung dari total konsumsi dengan kategori "Produksi Sendiri" dan detail "Berasal dari Produksi Sendiri" yang dikonversi ke setahun`}
                       label="Imputasi Hasil Pertanian"
                     >
                       Rp {formatNumber(data.produksiSendiri?.hasilPertanian?.imputasiNilaiProduksi || 0)}
